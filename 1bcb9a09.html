@@ -1,1 +1,465 @@
-<!DOCTYPE html><html lang="zh-Hans"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><meta name="description" content="Redigo 源码分析"><meta name="keywords" content="redis,sdk"><meta name="author" content="Happen"><meta name="copyright" content="Happen"><title>Redigo 源码分析 | Happen's Memo</title><link rel="shortcut icon" href="/images/dolphin.png"><link rel="stylesheet" href="/css/index.css?version=1.6.1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@latest/css/font-awesome.min.css?version=1.6.1"><link rel="dns-prefetch" href="https://cdn.staticfile.org"><link rel="dns-prefetch" href="https://cdn.bootcss.com"><link rel="dns-prefetch" href="https://creativecommons.org"><link rel="dns-prefetch" href="https://hm.baidu.com"><script>var _hmt=_hmt||[];!function(){var e=document.createElement("script");e.src="https://hm.baidu.com/hm.js?882b48640075e00a238ae94a7eec0d40";var t=document.getElementsByTagName("script")[0];t.parentNode.insertBefore(e,t)}()</script><link rel="dns-prefetch" href="https://www.google-analytics.com"><script>!function(e,a,t,n,c,g,o){e.GoogleAnalyticsObject=c,e.ga=e.ga||function(){(e.ga.q=e.ga.q||[]).push(arguments)},e.ga.l=1*new Date,g=a.createElement(t),o=a.getElementsByTagName(t)[0],g.async=1,g.src="https://www.google-analytics.com/analytics.js",o.parentNode.insertBefore(g,o)}(window,document,"script",0,"ga"),ga("create","RRBput3V2WYVZd2lq058Z4IwJEhViOwuMElqkWh6bcA","auto"),ga("send","pageview")</script><script>var GLOBAL_CONFIG={root:"/",algolia:void 0,localSearch:{path:"search.xml",languages:{hits_empty:"找不到您查询的内容:${query}"}},copy:{success:"复制成功",error:"复制错误",noSupport:"浏览器不支持"}}</script></head><body><i class="fa fa-arrow-right" id="toggle-sidebar" aria-hidden="true"></i><div id="sidebar"><div class="toggle-sidebar-info text-center"><span data-toggle="切换文章详情">切换站点概览</span><hr></div><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar"></div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-代码结构"><span class="toc-number">1.</span> <span class="toc-text">1. 代码结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-创建连接"><span class="toc-number">2.</span> <span class="toc-text">2. 创建连接</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-请求与接收"><span class="toc-number">3.</span> <span class="toc-text">3. 请求与接收</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1-发送命令"><span class="toc-number">3.1.</span> <span class="toc-text">3.1 发送命令</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-响应解析"><span class="toc-number">3.2.</span> <span class="toc-text">3.2 响应解析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-3-关闭连接"><span class="toc-number">3.3.</span> <span class="toc-text">3.3 关闭连接</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-pool-的分析"><span class="toc-number">4.</span> <span class="toc-text">4. pool 的分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#4-1-老版本-pool"><span class="toc-number">4.1.</span> <span class="toc-text">4.1 老版本 pool</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-1-从-pool-获取连接"><span class="toc-number">4.1.1.</span> <span class="toc-text">4.1.1 从 pool 获取连接</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-2-向-pool-return-连接"><span class="toc-number">4.1.2.</span> <span class="toc-text">4.1.2 向 pool return 连接</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-2-新版本-pool"><span class="toc-number">4.2.</span> <span class="toc-text">4.2 新版本 pool</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-1-从-pool-获取连接"><span class="toc-number">4.2.1.</span> <span class="toc-text">4.2.1 从 pool 获取连接</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-2-从-pool-获取连接"><span class="toc-number">4.2.2.</span> <span class="toc-text">4.2.2 从 pool 获取连接</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-3-分析"><span class="toc-number">4.3.</span> <span class="toc-text">4.3 分析</span></a></li></ol></li></ol></div></div><div class="author-info hide"><div class="author-info__avatar text-center"><img src="/images/avatar.png"></div><div class="author-info__name text-center">Happen</div><div class="author-info__description text-center">浮生若梦，为欢几何</div><hr><div class="author-info-articles"><a class="author-info-articles__archives article-meta" href="/archives"><span class="pull-left">文章</span><span class="pull-right">39</span></a><a class="author-info-articles__tags article-meta" href="/tags"><span class="pull-left">标签</span><span class="pull-right">14</span></a><a class="author-info-articles__categories article-meta" href="/categories"><span class="pull-left">分类</span><span class="pull-right">7</span></a></div><hr><div class="author-info-links"><div class="author-info-links__title text-center">Links</div><a class="author-info-links__name text-center" href="http://renrenlove.me/" target="_blank" rel="noopener">Galway</a><a class="author-info-links__name text-center" href="http://kvguru.com/" target="_blank" rel="noopener">Wangbin</a></div></div></div><div id="content-outer"><div id="top-container" style="background-image:url(https://s2.ax1x.com/2019/11/17/Mr5txK.jpg)"><div id="page-header"> <span class="pull-left"><a id="site-name" href="/">Happen's Memo</a></span><i class="fa fa-bars toggle-menu pull-right" aria-hidden="true"></i><span class="pull-right menus"><a class="site-page social-icon search"><i class="fa fa-search"></i> <span>搜索</span></a><a class="site-page" href="/">Home</a><a class="site-page" href="/archives">Archives</a><a class="site-page" href="/tags">Tags</a><a class="site-page" href="/categories">Categories</a></span></div><div id="post-info"><div id="post-title">Redigo 源码分析</div><div id="post-meta"><time class="post-meta__date"><i class="fa fa-calendar" aria-hidden="true"></i> 2019-06-23</time><span class="post-meta__separator">|</span><i class="fa fa-inbox post-meta__icon" aria-hidden="true"></i><a class="post-meta__categories" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a><div class="post-meta-wordcount"><span>字数总计:</span> <span class="word-count">4.2k</span><span class="post-meta__separator">|</span><span>阅读时长: 19 分钟</span></div></div></div></div><div class="layout" id="content-inner"><article id="post"><div class="article-container" id="post-content"><p>使用 golang 开发项目时经常会使用到 redis 服务，这时就需要一个趁手的 sdk，所以就在 github 中找了一个 star 较多的项目，这就是本篇的主角 <strong>redigo</strong>，同时这也是redis 的<a href="https://redis.io/clients#go" target="_blank" rel="noopener">官方推荐</a>。</p><p>不过在使用过程中遇到了一些小问题，因此就去了解了一下源码，以下作为一个笔记。</p><a id="more"></a><p>redigo 项目代码量较少，且注释明确，适合阅读学习。<br>redigo 主要完成了以下功能:</p><ul><li><p>与 redis server 建立连接</p></li><li><p>按照 <a href="https://redis.io/topics/protocol" target="_blank" rel="noopener">RESP</a> 协议进行命令组装</p></li><li><p>向 Redis server 发送组装好的命令</p></li><li><p>接收 Redis server 返回的数据</p></li><li><p>将返回数据解析成 go 的数据类型</p></li><li><p>提供连接池的使用方式</p></li></ul><h2 id="1-代码结构"><a href="#1-代码结构" class="headerlink" title="1. 代码结构"></a>1. 代码结构</h2><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">redis</span><br><span class="line">├── conn.go  // 实现 redis.go 中定义的接口，完成以上主要功能</span><br><span class="line">├── conn_test.go</span><br><span class="line">├── doc.go</span><br><span class="line">├── go17.go</span><br><span class="line">├── log.go</span><br><span class="line">├── pool.go // pool 相关代码</span><br><span class="line">├── pool_test.go</span><br><span class="line">├── pre_go17.go</span><br><span class="line">├── pubsub.go</span><br><span class="line">├── pubsub_test.go</span><br><span class="line">├── redis.go // 定义接口</span><br><span class="line">├── reply.go // 返回数据的类型转换</span><br><span class="line">├── reply_test.go</span><br><span class="line">├── scan.go</span><br><span class="line">├── scan_test.go</span><br><span class="line">├── script.go // lua 脚本相关代码</span><br><span class="line">├── script_test.go</span><br><span class="line">├── test_test.go</span><br><span class="line">└── zpop_example_test.go</span><br></pre></td></tr></table></figure><p>项目主体主要有以上代码组成。</p><h2 id="2-创建连接"><a href="#2-创建连接" class="headerlink" title="2. 创建连接"></a>2. 创建连接</h2><p>代码位于文件 <code>conn.go</code>，要创建的连接是一个自定义的数据结构 <code>conn</code>，如下，</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// conn is the low-level implementation of Conn</span></span><br><span class="line"><span class="keyword">type</span> conn <span class="keyword">struct</span> &#123;</span><br><span class="line">    <span class="comment">// Shared</span></span><br><span class="line">    mu      sync.Mutex</span><br><span class="line">    pending <span class="keyword">int</span> <span class="comment">// 命令计数</span></span><br><span class="line">    err     error</span><br><span class="line">    conn    net.Conn</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Read</span></span><br><span class="line">    readTimeout time.Duration</span><br><span class="line">    br          *bufio.Reader</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Write</span></span><br><span class="line">    writeTimeout time.Duration</span><br><span class="line">    bw           *bufio.Writer</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Scratch space for formatting argument length.</span></span><br><span class="line">    <span class="comment">// '*' or '$', length, "\r\n"</span></span><br><span class="line">    lenScratch [<span class="number">32</span>]<span class="keyword">byte</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Scratch space for formatting integers and floats.</span></span><br><span class="line">    numScratch [<span class="number">40</span>]<span class="keyword">byte</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>创建连接所需要的参数统一封装到结构体 <code>dialOptions</code> 中，如下，</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> dialOptions <span class="keyword">struct</span> &#123;</span><br><span class="line">    readTimeout  time.Duration</span><br><span class="line">    writeTimeout time.Duration</span><br><span class="line">    dial         <span class="function"><span class="keyword">func</span><span class="params">(network, addr <span class="keyword">string</span>)</span> <span class="params">(net.Conn, error)</span></span></span><br><span class="line">    db           <span class="keyword">int</span></span><br><span class="line">    password     <span class="keyword">string</span></span><br><span class="line">    dialTLS      <span class="keyword">bool</span></span><br><span class="line">    skipVerify   <span class="keyword">bool</span></span><br><span class="line">    tlsConfig    *tls.Config</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>其中包含各种超时设置，创建连接使用的函数，以及 TLS 等。<br>参数设置则封装了一系列 <code>Dialxxxx</code> 函数，如 <code>DialWriteTimeout</code>,</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// DialWriteTimeout specifies the timeout for writing a single command.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">DialWriteTimeout</span><span class="params">(d time.Duration)</span> <span class="title">DialOption</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> DialOption&#123;<span class="function"><span class="keyword">func</span><span class="params">(do *dialOptions)</span></span> &#123;</span><br><span class="line">      do.writeTimeout = d</span><br><span class="line">    &#125;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>同时需要结合如下结构体完成，</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> DialOption <span class="keyword">struct</span> &#123;</span><br><span class="line">  	f <span class="function"><span class="keyword">func</span><span class="params">(*dialOptions)</span></span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>创建连接时使用的是 <code>Dial</code> 函数</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// Dial connects to the Redis server at the given network and</span></span><br><span class="line"><span class="comment">// address using the specified options.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Dial</span><span class="params">(network, address <span class="keyword">string</span>, options ...DialOption)</span> <span class="params">(Conn, error)</span></span> &#123;</span><br><span class="line">    do := dialOptions&#123;</span><br><span class="line">      dial: net.Dial,</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> _, option := <span class="keyword">range</span> options &#123; <span class="comment">// 设置</span></span><br><span class="line">      option.f(&amp;do)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    netConn, err := do.dial(network, address)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// TLS 相关</span></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line"></span><br><span class="line">    c := &amp;conn&#123;</span><br><span class="line">      conn:         netConn,</span><br><span class="line">      bw:           bufio.NewWriter(netConn),</span><br><span class="line">      br:           bufio.NewReader(netConn),</span><br><span class="line">      readTimeout:  do.readTimeout,</span><br><span class="line">      writeTimeout: do.writeTimeout,</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> do.password != <span class="string">""</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> _, err := c.Do(<span class="string">"AUTH"</span>, do.password); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        netConn.Close()</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> do.db != <span class="number">0</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> _, err := c.Do(<span class="string">"SELECT"</span>, do.db); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        netConn.Close()</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> c, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>还有一个类似的 <code>DialURL</code> 函数就不分析了。</p><h2 id="3-请求与接收"><a href="#3-请求与接收" class="headerlink" title="3. 请求与接收"></a>3. 请求与接收</h2><p>非 pipeline 的形式，都是通过 <code>Do</code> 函数去触发这个流程的。</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *conn)</span> <span class="title">Do</span><span class="params">(cmd <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(<span class="keyword">interface</span>&#123;&#125;, error)</span></span> &#123;</span><br><span class="line">    c.mu.Lock() <span class="comment">// 需要更新 pending 变量，加锁串行</span></span><br><span class="line">    pending := c.pending</span><br><span class="line">    c.pending = <span class="number">0</span></span><br><span class="line">    c.mu.Unlock()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> cmd == <span class="string">""</span> &amp;&amp; pending == <span class="number">0</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> c.writeTimeout != <span class="number">0</span> &#123;</span><br><span class="line">      c.conn.SetWriteDeadline(time.Now().Add(c.writeTimeout)) <span class="comment">// 设置写超时</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> cmd != <span class="string">""</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> err := c.writeCommand(cmd, args); err != <span class="literal">nil</span> &#123; <span class="comment">// 将要发送的命令以 RESP 协议写到写buf里</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, c.fatal(err)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> err := c.bw.Flush(); err != <span class="literal">nil</span> &#123; <span class="comment">// buff flush，发送命令</span></span><br><span class="line">      <span class="keyword">return</span> <span class="literal">nil</span>, c.fatal(err)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> c.readTimeout != <span class="number">0</span> &#123;</span><br><span class="line">      c.conn.SetReadDeadline(time.Now().Add(c.readTimeout)) <span class="comment">// 设置写超时</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> cmd == <span class="string">""</span> &#123;</span><br><span class="line">      reply := <span class="built_in">make</span>([]<span class="keyword">interface</span>&#123;&#125;, pending)</span><br><span class="line">      <span class="keyword">for</span> i := <span class="keyword">range</span> reply &#123;</span><br><span class="line">        r, e := c.readReply()</span><br><span class="line">        <span class="keyword">if</span> e != <span class="literal">nil</span> &#123;</span><br><span class="line">          <span class="keyword">return</span> <span class="literal">nil</span>, c.fatal(e)</span><br><span class="line">        &#125;</span><br><span class="line">        reply[i] = r</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> reply, <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> err error</span><br><span class="line">    <span class="keyword">var</span> reply <span class="keyword">interface</span>&#123;&#125;</span><br><span class="line">    <span class="keyword">for</span> i := <span class="number">0</span>; i &lt;= pending; i++ &#123;</span><br><span class="line">      <span class="keyword">var</span> e error</span><br><span class="line">      <span class="keyword">if</span> reply, e = c.readReply(); e != <span class="literal">nil</span> &#123; <span class="comment">// 解析返回值</span></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, c.fatal(e)</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> e, ok := reply.(Error); ok &amp;&amp; err == <span class="literal">nil</span> &#123;</span><br><span class="line">        err = e</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> reply, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h3 id="3-1-发送命令"><a href="#3-1-发送命令" class="headerlink" title="3.1 发送命令"></a>3.1 发送命令</h3><p>发送命令前必须以 RESP 协议序列化，主要用到以下函数，</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *conn)</span> <span class="title">writeCommand</span><span class="params">(cmd <span class="keyword">string</span>, args []<span class="keyword">interface</span>&#123;&#125;)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    c.writeLen(<span class="string">'*'</span>, <span class="number">1</span>+<span class="built_in">len</span>(args)) <span class="comment">// +1 是将 cmd 加上，将参数个数写入 buf， 如*3\r\n</span></span><br><span class="line">    err = c.writeString(cmd)</span><br><span class="line">    <span class="keyword">for</span> _, arg := <span class="keyword">range</span> args &#123;</span><br><span class="line">      <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">switch</span> arg := arg.(<span class="keyword">type</span>) &#123;</span><br><span class="line">      <span class="keyword">case</span> <span class="keyword">string</span>:</span><br><span class="line">        err = c.writeString(arg)</span><br><span class="line">      <span class="keyword">case</span> []<span class="keyword">byte</span>:</span><br><span class="line">        err = c.writeBytes(arg)</span><br><span class="line">      <span class="keyword">case</span> <span class="keyword">int</span>:</span><br><span class="line">        err = c.writeInt64(<span class="keyword">int64</span>(arg))</span><br><span class="line">      <span class="keyword">case</span> <span class="keyword">int64</span>:</span><br><span class="line">        err = c.writeInt64(arg)</span><br><span class="line">      <span class="keyword">case</span> <span class="keyword">float64</span>:</span><br><span class="line">        err = c.writeFloat64(arg)</span><br><span class="line">      <span class="keyword">case</span> <span class="keyword">bool</span>:</span><br><span class="line">        <span class="keyword">if</span> arg &#123;</span><br><span class="line">          err = c.writeString(<span class="string">"1"</span>)</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          err = c.writeString(<span class="string">"0"</span>)</span><br><span class="line">        &#125;</span><br><span class="line">      <span class="keyword">case</span> <span class="literal">nil</span>:</span><br><span class="line">        err = c.writeString(<span class="string">""</span>)</span><br><span class="line">      <span class="keyword">default</span>:</span><br><span class="line">        <span class="keyword">var</span> buf bytes.Buffer</span><br><span class="line">        fmt.Fprint(&amp;buf, arg)</span><br><span class="line">        err = c.writeBytes(buf.Bytes())</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"> <span class="comment">// 用来写参数长度和参数个数，通过前缀传入 * 还是 $ 决定,如 *3\r\n 或者 $3\r\n</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *conn)</span> <span class="title">writeLen</span><span class="params">(prefix <span class="keyword">byte</span>, n <span class="keyword">int</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    c.lenScratch[<span class="built_in">len</span>(c.lenScratch)<span class="number">-1</span>] = <span class="string">'\n'</span></span><br><span class="line">    c.lenScratch[<span class="built_in">len</span>(c.lenScratch)<span class="number">-2</span>] = <span class="string">'\r'</span></span><br><span class="line">    i := <span class="built_in">len</span>(c.lenScratch) - <span class="number">3</span></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">      c.lenScratch[i] = <span class="keyword">byte</span>(<span class="string">'0'</span> + n%<span class="number">10</span>)</span><br><span class="line">      i -= <span class="number">1</span></span><br><span class="line">      n = n / <span class="number">10</span></span><br><span class="line">      <span class="keyword">if</span> n == <span class="number">0</span> &#123;</span><br><span class="line">        <span class="keyword">break</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    c.lenScratch[i] = prefix</span><br><span class="line">    _, err := c.bw.Write(c.lenScratch[i:])</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>循环复用 <code>lenScratch</code> 数组，是个好的设计，不会产生很多小的字符串。</p><p>拼接完了参数个数部分，在再拼接参数部分，项目中实现了一系列<code>writexxx</code> 函数，对不同的类型有不同的拼接方式，以 string 类型为例，</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"> <span class="comment">// 用来拼接每个参数，比如 GET，写成 $3\r\nGET\r\n</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *conn)</span> <span class="title">writeString</span><span class="params">(s <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">truec.writeLen(<span class="string">'$'</span>, <span class="built_in">len</span>(s))</span><br><span class="line">truec.bw.WriteString(s)</span><br><span class="line">true_, err := c.bw.WriteString(<span class="string">"\r\n"</span>)</span><br><span class="line">true<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>按照 RESP 协议的格式将命令拼接完以后需要发出去，通过 <code>bufio</code> 的 <code>Flush</code> 完成。<br>另外，redigo 还支持 pipeline 的返回方式发送请求，使用到的函数是 <code>Send</code> 和 <code>Flush</code>。在 <code>Send</code>中只是把命令写到 bufio 的 buff 里了，<code>Flush</code> 才会发到对端。</p><h3 id="3-2-响应解析"><a href="#3-2-响应解析" class="headerlink" title="3.2 响应解析"></a>3.2 响应解析</h3><p>发送命令成功后， redis server 那边处理完请求后，同样以 RESP 的格式回复。<br>解析函数是 <code>readReply</code>，对照着 RESP 协议看下就好了，还是很简单的。<br>multi bulk reply 可以反复调用 bulk reply 解析函数去递归完成解析。</p><h3 id="3-3-关闭连接"><a href="#3-3-关闭连接" class="headerlink" title="3.3 关闭连接"></a>3.3 关闭连接</h3><p>使用完毕连接以后，需要手动 close 掉，如下，</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *conn)</span> <span class="title">Close</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    c.mu.Lock()</span><br><span class="line">    err := c.err</span><br><span class="line">    <span class="keyword">if</span> c.err == <span class="literal">nil</span> &#123;</span><br><span class="line">      c.err = errors.New(<span class="string">"redigo: closed"</span>)</span><br><span class="line">      err = c.conn.Close()</span><br><span class="line">    &#125;</span><br><span class="line">    c.mu.Unlock()</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h2 id="4-pool-的分析"><a href="#4-pool-的分析" class="headerlink" title="4. pool 的分析"></a>4. pool 的分析</h2><p>很多人在用 redigo 的时候会使用其连接池，因为使用该 sdk 时间较长，发现了 pool 的实现有两个版本。</p><h3 id="4-1-老版本-pool"><a href="#4-1-老版本-pool" class="headerlink" title="4.1 老版本 pool"></a>4.1 老版本 pool</h3><p>主要数据结构为 <code>pool</code>，即</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> Pool <span class="keyword">struct</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Dial is an application supplied function for creating and configuring a</span></span><br><span class="line">    <span class="comment">// connection.</span></span><br><span class="line">    <span class="comment">//</span></span><br><span class="line">    <span class="comment">// The connection returned from Dial must not be in a special state</span></span><br><span class="line">    <span class="comment">// (subscribed to pubsub channel, transaction started, ...).</span></span><br><span class="line">    Dial <span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="params">(Conn, error)</span></span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// TestOnBorrow is an optional application supplied function for checking</span></span><br><span class="line">    <span class="comment">// the health of an idle connection before the connection is used again by</span></span><br><span class="line">    <span class="comment">// the application. Argument t is the time that the connection was returned</span></span><br><span class="line">    <span class="comment">// to the pool. If the function returns an error, then the connection is</span></span><br><span class="line">    <span class="comment">// closed.</span></span><br><span class="line">    <span class="comment">// 检测连接的可用性，从外部注入。如果返回 error 则直接关闭连接</span></span><br><span class="line">    TestOnBorrow <span class="function"><span class="keyword">func</span><span class="params">(c Conn, t time.Time)</span> <span class="title">error</span></span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Maximum number of idle connections in the pool.</span></span><br><span class="line">    <span class="comment">// 最大闲置连接数量</span></span><br><span class="line">    MaxIdle <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Maximum number of connections allocated by the pool at a given time.</span></span><br><span class="line">    <span class="comment">// When zero, there is no limit on the number of connections in the pool.</span></span><br><span class="line">    <span class="comment">// 最大活动连接数,如果为 0，则表示没有限制</span></span><br><span class="line">    MaxActive <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Close connections after remaining idle for this duration. If the value</span></span><br><span class="line">    <span class="comment">// is zero, then idle connections are not closed. Applications should set</span></span><br><span class="line">    <span class="comment">// the timeout to a value less than the server's timeout.</span></span><br><span class="line">    <span class="comment">// 闲置过期时间，在get函数中会有逻辑删除过期的连接</span></span><br><span class="line">    <span class="comment">// 如果不设置，连接就不会过期</span></span><br><span class="line">    IdleTimeout time.Duration</span><br><span class="line"></span><br><span class="line">    <span class="comment">// If Wait is true and the pool is at the MaxActive limit, then Get() waits</span></span><br><span class="line">    <span class="comment">// for a connection to be returned to the pool before returning.</span></span><br><span class="line">    <span class="comment">// 设置如果活动连接达到上限 再获取时候是等待还是返回错误</span></span><br><span class="line">    <span class="comment">// 如果是 false 系统会返回redigo: connection pool exhausted</span></span><br><span class="line">    <span class="comment">// 如果是 true 会让协程等待直到有连接释放出来</span></span><br><span class="line">    Wait <span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// mu protects fields defined below.（主要是与状态相关）</span></span><br><span class="line">    mu     sync.Mutex</span><br><span class="line">    cond   *sync.Cond</span><br><span class="line">    closed <span class="keyword">bool</span></span><br><span class="line">    active <span class="keyword">int</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// Stack of idleConn with most recently used at the front.</span></span><br><span class="line">    idle list.List</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>该版本中使用了条件变量 <code>Cond</code>来协调多协程获取连接池中的连接<br><code>idle</code> 使用的是 go 标准库 container 中的 list 数据结构，其中存放的是池中的连接，每个连接的数据结构如下，</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> idleConn <span class="keyword">struct</span> &#123;</span><br><span class="line">    c Conn</span><br><span class="line">    t time.Time</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p><code>pooledConnection</code> 结构实现了 <code>Conn</code> 接口的所有方法。</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> pooledConnection <span class="keyword">struct</span> &#123;</span><br><span class="line">    p     *Pool <span class="comment">// pool</span></span><br><span class="line">    c     Conn  <span class="comment">// 当前连接</span></span><br><span class="line">    state <span class="keyword">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h4 id="4-1-1-从-pool-获取连接"><a href="#4-1-1-从-pool-获取连接" class="headerlink" title="4.1.1 从 pool 获取连接"></a>4.1.1 从 pool 获取连接</h4><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">Get</span><span class="params">()</span> <span class="title">Conn</span></span> &#123;</span><br><span class="line">    c, err := p.get()</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      <span class="keyword">return</span> errorConnection&#123;err&#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> &amp;pooledConnection&#123;p: p, c: c&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>当从连接池获取不到时就创建一个连接，所以还是重点看如何从连接池获取一个连接。</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">get</span><span class="params">()</span> <span class="params">(Conn, error)</span></span> &#123;</span><br><span class="line">    p.mu.Lock()</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Prune stale connections.(将过期连接的清理放到每次的 get 中)</span></span><br><span class="line">    <span class="comment">// 如果 idletime 没有设置，连接就不会过期，因此也就不必清理</span></span><br><span class="line">    <span class="keyword">if</span> timeout := p.IdleTimeout; timeout &gt; <span class="number">0</span> &#123;</span><br><span class="line">      <span class="keyword">for</span> i, n := <span class="number">0</span>, p.idle.Len(); i &lt; n; i++ &#123;</span><br><span class="line">        e := p.idle.Back() <span class="comment">// 取出最后一个连接</span></span><br><span class="line">        <span class="keyword">if</span> e == <span class="literal">nil</span> &#123;</span><br><span class="line">          <span class="keyword">break</span></span><br><span class="line">        &#125;</span><br><span class="line">        ic := e.Value.(idleConn)</span><br><span class="line">        <span class="keyword">if</span> ic.t.Add(timeout).After(nowFunc()) &#123; <span class="comment">// 没有过期，立刻终止检查</span></span><br><span class="line">          <span class="keyword">break</span></span><br><span class="line">        &#125;</span><br><span class="line">        p.idle.Remove(e)</span><br><span class="line">        p.release() <span class="comment">// 需要操作 active 变量</span></span><br><span class="line">        p.mu.Unlock()</span><br><span class="line">        ic.c.Close() <span class="comment">// 关闭连接</span></span><br><span class="line">        p.mu.Lock()</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">      <span class="comment">// Get idle connection.</span></span><br><span class="line">        <span class="keyword">for</span> i, n := <span class="number">0</span>, p.idle.Len(); i &lt; n; i++ &#123;</span><br><span class="line">          e := p.idle.Front() <span class="comment">// 从最前面取一个连接</span></span><br><span class="line">          <span class="keyword">if</span> e == <span class="literal">nil</span> &#123;       <span class="comment">// idle 里是空的，先退出循环吧</span></span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">          &#125;</span><br><span class="line">          ic := e.Value.(idleConn)</span><br><span class="line">          p.idle.Remove(e)</span><br><span class="line">          test := p.TestOnBorrow</span><br><span class="line">          p.mu.Unlock()</span><br><span class="line">          <span class="keyword">if</span> test == <span class="literal">nil</span> || test(ic.c, ic.t) == <span class="literal">nil</span> &#123; <span class="comment">// 返回这个连接</span></span><br><span class="line">            <span class="keyword">return</span> ic.c, <span class="literal">nil</span></span><br><span class="line">          &#125;</span><br><span class="line">          ic.c.Close() <span class="comment">// 取出来的连接不可用</span></span><br><span class="line">          p.mu.Lock()</span><br><span class="line">          p.release()</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Check for pool closed before dialing a new connection.</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> p.closed &#123;</span><br><span class="line">          p.mu.Unlock()</span><br><span class="line">          <span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"redigo: get on closed pool"</span>)</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Dial new connection if under limit.</span></span><br><span class="line">        <span class="keyword">if</span> p.MaxActive == <span class="number">0</span> || p.active &lt; p.MaxActive &#123;</span><br><span class="line">          dial := p.Dial</span><br><span class="line">          p.active += <span class="number">1</span></span><br><span class="line">          p.mu.Unlock()</span><br><span class="line">          c, err := dial()</span><br><span class="line">          <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            p.mu.Lock()</span><br><span class="line">            p.release()</span><br><span class="line">            p.mu.Unlock()</span><br><span class="line">            c = <span class="literal">nil</span></span><br><span class="line">          &#125;</span><br><span class="line">          <span class="keyword">return</span> c, err</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 到达连接池最大连接数了，要不要等呢？</span></span><br><span class="line">        <span class="keyword">if</span> !p.Wait &#123; <span class="comment">// 不wait的话就直接返回连接池资源耗尽的错误</span></span><br><span class="line">          p.mu.Unlock()</span><br><span class="line">          <span class="keyword">return</span> <span class="literal">nil</span>, ErrPoolExhausted</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> p.cond == <span class="literal">nil</span> &#123;</span><br><span class="line">          p.cond = sync.NewCond(&amp;p.mu)</span><br><span class="line">        &#125;</span><br><span class="line">        p.cond.Wait() <span class="comment">// wait 等待 release 和 put 后有新的连接可用</span></span><br><span class="line">      &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>当有设置 IdleTimeout 时，那么到了每次 <code>get</code> 连接的时候都会从队尾拿一个连接，检查时间是否过期，如果过期，那么把它删掉，然后 <code>release</code>，这个操作一直持久直至找到一个没有过期的连接。</p><p>然后从<strong>队首</strong>拿一个连接，拿到后检查可用后返回，不可用的连接处理方式同上面的过期连接。</p><p>如果这个 pool 的状态已经是 close 了，那么直接返回。把这个检查放在这里，使 closed pool 仍然可以清理一些过期连接，减少内存占用。</p><p>如果 pool 没有设置 MaxActive，或者当前 pool 中的 active 没到阈值，那么可以使用 <code>dial</code>函数创建一个新连接，active 值加 1。</p><p>如果逻辑走到这里还没有取到连接，说明现在 pool 里的连接都被用了，如果不想 <code>wait</code>，那么直接返回 pool 资源耗尽的错误(<code>ErrPoolExhausted</code>)，否则使用 pool 的条件变量 <code>cond</code>进行<code>Wait</code>。我们都知道在 <code>Wait</code>中 会先解锁，然后陷入阻塞等待唤醒。</p><p><code>cond</code>唤醒在 <code>release</code> 函数和<code>put</code>函数中，如下，</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="comment">// release decrements the active count and signals waiters. The caller must</span></span><br><span class="line"><span class="comment">// hold p.mu during the call.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">release</span><span class="params">()</span></span> &#123;</span><br><span class="line">    p.active -= <span class="number">1</span></span><br><span class="line">    <span class="keyword">if</span> p.cond != <span class="literal">nil</span> &#123;</span><br><span class="line">      p.cond.Signal() <span class="comment">// 通知 wait 的请求返回连接</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h4 id="4-1-2-向-pool-return-连接"><a href="#4-1-2-向-pool-return-连接" class="headerlink" title="4.1.2 向 pool return 连接"></a>4.1.2 向 pool return 连接</h4><p>用完连接后要还回去，在调用连接的 <code>Close</code> 函数中会使用 <code>put</code>。</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">put</span><span class="params">(c Conn, forceClose <span class="keyword">bool</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    err := c.Err()</span><br><span class="line">    p.mu.Lock()</span><br><span class="line">    <span class="keyword">if</span> !p.closed &amp;&amp; err == <span class="literal">nil</span> &amp;&amp; !forceClose &#123;</span><br><span class="line">      p.idle.PushFront(idleConn&#123;t: nowFunc(), c: c&#125;) <span class="comment">// 放回头部</span></span><br><span class="line">      <span class="keyword">if</span> p.idle.Len() &gt; p.MaxIdle &#123;</span><br><span class="line">        c = p.idle.Remove(p.idle.Back()).(idleConn).c <span class="comment">// 如果连接池中数量超过了 maxidle，那么从后面删除一个</span></span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        c = <span class="literal">nil</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> c == <span class="literal">nil</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> p.cond != <span class="literal">nil</span> &#123;</span><br><span class="line">        p.cond.Signal() <span class="comment">// 通知</span></span><br><span class="line">      &#125;</span><br><span class="line">      p.mu.Unlock()</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    p.release()</span><br><span class="line">    p.mu.Unlock()</span><br><span class="line">    <span class="keyword">return</span> c.Close()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>将没有出错的连接并且不是别强制关闭的连接放回到 idle list 中，注意，这里是放到<strong>队头</strong>！如果 list 长度大于最大闲置连接数(MaxIdle)，那么从队尾取连接 <code>remove</code>掉。</p><p><code>Signal</code> 唤醒条件变量。</p><h3 id="4-2-新版本-pool"><a href="#4-2-新版本-pool" class="headerlink" title="4.2 新版本 pool"></a>4.2 新版本 pool</h3><p>在版本的 pool 里，自己实现了一个 list，取代 golang 的官方库 list。</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">type</span> idleList <span class="keyword">struct</span> &#123; <span class="comment">// 只记录头尾</span></span><br><span class="line">truecount       <span class="keyword">int</span> <span class="comment">// list 长度</span></span><br><span class="line">truefront, back *poolConn</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> poolConn <span class="keyword">struct</span> &#123; <span class="comment">// 双链表节点</span></span><br><span class="line">truec          Conn</span><br><span class="line">truet          time.Time</span><br><span class="line">truecreated    time.Time</span><br><span class="line">truenext, prev *poolConn</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>同时实现了几个双链表的操作，<code>pushFront</code>、<code>popFront</code> 和 <code>popBack</code>。<br>新版本的 pool 里去掉了条件变量，换上了 channel。</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line">chInitialized <span class="keyword">uint32</span> <span class="comment">// set to 1 when field ch is initialized</span></span><br><span class="line">ch           <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125; <span class="comment">// limits open connections when p.Wait is true</span></span><br><span class="line">idle         idleList      <span class="comment">// idle connections</span></span><br><span class="line">waitCount    <span class="keyword">int64</span>         <span class="comment">// total number of connections waited for.</span></span><br><span class="line">waitDuration time.Duration <span class="comment">// total time waited for new connections.</span></span><br></pre></td></tr></table></figure><p>pool 里的连接个数使用了buffer channel 进行控制，大小为 <code>MaxActive</code>。<br>在第一次从 pool 中获取连接时，进行 channel 来初始化，即</p><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">lazyInit</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// Fast path.</span></span><br><span class="line">    <span class="keyword">if</span> atomic.LoadUint32(&amp;p.chInitialized) == <span class="number">1</span> &#123;</span><br><span class="line">      <span class="keyword">return</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Slow path.</span></span><br><span class="line">    p.mu.Lock()</span><br><span class="line">    <span class="keyword">if</span> p.chInitialized == <span class="number">0</span> &#123;</span><br><span class="line">      p.ch = <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, p.MaxActive)</span><br><span class="line">      <span class="keyword">if</span> p.closed &#123;</span><br><span class="line">        <span class="built_in">close</span>(p.ch)</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; p.MaxActive; i++ &#123;</span><br><span class="line">          p.ch &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      atomic.StoreUint32(&amp;p.chInitialized, <span class="number">1</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    p.mu.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h4 id="4-2-1-从-pool-获取连接"><a href="#4-2-1-从-pool-获取连接" class="headerlink" title="4.2.1 从 pool 获取连接"></a>4.2.1 从 pool 获取连接</h4><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">get</span><span class="params">(ctx context.Context)</span> <span class="params">(*poolConn, error)</span></span> &#123;</span><br><span class="line"></span><br><span class="line">true<span class="comment">// Handle limit for p.Wait == true.</span></span><br><span class="line">    <span class="keyword">var</span> waited time.Duration</span><br><span class="line">    <span class="keyword">if</span> p.Wait &amp;&amp; p.MaxActive &gt; <span class="number">0</span> &#123;</span><br><span class="line">      p.lazyInit()</span><br><span class="line"></span><br><span class="line">      <span class="comment">// wait indicates if we believe it will block so its not 100% accurate</span></span><br><span class="line">      <span class="comment">// however for stats it should be good enough.</span></span><br><span class="line">      wait := <span class="built_in">len</span>(p.ch) == <span class="number">0</span></span><br><span class="line">      <span class="keyword">var</span> start time.Time</span><br><span class="line">      <span class="keyword">if</span> wait &#123;</span><br><span class="line">        start = time.Now()</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> ctx == <span class="literal">nil</span> &#123;</span><br><span class="line">        &lt;-p.ch</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">select</span> &#123;</span><br><span class="line">        <span class="keyword">case</span> &lt;-p.ch:</span><br><span class="line">        <span class="keyword">case</span> &lt;-ctx.Done():</span><br><span class="line">          <span class="keyword">return</span> <span class="literal">nil</span>, ctx.Err()</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> wait &#123;</span><br><span class="line">        waited = time.Since(start)</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    p.mu.Lock()</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> waited &gt; <span class="number">0</span> &#123;</span><br><span class="line">      p.waitCount++</span><br><span class="line">      p.waitDuration += waited</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Prune stale connections at the back of the idle list.</span></span><br><span class="line">    <span class="keyword">if</span> p.IdleTimeout &gt; <span class="number">0</span> &#123;</span><br><span class="line">      n := p.idle.count</span><br><span class="line">      <span class="comment">// 清理过期的 conn</span></span><br><span class="line">      <span class="keyword">for</span> i := <span class="number">0</span>; i &lt; n &amp;&amp; p.idle.back != <span class="literal">nil</span> &amp;&amp; p.idle.back.t.Add(p.IdleTimeout).Before(nowFunc()); i++ &#123;</span><br><span class="line">        pc := p.idle.back</span><br><span class="line">        p.idle.popBack()</span><br><span class="line">        p.mu.Unlock()</span><br><span class="line">        pc.c.Close()</span><br><span class="line">        p.mu.Lock()</span><br><span class="line">        p.active--</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Get idle connection from the front of idle list.</span></span><br><span class="line">    <span class="keyword">for</span> p.idle.front != <span class="literal">nil</span> &#123;</span><br><span class="line">      pc := p.idle.front</span><br><span class="line">      p.idle.popFront() <span class="comment">// 从前面获取一个连接</span></span><br><span class="line">      p.mu.Unlock()</span><br><span class="line">      <span class="keyword">if</span> (p.TestOnBorrow == <span class="literal">nil</span> || p.TestOnBorrow(pc.c, pc.t) == <span class="literal">nil</span>) &amp;&amp;</span><br><span class="line">        (p.MaxConnLifetime == <span class="number">0</span> || nowFunc().Sub(pc.created) &lt; p.MaxConnLifetime) &#123;</span><br><span class="line">        <span class="keyword">return</span> pc, <span class="literal">nil</span></span><br><span class="line">      &#125;</span><br><span class="line">      pc.c.Close()</span><br><span class="line">      p.mu.Lock()</span><br><span class="line">      p.active--</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Check for pool closed before dialing a new connection.</span></span><br><span class="line">    <span class="keyword">if</span> p.closed &#123;</span><br><span class="line">      p.mu.Unlock()</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"redigo: get on closed pool"</span>)</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Handle limit for p.Wait == false.</span></span><br><span class="line">    <span class="keyword">if</span> !p.Wait &amp;&amp; p.MaxActive &gt; <span class="number">0</span> &amp;&amp; p.active &gt;= p.MaxActive &#123;</span><br><span class="line">      p.mu.Unlock()</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">nil</span>, ErrPoolExhausted</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 新建连接，更新 active</span></span><br><span class="line">    p.active++</span><br><span class="line">    p.mu.Unlock()</span><br><span class="line">    c, err := p.dial(ctx)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">      c = <span class="literal">nil</span></span><br><span class="line">      p.mu.Lock()</span><br><span class="line">      p.active--</span><br><span class="line">      <span class="keyword">if</span> p.ch != <span class="literal">nil</span> &amp;&amp; !p.closed &#123;</span><br><span class="line">        p.ch &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125; <span class="comment">// 连接创建不成功，将这个名额还给 channel</span></span><br><span class="line">      &#125;</span><br><span class="line">      p.mu.Unlock()</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> &amp;poolConn&#123;c: c, created: nowFunc()&#125;, err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>可以看到只有在连接池满了愿意等待时，才回初始化 buffer channel，即调用 <code>lazyInit</code> 函数，省去了不必要的内存占用，可以借鉴。<br>当连接池已满，则 channel 为空，此时取连接的流程会阻塞在 <code>&lt;-p.ch</code>，这跟上一版本的 <code>cond.Wait()</code> 有相同的作用。<br>有相同的清理过期连接的逻辑，以及连接创建逻辑。</p><h4 id="4-2-2-从-pool-获取连接"><a href="#4-2-2-从-pool-获取连接" class="headerlink" title="4.2.2 从 pool 获取连接"></a>4.2.2 从 pool 获取连接</h4><figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Pool)</span> <span class="title">put</span><span class="params">(pc *poolConn, forceClose <span class="keyword">bool</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">    p.mu.Lock()</span><br><span class="line">    <span class="keyword">if</span> !p.closed &amp;&amp; !forceClose &#123;</span><br><span class="line">      pc.t = nowFunc()</span><br><span class="line">      p.idle.pushFront(pc)          <span class="comment">// 访问头部</span></span><br><span class="line">      <span class="keyword">if</span> p.idle.count &gt; p.MaxIdle &#123; <span class="comment">// 超出了 MaxIdle 的数量的话，从后面踢掉最后面的一个</span></span><br><span class="line">        pc = p.idle.back</span><br><span class="line">        p.idle.popBack()</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        pc = <span class="literal">nil</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> pc != <span class="literal">nil</span> &#123;</span><br><span class="line">      p.mu.Unlock()</span><br><span class="line">      pc.c.Close()</span><br><span class="line">      p.mu.Lock()</span><br><span class="line">      p.active--</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> p.ch != <span class="literal">nil</span> &amp;&amp; !p.closed &#123;</span><br><span class="line">      p.ch &lt;- <span class="keyword">struct</span>&#123;&#125;&#123;&#125; <span class="comment">// 放回池子</span></span><br><span class="line">    &#125;</span><br><span class="line">    p.mu.Unlock()</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p><code>ch</code> 控制着 pool 中连接的数量，当取走一个时，需要 <code>&lt;-ch</code>，当还回一个时，需要 <code>ch &lt;- struct{}{}</code>。<br>另外，还要考虑到某些失败的情况，是否需要将配额还回 <code>ch</code>。</p><h3 id="4-3-分析"><a href="#4-3-分析" class="headerlink" title="4.3 分析"></a>4.3 分析</h3><p>从上面的代码可以看出，不管哪个版本的 pool，获得连接是从<strong>队首</strong>获取，还连接也是从<strong>队首</strong>还，淘汰过期连接或者多出的连接是从<strong>队尾</strong>淘汰。<br>另外，新版本的 pool 实现比老版本更加符合 golang 的语言风格。<br>从某种角度讲，这种 pool 的管理方式会造成<strong>某些连接过热</strong>的情况，即负载均衡不均，尤其是过期时间设置不合理的情况下，需慎重使用。</p></div></article><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/redis/">redis</a><a class="post-meta__tags" href="/tags/sdk/">sdk</a></div><div class="social-share" data-disabled="google,facebook,qzone,twitter,diandian,linkedin,qzone,tencent"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js@1.0.16/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js@1.0.16/dist/js/social-share.min.js"></script><nav id="pagination"><div class="prev-post pull-left"><a href="/a4bc6018.html"><i class="fa fa-chevron-left"></i><span>Redis 源码之主从复制(1)</span></a></div><div class="next-post pull-right"><a href="/54df012b.html"><span>Redis 源码之故障转移</span><i class="fa fa-chevron-right"></i></a></div></nav><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script>!function(e,t){var n,c=e.getElementsByTagName(t)[0];"function"!=typeof LivereTower&&((n=e.createElement(t)).src="https://cdn-city.livere.com/js/embed.dist.js",n.async=!0,c.parentNode.insertBefore(n,c))}(document,"script")</script></div></div></div><footer class="footer-bg" style="background-image:url(https://s2.ax1x.com/2019/11/17/Mr5txK.jpg)"><div class="layout" id="footer"><div class="copyright">&copy;&nbsp;2016 - 2020 By Happen</div><div class="framework-info"><span>Powered by</span> <a href="http://hexo.io" target="_blank" rel="noopener"><span>Hexo</span></a><span class="footer-separator">|</span><span>Theme -</span> <a href="https://github.com/Molunerfinn/hexo-theme-melody" target="_blank" rel="noopener"><span>Melody</span></a></div><div class="busuanzi"><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><span id="busuanzi_container_page_pv"><i class="fa fa-file-o"></i><span id="busuanzi_value_page_pv"></span><span></span></span></div></div></footer><i class="fa fa-arrow-up" id="go-up" aria-hidden="true"></i><script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@latest/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-ui-pack@latest/velocity.ui.min.js"></script><script src="/js/utils.js?version=1.6.1"></script><script src="/js/fancybox.js?version=1.6.1"></script><script src="/js/sidebar.js?version=1.6.1"></script><script src="/js/copy.js?version=1.6.1"></script><script src="/js/fireworks.js?version=1.6.1"></script><script src="/js/transition.js?version=1.6.1"></script><script src="/js/scroll.js?version=1.6.1"></script><script src="/js/head.js?version=1.6.1"></script><script src="/js/search/local-search.js"></script><script>/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)&&($("#nav").addClass("is-mobile"),$("footer").addClass("is-mobile"))</script><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a href="https://github.com/wzpan/hexo-generator-search" target="_blank" rel="noopener" style="color:#49b1f5">hexo-generator-search</a> <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fa fa-times"></i></span></div><div class="search-mask"></div></body></html>
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#2f4154"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>Redigo 源码分析 - Happen&#39;s Memo</title><link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css"><link rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css"><link rel="stylesheet" href="/css/main.css"><link defer="defer" rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><link rel="stylesheet" href="/css/custom.css"></head><body><header style="height:70vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"> <a class="navbar-brand" href="/">&nbsp;<strong>Happen's Memo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"> <a class="nav-link" href="/">首页</a></li><li class="nav-item"> <a class="nav-link" href="/archives/">归档</a></li><li class="nav-item"> <a class="nav-link" href="/categories/">分类</a></li><li class="nav-item"> <a class="nav-link" href="/tags/">标签</a></li><li class="nav-item"> <a class="nav-link" href="/about/">关于</a></li><li class="nav-item" id="search-btn"> <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i class="iconfont icon-search"></i>&nbsp;&nbsp;</a></li></ul></div></div></nav><div class="view intro-2" id="background" parallax="true" style="background:url(/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask rgba-black-light flex-center"><div class="container text-center white-text fadeInUp"><span class="h2" id="subtitle"></span><p class="mt-3 post-meta"><i class="fas fa-calendar-alt" aria-hidden="true"></i> 2019/06/23, 星期日, 16:08</p><p class="mt-1"><span class="post-meta"><i class="far fa-chart-bar"></i> 4k 字</span><span class="post-meta"><i class="far fa-clock"></i> 19 分钟</span><span id="busuanzi_container_page_pv" class="post-meta" style="display:none"><i class="far fa-eye" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span> 次</span></p></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5 z-depth-3" id="board"><div class="post-content mx-auto" id="post"><p class="note note-warning">本文最后更新于：2020/04/03, 星期五, 01:59</p><div class="markdown-body"><p>使用 golang 开发项目时经常会使用到 redis 服务，这时就需要一个趁手的 sdk，所以就在 github 中找了一个 star 较多的项目，这就是本篇的主角 <strong>redigo</strong>，同时这也是 redis 的 <a href="https://redis.io/clients#go" target="_blank" rel="noopener">官方推荐</a>。</p><p>不过在使用过程中遇到了一些小问题，因此就去了解了一下源码，以下作为一个笔记。</p><a id="more"></a><p>redigo 项目代码量较少，且注释明确，适合阅读学习。<br> redigo 主要完成了以下功能:</p><ul><li><p>与 redis server 建立连接</p></li><li><p>按照 <a href="https://redis.io/topics/protocol" target="_blank" rel="noopener">RESP</a> 协议进行命令组装</p></li><li><p>向 Redis server 发送组装好的命令</p></li><li><p>接收 Redis server 返回的数据</p></li><li><p>将返回数据解析成 go 的数据类型</p></li><li><p>提供连接池的使用方式</p></li></ul><h2 id="1- 代码结构">1. 代码结构</h2><pre><code class="language-shell">redis
+├── conn.go  // 实现 redis.go 中定义的接口，完成以上主要功能
+├── conn_test.go
+├── doc.go
+├── go17.go
+├── log.go
+├── pool.go // pool 相关代码
+├── pool_test.go
+├── pre_go17.go
+├── pubsub.go
+├── pubsub_test.go
+├── redis.go // 定义接口
+├── reply.go // 返回数据的类型转换
+├── reply_test.go
+├── scan.go
+├── scan_test.go
+├── script.go // lua 脚本相关代码
+├── script_test.go
+├── test_test.go
+└── zpop_example_test.go
+</code></pre><p>项目主体主要有以上代码组成。</p><h2 id="2- 创建连接">2. 创建连接</h2><p>代码位于文件 <code>conn.go</code>，要创建的连接是一个自定义的数据结构 <code>conn</code>，如下，</p><pre><code class="language-go">// conn is the low-level implementation of Conn
+type conn struct {
+    // Shared
+    mu      sync.Mutex
+    pending int // 命令计数
+    err     error
+    conn    net.Conn
+
+    // Read
+    readTimeout time.Duration
+    br          *bufio.Reader
+
+    // Write
+    writeTimeout time.Duration
+    bw           *bufio.Writer
+
+    // Scratch space for formatting argument length.
+    // '*' or '$', length, &quot;\r\n&quot;
+    lenScratch [32]byte
+
+    // Scratch space for formatting integers and floats.
+    numScratch [40]byte
+}
+</code></pre><p>创建连接所需要的参数统一封装到结构体 <code>dialOptions</code> 中，如下，</p><pre><code class="language-go">type dialOptions struct {
+    readTimeout  time.Duration
+    writeTimeout time.Duration
+    dial         func(network, addr string) (net.Conn, error)
+    db           int
+    password     string
+    dialTLS      bool
+    skipVerify   bool
+    tlsConfig    *tls.Config
+}
+</code></pre><p>其中包含各种超时设置，创建连接使用的函数，以及 TLS 等。<br> 参数设置则封装了一系列 <code>Dialxxxx</code> 函数，如 <code>DialWriteTimeout</code>,</p><pre><code class="language-go">// DialWriteTimeout specifies the timeout for writing a single command.
+func DialWriteTimeout(d time.Duration) DialOption {return DialOption{func(do *dialOptions) {do.writeTimeout = d}}
+}
+</code></pre><p>同时需要结合如下结构体完成，</p><pre><code class="language-go">type DialOption struct {f func(*dialOptions)
+}
+</code></pre><p>创建连接时使用的是 <code>Dial</code> 函数</p><pre><code class="language-go">// Dial connects to the Redis server at the given network and
+// address using the specified options.
+func Dial(network, address string, options ...DialOption) (Conn, error) {
+    do := dialOptions{dial: net.Dial,}
+    for _, option := range options { // 设置
+      option.f(&amp;do)
+    }
+
+    netConn, err := do.dial(network, address)
+    if err != nil {return nil, err}
+
+    // TLS 相关
+    // ...
+
+    c := &amp;conn{
+      conn:         netConn,
+      bw:           bufio.NewWriter(netConn),
+      br:           bufio.NewReader(netConn),
+      readTimeout:  do.readTimeout,
+      writeTimeout: do.writeTimeout,
+    }
+
+    if do.password != &quot;&quot; {if _, err := c.Do(&quot;AUTH&quot;, do.password); err != nil {netConn.Close()
+        return nil, err
+      }
+    }
+
+    if do.db != 0 {if _, err := c.Do(&quot;SELECT&quot;, do.db); err != nil {netConn.Close()
+        return nil, err
+      }
+    }
+    return c, nil
+}
+</code></pre><p>还有一个类似的 <code>DialURL</code> 函数就不分析了。</p><h2 id="3- 请求与接收">3. 请求与接收</h2><p>非 pipeline 的形式，都是通过 <code>Do</code> 函数去触发这个流程的。</p><pre><code class="language-go">func (c *conn) Do(cmd string, args ...interface{}) (interface{}, error) {c.mu.Lock() // 需要更新 pending 变量，加锁串行
+    pending := c.pending
+    c.pending = 0
+    c.mu.Unlock()
+
+    if cmd == &quot;&quot; &amp;&amp; pending == 0 {return nil, nil}
+
+    if c.writeTimeout != 0 {c.conn.SetWriteDeadline(time.Now().Add(c.writeTimeout)) // 设置写超时
+    }
+
+    if cmd != &quot;&quot; {if err := c.writeCommand(cmd, args); err != nil { // 将要发送的命令以 RESP 协议写到写 buf 里
+        return nil, c.fatal(err)
+      }
+    }
+
+    if err := c.bw.Flush(); err != nil { // buff flush，发送命令
+      return nil, c.fatal(err)
+    }
+
+    if c.readTimeout != 0 {c.conn.SetReadDeadline(time.Now().Add(c.readTimeout)) // 设置写超时
+    }
+
+    if cmd == &quot;&quot; {reply := make([]interface{}, pending)
+      for i := range reply {r, e := c.readReply()
+        if e != nil {return nil, c.fatal(e)
+        }
+        reply[i] = r
+      }
+      return reply, nil
+    }
+
+    var err error
+    var reply interface{}
+    for i := 0; i &lt;= pending; i++ {
+      var e error
+      if reply, e = c.readReply(); e != nil { // 解析返回值
+        return nil, c.fatal(e)
+      }
+      if e, ok := reply.(Error); ok &amp;&amp; err == nil {err = e}
+    }
+    return reply, err
+}
+</code></pre><h3 id="3-1- 发送命令">3.1 发送命令</h3><p>发送命令前必须以 RESP 协议序列化，主要用到以下函数，</p><pre><code class="language-go">func (c *conn) writeCommand(cmd string, args []interface{}) (err error) {c.writeLen('*', 1+len(args)) // +1 是将 cmd 加上，将参数个数写入 buf， 如 *3\r\n
+    err = c.writeString(cmd)
+    for _, arg := range args {
+      if err != nil {break}
+      switch arg := arg.(type) {
+      case string:
+        err = c.writeString(arg)
+      case []byte:
+        err = c.writeBytes(arg)
+      case int:
+        err = c.writeInt64(int64(arg))
+      case int64:
+        err = c.writeInt64(arg)
+      case float64:
+        err = c.writeFloat64(arg)
+      case bool:
+        if arg {err = c.writeString(&quot;1&quot;)
+        } else {err = c.writeString(&quot;0&quot;)
+        }
+      case nil:
+        err = c.writeString(&quot;&quot;)
+      default:
+        var buf bytes.Buffer
+        fmt.Fprint(&amp;buf, arg)
+        err = c.writeBytes(buf.Bytes())
+      }
+    }
+    return err
+}
+</code></pre><pre><code class="language-go"> // 用来写参数长度和参数个数，通过前缀传入 * 还是 $ 决定, 如 *3\r\n 或者 $3\r\n
+func (c *conn) writeLen(prefix byte, n int) error {c.lenScratch[len(c.lenScratch)-1] = '\n'
+    c.lenScratch[len(c.lenScratch)-2] = '\r'
+    i := len(c.lenScratch) - 3
+    for {c.lenScratch[i] = byte('0' + n%10)
+      i -= 1
+      n = n / 10
+      if n == 0 {break}
+    }
+    c.lenScratch[i] = prefix
+    _, err := c.bw.Write(c.lenScratch[i:])
+    return err
+}
+</code></pre><p>循环复用 <code>lenScratch</code> 数组，是个好的设计，不会产生很多小的字符串。</p><p>拼接完了参数个数部分，在再拼接参数部分，项目中实现了一系列<code>writexxx</code> 函数，对不同的类型有不同的拼接方式，以 string 类型为例，</p><pre><code class="language-go"> // 用来拼接每个参数，比如 GET，写成 $3\r\nGET\r\n
+func (c *conn) writeString(s string) error {c.writeLen('$', len(s))
+	c.bw.WriteString(s)
+	_, err := c.bw.WriteString(&quot;\r\n&quot;)
+	return err
+}
+</code></pre><p>按照 RESP 协议的格式将命令拼接完以后需要发出去，通过 <code>bufio</code> 的 <code>Flush</code> 完成。<br> 另外，redigo 还支持 pipeline 的返回方式发送请求，使用到的函数是 <code>Send</code> 和 <code>Flush</code>。在 <code>Send</code>中只是把命令写到 bufio 的 buff 里了，<code>Flush</code> 才会发到对端。</p><h3 id="3-2- 响应解析">3.2 响应解析</h3><p>发送命令成功后， redis server 那边处理完请求后，同样以 RESP 的格式回复。<br> 解析函数是 <code>readReply</code>，对照着 RESP 协议看下就好了，还是很简单的。<br> multi bulk reply 可以反复调用 bulk reply 解析函数去递归完成解析。</p><h3 id="3-3- 关闭连接">3.3 关闭连接</h3><p>使用完毕连接以后，需要手动 close 掉，如下，</p><pre><code class="language-go">func (c *conn) Close() error {c.mu.Lock()
+    err := c.err
+    if c.err == nil {c.err = errors.New(&quot;redigo: closed&quot;)
+      err = c.conn.Close()}
+    c.mu.Unlock()
+    return err
+}
+</code></pre><h2 id="4-pool- 的分析">4. pool 的分析</h2><p>很多人在用 redigo 的时候会使用其连接池，因为使用该 sdk 时间较长，发现了 pool 的实现有两个版本。</p><h3 id="4-1- 老版本 -pool">4.1 老版本 pool</h3><p>主要数据结构为 <code>pool</code>，即</p><pre><code class="language-go">type Pool struct {
+
+    // Dial is an application supplied function for creating and configuring a
+    // connection.
+    //
+    // The connection returned from Dial must not be in a special state
+    // (subscribed to pubsub channel, transaction started, ...).
+    Dial func() (Conn, error)
+
+    // TestOnBorrow is an optional application supplied function for checking
+    // the health of an idle connection before the connection is used again by
+    // the application. Argument t is the time that the connection was returned
+    // to the pool. If the function returns an error, then the connection is
+    // closed.
+    // 检测连接的可用性，从外部注入。如果返回 error 则直接关闭连接
+    TestOnBorrow func(c Conn, t time.Time) error
+
+    // Maximum number of idle connections in the pool.
+    // 最大闲置连接数量
+    MaxIdle int
+
+    // Maximum number of connections allocated by the pool at a given time.
+    // When zero, there is no limit on the number of connections in the pool.
+    // 最大活动连接数, 如果为 0，则表示没有限制
+    MaxActive int
+
+    // Close connections after remaining idle for this duration. If the value
+    // is zero, then idle connections are not closed. Applications should set
+    // the timeout to a value less than the server's timeout.
+    // 闲置过期时间，在 get 函数中会有逻辑删除过期的连接
+    // 如果不设置，连接就不会过期
+    IdleTimeout time.Duration
+
+    // If Wait is true and the pool is at the MaxActive limit, then Get() waits
+    // for a connection to be returned to the pool before returning.
+    // 设置如果活动连接达到上限 再获取时候是等待还是返回错误
+    // 如果是 false 系统会返回 redigo: connection pool exhausted
+    // 如果是 true 会让协程等待直到有连接释放出来
+    Wait bool
+
+    // mu protects fields defined below.（主要是与状态相关）
+    mu     sync.Mutex
+    cond   *sync.Cond
+    closed bool
+    active int
+
+    // Stack of idleConn with most recently used at the front.
+    idle list.List
+}
+</code></pre><p>该版本中使用了条件变量 <code>Cond</code>来协调多协程获取连接池中的连接<br> <code>idle</code> 使用的是 go 标准库 container 中的 list 数据结构，其中存放的是池中的连接，每个连接的数据结构如下，</p><pre><code class="language-go">type idleConn struct {
+    c Conn
+    t time.Time
+}
+</code></pre><p><code>pooledConnection</code> 结构实现了 <code>Conn</code> 接口的所有方法。</p><pre><code class="language-go">type pooledConnection struct {
+    p     *Pool // pool
+    c     Conn  // 当前连接
+    state int
+}
+
+</code></pre><h4 id="4-1-1- 从 -pool- 获取连接">4.1.1 从 pool 获取连接</h4><pre><code class="language-go">func (p *Pool) Get() Conn {c, err := p.get()
+    if err != nil {return errorConnection{err}
+    }
+    return &amp;pooledConnection{p: p, c: c}
+}
+</code></pre><p>当从连接池获取不到时就创建一个连接，所以还是重点看如何从连接池获取一个连接。</p><pre><code class="language-go">func (p *Pool) get() (Conn, error) {p.mu.Lock()
+
+    // Prune stale connections.(将过期连接的清理放到每次的 get 中)
+    // 如果 idletime 没有设置，连接就不会过期，因此也就不必清理
+    if timeout := p.IdleTimeout; timeout &gt; 0 {for i, n := 0, p.idle.Len(); i &lt; n; i++ {e := p.idle.Back() // 取出最后一个连接
+        if e == nil {break}
+        ic := e.Value.(idleConn)
+        if ic.t.Add(timeout).After(nowFunc()) { // 没有过期，立刻终止检查
+          break
+        }
+        p.idle.Remove(e)
+        p.release() // 需要操作 active 变量
+        p.mu.Unlock()
+        ic.c.Close() // 关闭连接
+        p.mu.Lock()}
+    }
+
+    for {
+      // Get idle connection.
+        for i, n := 0, p.idle.Len(); i &lt; n; i++ {e := p.idle.Front() // 从最前面取一个连接
+          if e == nil {       // idle 里是空的，先退出循环吧
+            break
+          }
+          ic := e.Value.(idleConn)
+          p.idle.Remove(e)
+          test := p.TestOnBorrow
+          p.mu.Unlock()
+          if test == nil || test(ic.c, ic.t) == nil { // 返回这个连接
+            return ic.c, nil
+          }
+          ic.c.Close() // 取出来的连接不可用
+          p.mu.Lock()
+          p.release()}
+
+        // Check for pool closed before dialing a new connection.
+
+        if p.closed {p.mu.Unlock()
+          return nil, errors.New(&quot;redigo: get on closed pool&quot;)
+        }
+
+        // Dial new connection if under limit.
+        if p.MaxActive == 0 || p.active &lt; p.MaxActive {
+          dial := p.Dial
+          p.active += 1
+          p.mu.Unlock()
+          c, err := dial()
+          if err != nil {p.mu.Lock()
+            p.release()
+            p.mu.Unlock()
+            c = nil
+          }
+          return c, err
+        }
+
+        // 到达连接池最大连接数了，要不要等呢？
+        if !p.Wait { // 不 wait 的话就直接返回连接池资源耗尽的错误
+          p.mu.Unlock()
+          return nil, ErrPoolExhausted
+        }
+
+        if p.cond == nil {p.cond = sync.NewCond(&amp;p.mu)
+        }
+        p.cond.Wait() // wait 等待 release 和 put 后有新的连接可用}
+}
+</code></pre><p>当有设置 IdleTimeout 时，那么到了每次 <code>get</code> 连接的时候都会从队尾拿一个连接，检查时间是否过期，如果过期，那么把它删掉，然后 <code>release</code>，这个操作一直持久直至找到一个没有过期的连接。</p><p>然后从 <strong>队首</strong> 拿一个连接，拿到后检查可用后返回，不可用的连接处理方式同上面的过期连接。</p><p>如果这个 pool 的状态已经是 close 了，那么直接返回。把这个检查放在这里，使 closed pool 仍然可以清理一些过期连接，减少内存占用。</p><p>如果 pool 没有设置 MaxActive，或者当前 pool 中的 active 没到阈值，那么可以使用 <code>dial</code>函数创建一个新连接，active 值加 1。</p><p>如果逻辑走到这里还没有取到连接，说明现在 pool 里的连接都被用了，如果不想 <code>wait</code>，那么直接返回 pool 资源耗尽的错误 (<code>ErrPoolExhausted</code>)，否则使用 pool 的条件变量 <code>cond</code> 进行 <code>Wait</code>。我们都知道在 <code>Wait</code> 中 会先解锁，然后陷入阻塞等待唤醒。</p><p><code>cond</code>唤醒在 <code>release</code> 函数和 <code>put</code> 函数中，如下，</p><pre><code class="language-go">// release decrements the active count and signals waiters. The caller must
+// hold p.mu during the call.
+func (p *Pool) release() {
+    p.active -= 1
+    if p.cond != nil {p.cond.Signal() // 通知 wait 的请求返回连接
+    }
+}
+</code></pre><h4 id="4-1-2- 向 -pool-return- 连接">4.1.2 向 pool return 连接</h4><p>用完连接后要还回去，在调用连接的 <code>Close</code> 函数中会使用 <code>put</code>。</p><pre><code class="language-go">func (p *Pool) put(c Conn, forceClose bool) error {err := c.Err()
+    p.mu.Lock()
+    if !p.closed &amp;&amp; err == nil &amp;&amp; !forceClose {p.idle.PushFront(idleConn{t: nowFunc(), c: c}) // 放回头部
+      if p.idle.Len() &gt; p.MaxIdle {c = p.idle.Remove(p.idle.Back()).(idleConn).c // 如果连接池中数量超过了 maxidle，那么从后面删除一个
+      } else {c = nil}
+    }
+
+    if c == nil {
+      if p.cond != nil {p.cond.Signal() // 通知
+      }
+      p.mu.Unlock()
+      return nil
+    }
+
+    p.release()
+    p.mu.Unlock()
+    return c.Close()}
+</code></pre><p>将没有出错的连接并且不是别强制关闭的连接放回到 idle list 中，注意，这里是放到 <strong>队头</strong> ！如果 list 长度大于最大闲置连接数(MaxIdle)，那么从队尾取连接 <code>remove</code> 掉。</p><p><code>Signal</code> 唤醒条件变量。</p><h3 id="4-2- 新版本 -pool">4.2 新版本 pool</h3><p>在版本的 pool 里，自己实现了一个 list，取代 golang 的官方库 list。</p><pre><code class="language-go">type idleList struct { // 只记录头尾
+	count       int // list 长度
+	front, back *poolConn
+}
+
+type poolConn struct { // 双链表节点
+	c          Conn
+	t          time.Time
+	created    time.Time
+	next, prev *poolConn
+}
+</code></pre><p>同时实现了几个双链表的操作，<code>pushFront</code>、<code>popFront</code> 和 <code>popBack</code>。<br> 新版本的 pool 里去掉了条件变量，换上了 channel。</p><pre><code class="language-go">chInitialized uint32 // set to 1 when field ch is initialized
+ch           chan struct{} // limits open connections when p.Wait is true
+idle         idleList      // idle connections
+waitCount    int64         // total number of connections waited for.
+waitDuration time.Duration // total time waited for new connections.
+</code></pre><p>pool 里的连接个数使用了 buffer channel 进行控制，大小为 <code>MaxActive</code>。<br> 在第一次从 pool 中获取连接时，进行 channel 来初始化，即</p><pre><code class="language-go">func (p *Pool) lazyInit() {
+    // Fast path.
+    if atomic.LoadUint32(&amp;p.chInitialized) == 1 {return}
+    // Slow path.
+    p.mu.Lock()
+    if p.chInitialized == 0 {p.ch = make(chan struct{}, p.MaxActive)
+      if p.closed {close(p.ch)
+      } else {
+        for i := 0; i &lt; p.MaxActive; i++ {p.ch &lt;- struct{}{}}
+      }
+      atomic.StoreUint32(&amp;p.chInitialized, 1)
+    }
+    p.mu.Unlock()}
+</code></pre><h4 id="4-2-1- 从 -pool- 获取连接">4.2.1 从 pool 获取连接</h4><pre><code class="language-go">func (p *Pool) get(ctx context.Context) (*poolConn, error) {
+
+	// Handle limit for p.Wait == true.
+    var waited time.Duration
+    if p.Wait &amp;&amp; p.MaxActive &gt; 0 {p.lazyInit()
+
+      // wait indicates if we believe it will block so its not 100% accurate
+      // however for stats it should be good enough.
+      wait := len(p.ch) == 0
+      var start time.Time
+      if wait {start = time.Now()
+      }
+      if ctx == nil {&lt;-p.ch} else {
+        select {
+        case &lt;-p.ch:
+        case &lt;-ctx.Done():
+          return nil, ctx.Err()}
+      }
+      if wait {waited = time.Since(start)
+      }
+    }
+
+    p.mu.Lock()
+
+    if waited &gt; 0 {
+      p.waitCount++
+      p.waitDuration += waited
+    }
+
+    // Prune stale connections at the back of the idle list.
+    if p.IdleTimeout &gt; 0 {
+      n := p.idle.count
+      // 清理过期的 conn
+      for i := 0; i &lt; n &amp;&amp; p.idle.back != nil &amp;&amp; p.idle.back.t.Add(p.IdleTimeout).Before(nowFunc()); i++ {
+        pc := p.idle.back
+        p.idle.popBack()
+        p.mu.Unlock()
+        pc.c.Close()
+        p.mu.Lock()
+        p.active--
+      }
+    }
+
+    // Get idle connection from the front of idle list.
+    for p.idle.front != nil {
+      pc := p.idle.front
+      p.idle.popFront() // 从前面获取一个连接
+      p.mu.Unlock()
+      if (p.TestOnBorrow == nil || p.TestOnBorrow(pc.c, pc.t) == nil) &amp;&amp;
+        (p.MaxConnLifetime == 0 || nowFunc().Sub(pc.created) &lt; p.MaxConnLifetime) {return pc, nil}
+      pc.c.Close()
+      p.mu.Lock()
+      p.active--
+    }
+
+    // Check for pool closed before dialing a new connection.
+    if p.closed {p.mu.Unlock()
+      return nil, errors.New(&quot;redigo: get on closed pool&quot;)
+    }
+
+    // Handle limit for p.Wait == false.
+    if !p.Wait &amp;&amp; p.MaxActive &gt; 0 &amp;&amp; p.active &gt;= p.MaxActive {p.mu.Unlock()
+      return nil, ErrPoolExhausted
+    }
+
+   // 新建连接，更新 active
+    p.active++
+    p.mu.Unlock()
+    c, err := p.dial(ctx)
+    if err != nil {
+      c = nil
+      p.mu.Lock()
+      p.active--
+      if p.ch != nil &amp;&amp; !p.closed {p.ch &lt;- struct{}{} // 连接创建不成功，将这个名额还给 channel}
+      p.mu.Unlock()}
+    return &amp;poolConn{c: c, created: nowFunc()}, err
+}
+</code></pre><p>可以看到只有在连接池满了愿意等待时，才回初始化 buffer channel，即调用 <code>lazyInit</code> 函数，省去了不必要的内存占用，可以借鉴。<br> 当连接池已满，则 channel 为空，此时取连接的流程会阻塞在 <code>&lt;-p.ch</code>，这跟上一版本的 <code>cond.Wait()</code> 有相同的作用。<br> 有相同的清理过期连接的逻辑，以及连接创建逻辑。</p><h4 id="4-2-2- 从 -pool- 获取连接">4.2.2 从 pool 获取连接</h4><pre><code class="language-go">func (p *Pool) put(pc *poolConn, forceClose bool) error {p.mu.Lock()
+    if !p.closed &amp;&amp; !forceClose {pc.t = nowFunc()
+      p.idle.pushFront(pc)          // 访问头部
+      if p.idle.count &gt; p.MaxIdle { // 超出了 MaxIdle 的数量的话，从后面踢掉最后面的一个
+        pc = p.idle.back
+        p.idle.popBack()} else {pc = nil}
+    }
+
+    if pc != nil {p.mu.Unlock()
+      pc.c.Close()
+      p.mu.Lock()
+      p.active--
+    }
+
+    if p.ch != nil &amp;&amp; !p.closed {p.ch &lt;- struct{}{} // 放回池子}
+    p.mu.Unlock()
+    return nil
+}
+</code></pre><p><code>ch</code> 控制着 pool 中连接的数量，当取走一个时，需要 <code>&lt;-ch</code>，当还回一个时，需要 <code>ch &lt;- struct{}{}</code>。<br> 另外，还要考虑到某些失败的情况，是否需要将配额还回 <code>ch</code>。</p><h3 id="4-3- 分析">4.3 分析</h3><p>从上面的代码可以看出，不管哪个版本的 pool，获得连接是从 <strong>队首</strong> 获取，还连接也是从 <strong>队首</strong> 还，淘汰过期连接或者多出的连接是从 <strong>队尾</strong> 淘汰。<br> 另外，新版本的 pool 实现比老版本更加符合 golang 的语言风格。<br> 从某种角度讲，这种 pool 的管理方式会造成 <strong>某些连接过热</strong> 的情况，即负载均衡不均，尤其是过期时间设置不合理的情况下，需慎重使用。</p></div><hr><div><p><span><i class="iconfont icon-inbox"></i> <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a> &nbsp;</span> &nbsp;&nbsp;<span><i class="iconfont icon-tag"></i> <a class="hover-with-bg" href="/tags/redis/">redis</a> <a class="hover-with-bg" href="/tags/sdk/">sdk</a></span></p><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p><div class="post-prevnext row"><div class="post-prev col-6"><a href="/a4bc6018.html"><i class="fa fa-chevron-left"></i> <span class="hidden-mobile">Redis 源码之主从复制 (1)</span> <span class="visible-mobile">上一篇</span></a></div><div class="post-next col-6"> <a href="/54df012b.html"><span class="hidden-mobile">Redis 源码之故障转移</span> <span class="visible-mobile">下一篇</span><i class="fa fa-chevron-right"></i></a></div></div></div><div class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">!function(e,t){var r,n=e.getElementsByTagName(t)[0];"function"!=typeof LivereTower&&((r=e.createElement(t)).src="https://cdn-city.livere.com/js/embed.dist.js",r.defer=!0,n.parentNode.insertBefore(r,n))}(document,"script")</script><noscript> 为正常使用来必力评论功能请激活JavaScript</noscript></div></div></div></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc-start"></div><div id="toc"><p class="h5"><i class="far fa-list-alt"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div><div class="col-lg-7 mx-auto nopadding-md"><div class="container custom post-content mx-auto"> <img src="https://octodex.github.com/images/jetpacktocat.png" srcset="/img/loading.gif" class="rounded mx-auto d-block mt-5" style="width:150px;height:150px"></div></div></main><a class="z-depth-1" id="scroll-top-button" href="#" role="button"><i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4> <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"> <input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div> <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><b>Hexo</b></a><i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><b>Fluid</b></a></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js"></script><script>$(document).ready(function(){var s=$("#navbar").height(),c=$("#toc"),t=$("#board-ctn"),o=t.offset().top,i=2*o+t.height();$(window).scroll(function(){var t=$("#toc-start").offset().top-s,o=document.body.scrollTop+document.documentElement.scrollTop;t<=o&&o<=i?c.css({display:"block",position:"fixed",top:s}):o<=t?c.css({position:"",top:""}):i<o&&c.css("display","none")}),tocbot.init({tocSelector:"#tocbot",contentSelector:".post-content",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",scrollSmooth:!0,headingsOffset:-o}),0<$(".toc-list-item").length&&$("#toc > p").css("visibility","visible");var l=t.css("margin-right");$("#toc-ctn").css({right:l})})</script><script defer="defer" src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer="defer" src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script defer="defer">var _hmt=_hmt||[];!function(){var e=document.createElement("script");e.src="https://hm.baidu.com/hm.js?882b48640075e00a238ae94a7eec0d40";var t=document.getElementsByTagName("script")[0];t.parentNode.insertBefore(e,t)}()</script><script defer="defer">var _mtac={};!function(){var t=document.createElement("script");t.src="//pingjs.qq.com/h5/stats.js?v2.0.4",t.setAttribute("name","MTAH5"),t.setAttribute("sid","");var e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(t,e)}()</script><script src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js"></script><script>$(document).ready(function(){$("pre").addClass("prettyprint  "),prettyPrint()})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","Redigo 源码分析&nbsp;"],cursorChar:"_",typeSpeed:75,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){getSearchFile(path),this.onclick=null}</script><script defer="defer" src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><script>$("#post img:not(.no-zoom img, img[no-zoom])").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>
