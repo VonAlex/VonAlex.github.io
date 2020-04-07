@@ -1,0 +1,217 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#2f4154"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>Redis 源码分析之 key 过期 - Happen&#39;s Memo</title><link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css"><link rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css"><link rel="stylesheet" href="/css/main.css"><link defer="defer" rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><link rel="stylesheet" href="/css/custom.css"></head><body><header style="height:70vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"> <a class="navbar-brand" href="/">&nbsp;<strong>Happen's Memo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="fa fa-home" aria-hidden="true"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="fa fa-archive" aria-hidden="true"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="fa fa-map-signs" aria-hidden="true"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="fa fa-tags" aria-hidden="true"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="fa fa-child" aria-hidden="true"></i> 关于</a></li><li class="nav-item" id="search-btn"> <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i class="iconfont icon-search"></i>&nbsp;&nbsp;</a></li></ul></div></div></nav><div class="view intro-2" id="background" parallax="true" style="background:url(/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask rgba-black-light flex-center"><div class="container text-center white-text fadeInUp"><span class="h2" id="subtitle"></span><p class="mt-3 post-meta"><i class="fas fa-calendar-alt" aria-hidden="true"></i> 2020/04/06, 星期一, 19:47</p><p class="mt-1"><span class="post-meta"><i class="far fa-chart-bar"></i> 2.9k 字</span><span class="post-meta"><i class="far fa-clock"></i> 12 分钟</span><span id="busuanzi_container_page_pv" class="post-meta" style="display:none"><i class="far fa-eye" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span> 次</span></p></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5 z-depth-3" id="board"><div class="post-content mx-auto" id="post"><p class="note note-warning">本文最后更新于：2020/04/07, 星期二, 11:16</p><div class="markdown-body"><p>redis 支持 key 级别的过期设置，可以使用 <code>EXPIRE</code> 相关的命令对此进行设置，同时支持相对时间和绝对时间两种方式。</p><a id="more"></a><h2 id="设置过期时间命令">设置过期时间命令</h2><p>redis 中设置 key 相对过期时间的命令 <code>EXPIRE</code>/ <code>PEXPIRE</code>，设置 key 绝对过期时间的命令 <code>EXPIREAT</code>/<code>PEXPIREAT</code>，最终都是调用 <code>expireGenericCommand</code> 函数实现的。</p><p>代码分析大致如下，</p><pre><code class="language-c">void expireGenericCommand(client *c, long long basetime, int unit) {robj *key = c-&gt;argv[1], *param = c-&gt;argv[2];
+   long long when; /* unix time in milliseconds when the key will expire. */
+   if (getLongLongFromObjectOrReply(c, param, &amp;when, NULL) != C_OK)
+       return;
+
+   if (unit == UNIT_SECONDS) when *= 1000;
+   when += basetime;
+
+   /* No key, return zero. */
+   if (lookupKeyWrite(c-&gt;db,key) == NULL) {addReply(c,shared.czero);
+       return;
+   }
+
+   if (when &lt;= mstime() &amp;&amp; !server.loading &amp;&amp; !server.masterhost) {
+       robj *aux;
+
+       serverAssertWithInfo(c,key,dbDelete(c-&gt;db,key));
+       server.dirty++;
+
+       /* Replicate/AOF this as an explicit DEL. */
+       aux = createStringObject(&quot;DEL&quot;,3);
+       rewriteClientCommandVector(c,2,aux,key);
+       decrRefCount(aux);
+       signalModifiedKey(c-&gt;db,key);
+       notifyKeyspaceEvent(NOTIFY_GENERIC,&quot;del&quot;,key,c-&gt;db-&gt;id);
+       addReply(c, shared.cone);
+       return;
+   } else {setExpire(c-&gt;db,key,when);
+       addReply(c,shared.cone);
+       signalModifiedKey(c-&gt;db,key);
+       notifyKeyspaceEvent(NOTIFY_GENERIC,&quot;expire&quot;,key,c-&gt;db-&gt;id);
+       server.dirty++;
+       return;
+   }
+}
+</code></pre><p>首先是解析参数，相对时间会被转换成绝对时间 <code>when</code>。</p><p>找一个下这个 key 是否存在，如果不存在，那么直接返回。</p><p>如果 <code>when</code> 比当前时间还要小，没有做数据的 loading，且当前节点是 master（slave 节点等着 master 传过去的 DEL 就好），这时把 expire 命令转换成 <strong>DEL</strong>。<br> 否则，调用 <code>setExpire</code> 函数为 key 设置过期时间，</p><p>代码分析如下，</p><pre><code class="language-c">void setExpire(redisDb *db, robj *key, long long when) {
+   dictEntry *kde, *de;
+
+   /* Reuse the sds from the main dict in the expire dict */
+   kde = dictFind(db-&gt;dict,key-&gt;ptr);
+   serverAssertWithInfo(NULL,key,kde != NULL);
+   // 在 expires 中寻找 key，找不到就新建一个
+   de = dictReplaceRaw(db-&gt;expires,dictGetKey(kde));
+   dictSetSignedIntegerVal(de,when);
+}
+</code></pre><p>通过以上代码可以发现，含有过期时间的 key 都会放到 <code>db-&gt;expires</code> 变量中（在数据库结构体 <code>redisDb</code> 中，使用 <code>expires</code> 字典存放这些 key）。</p><pre><code class="language-c">typedef struct redisDb {
+    dict *dict; // 存放所有 key
+    dict *expires; // 存放过期 key
+    int id; // 数据库 id
+    ....
+} redisDb;
+</code></pre><p>过期时间通过 <code>dictSetSignedIntegerVal</code> 函数，存放到 key 所在的 <code>dictEntry</code> 结构，如下，</p><pre><code class="language-c">typedef struct dictEntry {
+    void *key;
+    union {
+        void *val;
+        uint64_t u64;
+        int64_t s64; // 存放过期时间
+        double d;
+    } v;
+    struct dictEntry *next;
+} dictEntry;
+</code></pre><h2 id="查询过期时间命令">查询过期时间命令</h2><p>查询某个 key 的过期时间，redis 提供了 <code>TTL</code> 这个命令，有三种返回值，</p><ul><li>返回 <strong>-2</strong>，表示查询的 key 不存在。</li><li>返回 <strong>-1</strong>，表示查询的 key 没有设置过期。</li><li>返回正常的过期时间。</li></ul><p>上面已经知道，key 过期时间存放位置了，那么直接取出来就好了。</p><pre><code class="language-c">long long getExpire(redisDb *db, robj *key) {
+    dictEntry *de;
+
+    /* No expire? return ASAP */
+    if (dictSize(db-&gt;expires) == 0 ||
+       (de = dictFind(db-&gt;expires,key-&gt;ptr)) == NULL) return -1;
+    serverAssertWithInfo(NULL,key,dictFind(db-&gt;dict,key-&gt;ptr) != NULL);
+    return dictGetSignedIntegerVal(de);
+}
+</code></pre><p>通过 <code>dictGetSignedIntegerVal</code> 函数取到过期时间。</p><h2 id="删除过期时间">删除过期时间</h2><p>如果一个 key 设置了过期时间后想删除怎么办？redis 提供了 <code>PERSIST</code> 命令，或者直接用 <code>SET</code> 命令去覆盖，它们都涉及到函数 <code>removeExpire</code>。</p><p>具体代码如下，</p><pre><code class="language-c">int removeExpire(redisDb *db, robj *key) {
+    /* An expire may only be removed if there is a corresponding entry in the
+     * main dict. Otherwise, the key will never be freed. */
+    serverAssertWithInfo(NULL,key,dictFind(db-&gt;dict,key-&gt;ptr) != NULL);
+    return dictDelete(db-&gt;expires,key-&gt;ptr) == DICT_OK;
+}
+</code></pre><p>从 <code>db-&gt;expires</code> 中删掉这个 key，但是 <code>dictEntry</code> 结构体中的 <strong>过期时间并不会重置</strong>。</p><h2 id="删除过期 -key">删除过期 key</h2><p>redis 3.x 中，过期 key 的删除方式有两种，<strong>惰性删除</strong> 和<strong>周期删除</strong>。</p><h3 id="惰性删除">惰性删除</h3><p>当 key 过期后，并不会立刻删除，即，它们占用的内存不能够得到及时释放。</p><p>redis 在对每个 key 进行读写时，都会去检查这个 key 是否过期需要删除了，这样就 <strong>把清理过期 key 的工作分摊到每一次访问中</strong>。类似的思路还有，redis 中的 dict 的扩容，称为渐进式 rehash。</p><p class="note note-warning"> 这样会导致一个问题，当检查到一个大 key 要删除时，会占用比较长的时间，导致此次访问的响应时间变长。</p><p>检查 key 的 expire 的逻辑在 <code>expireIfNeeded</code> 函数中实现，代码如下，</p><pre><code class="language-c">int expireIfNeeded(redisDb *db, robj *key) {
+    // 获得 key 的过期时间
+    mstime_t when = getExpire(db,key);
+    mstime_t now;
+
+    // key 没有设置过期时间
+    if (when &lt; 0) return 0;
+
+    // 在 load 数据时，暂时先不要处理过期的 key
+    if (server.loading) return 0;
+
+    // 有 lua 脚本调用时，now 取 lua 脚本开始的时间，否则取当前时间
+    now = server.lua_caller ? server.lua_time_start : mstime();
+
+    // 如果本节点是 slave，等着 master 同步 DEL 命令
+    if (server.masterhost != NULL) return now &gt; when;
+
+    // 如果没过期，返回 0
+    if (now &lt;= when) return 0;
+
+    // 过期 key 的统计
+    server.stat_expiredkeys++;
+
+    // 同步 DEL 命令给 slave 和 aof 文件
+    propagateExpire(db,key);
+    notifyKeyspaceEvent(NOTIFY_EXPIRED,
+        &quot;expired&quot;,key,db-&gt;id);
+
+    // 删 key
+    return dbDelete(db,key);
+}
+</code></pre><p>经过一些前置校验，在 <code>propagateExpire</code> 函数中，将 <code>DEL</code> 命令分发给所有的 slave，以及写入 aof。</p><pre><code class="language-c">void propagateExpire(redisDb *db, robj *key) {robj *argv[2];
+
+    argv[0] = shared.del;
+    argv[1] = key;
+    incrRefCount(argv[0]);
+    incrRefCount(argv[1]);
+
+    if (server.aof_state != AOF_OFF)
+        feedAppendOnlyFile(server.delCommand,db-&gt;id,argv,2);
+    replicationFeedSlaves(server.slaves,db-&gt;id,argv,2);
+
+    decrRefCount(argv[0]);
+    decrRefCount(argv[1]);
+}
+</code></pre><p>当一个 key 在 master 上过期后，将会给所有的 slave 发送相应的 DEL 命令，如果 aof 打开了，也会写入 aof。</p><p class="note note-primary"> 这种在一个地方集中化管理 key 的方式，并且在 aof 和主从链接里保证操作顺序，即使有对于过期 key 的写操作也是允许的。</p><p>而删 key 的操作，在函数 <code>dbDelete</code> 中完成，代码如下，</p><pre><code class="language-c">int dbDelete(redisDb *db, robj *key) {if (dictSize(db-&gt;expires) &gt; 0) dictDelete(db-&gt;expires,key-&gt;ptr);
+    if (dictDelete(db-&gt;dict,key-&gt;ptr) == DICT_OK) {if (server.cluster_enabled) slotToKeyDel(key);
+        return 1;
+    } else {return 0;}
+}
+</code></pre><p>如上代码可以看到，分别从 <code>db-&gt;expires</code> 和 <code>db-&gt;dict</code> 这两个 dict 里删除相应的 key。如果开启了 <strong>cluster 模式</strong>，还有在相应的 slot 里删掉。</p><h3 id="周期删除">周期删除</h3><p>上面的惰性删除，只有在访问到 key 时才会触发，这使得过期 key 的清理时间拉的很长，所以只有惰性删除一种方式是不行的，因此增加周期删除这个方式作为补充。</p><p>周期删除使用的函数是 <code>activeExpireCycle</code>。这个函数在调用时，入参分情况有 2 种过期循环类型，两者的主要区别是执行时间的差异。</p><ul><li>常量 <code>ACTIVE_EXPIRE_CYCLE_FAST</code> ，执行时间限制是 1000 us。在 <code>beforeSleep</code> 函数中调用的，即，每次 redis 要进入事件循环之前调用，因此需要比较快的返回</li><li>常量 <code>ACTIVE_EXPIRE_CYCLE_SLOW</code>，执行时间限制有一个复杂公式计算，后面会说到。在周期性任务 <code>databasesCron</code> 中调用的，执行时间可以稍微长一点。</li></ul><p>在 <code>activeExpireCycle</code> 函数里，会尝试删除一些过期的 key。使用到的算法是 <strong>自适应的</strong>，如果几乎没有过期 key，仅使用少量的 CPU 周期，否则，为了避免过期 key 过多占用内存，将会更积极地从数据库删除它们。每轮检查的数据库个数不超过常量 <strong>CRON_DBS_PER_CALL</strong> (16) 个。</p><p>代码大概如下，</p><pre><code class="language-c">if (type == ACTIVE_EXPIRE_CYCLE_FAST) {if (!timelimit_exit) return;
+      if (start &lt; last_fast_cycle + ACTIVE_EXPIRE_CYCLE_FAST_DURATION*2) return;
+      last_fast_cycle = start;
+  }
+</code></pre><p>如果上一次循环不是因为 timeout 而结束的，那么这一次没必要跑 fast 循环，也就是说，时间够用了，可以跑 slow 多清理一些过期 key。<br> 另外，不要在上一次跑过 fast 之后的 2 倍 <strong>ACTIVE_EXPIRE_CYCLE_FAST_DURATION</strong> (1000) us 时间内再跑一次 fast 循环。</p><p><code>dbs_per_call</code> 变量保存的是，本轮循环需要遍历的 db 数量，默认值是 16，在以下 2 种情况下需要修改，</p><ul><li>检查的 db 数超过现有的。</li><li>上一次以为 timelimit 离开了。此时需要尽快的把已有的 db 里的过期 key 给清理掉，减少内存占用，留出更多空间供正常使用。</li></ul><p>判断代码如下，</p><pre><code class="language-c">  if (dbs_per_call &gt; server.dbnum || timelimit_exit)
+      dbs_per_call = server.dbnum;
+</code></pre><p>下面是循环时间 limit 的计算，</p><pre><code class="language-c">  timelimit = 1000000*ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC/server.hz/100;
+  timelimit_exit = 0;
+  if (timelimit &lt;= 0) timelimit = 1;
+
+  if (type == ACTIVE_EXPIRE_CYCLE_FAST)
+      timelimit = ACTIVE_EXPIRE_CYCLE_FAST_DURATION; /* in microseconds. 1000 us */
+</code></pre><p>然后开启遍历每个 db 了，如下逻辑均在此循环中实现，</p><pre><code class="language-c">for (j = 0; j &lt; dbs_per_call; j++) {}
+</code></pre><p>代码里有一个记录上一次遍历到那个 db 的静态变量 <code>current_db</code>，每次都加 1。</p><pre><code class="language-c">static unsigned int current_db = 0; /* Last DB tested. */
+current_db++;
+</code></pre><p>选择一个 db 进行数据清理，</p><pre><code class="language-c">redisDb *db = server.db+(current_db % server.dbnum);
+</code></pre><p>下面就是在选择的 db 里对 key 进行抽样检查的过程，</p><pre><code class="language-c">// 如果没有过期的 key，那么这个 db 的检查结束
+if ((num = dictSize(db-&gt;expires)) == 0) {
+            db-&gt;avg_ttl = 0;
+            break;
+}
+
+slots = dictSlots(db-&gt;expires);
+if (num &amp;&amp; slots &gt; DICT_HT_INITIAL_SIZE &amp;&amp; (num*100/slots &lt; 1))
+        break;
+</code></pre><p>如果 expires 字典不为空，存储的数据可能已经很少了，但是字典还是大字典 ( <strong>数据不足 1%</strong>)，这样遍历数据有效命中率会很低，处理起来会浪费时间，后面的访问会很快触发字典的缩容，缩容后再进行处理效率更高, 暂时结束这个 db 的检查。</p><p>每一次抽样最多 20 个 key。</p><pre><code class="language-c">if (num &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP)
+      num = ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP;
+
+while (num--) {
+    dictEntry *de;
+    long long ttl;
+
+    if ((de = dictGetRandomKey(db-&gt;expires)) == NULL) break;
+    ttl = dictGetSignedIntegerVal(de)-now;
+    if (activeExpireCycleTryExpire(db,de,now)) expired++; // 过期的 key 删掉
+    if (ttl &gt; 0) {
+        /* We want the average TTL of keys yet not expired. */
+        ttl_sum += ttl;
+        ttl_samples++;
+    }
+}
+</code></pre><p>随机选取 key，调用 <code>activeExpireCycleTryExpire</code> 函数进行过期 key 的删除，该函数逻辑见附录。</p><p>这里还有个统计平均 ttl 的逻辑，</p><pre><code class="language-c">if (ttl_samples) {
+    // 抽样 key 的平均 ttl 时间
+    long long avg_ttl = ttl_sum/ttl_samples;
+
+    // 本轮 avg_ttl 占比 2%，历史值占比 98%
+
+    if (db-&gt;avg_ttl == 0) db-&gt;avg_ttl = avg_ttl;
+    db-&gt;avg_ttl = (db-&gt;avg_ttl/50)*49 + (avg_ttl/50);
+}
+</code></pre><p>每个 db 的检查什么时候退出呢？有 2 个时刻。</p><ol><li>通过超时时间 <code>timelimit</code>。<br> 每 16 轮循环检查一次是否超时，到时间后 ，<code>timelimit_exit</code> 变量置 1，接着就退出了。</li></ol><pre><code class="language-c">iteration++;
+if ((iteration &amp; 0xf) == 0) { /* check once every 16 iterations. */
+    long long elapsed = ustime()-start;
+
+    latencyAddSampleIfNeeded(&quot;expire-cycle&quot;,elapsed/1000);
+    if (elapsed &gt; timelimit) timelimit_exit = 1;
+}
+if (timelimit_exit) return;
+</code></pre><ol start="2"><li>在每个 db 的检查循环外，是有条件的。<br> 每检查到一个过期的 key，就把 <code>expired</code> 变量加 1，所以，这个循环的条件时，如果一轮抽样到的 key 中过期的比例小于 25%，那么这个 db 就不必再抽样了。</li></ol><pre><code class="language-c">#define ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP 20
+do {...} while (expired &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP/4);
+</code></pre><p class="note note-warning"> 在一个时间范围内，过期 key 最好不要太密集，因为系统发现到期数据很多，会迫切希望尽快处理掉这些过期数据，所以每次检查都要耗尽分配的时间片，直到到期数据到达一个可接受的密度比例。</p><p class="note note-primary"> 由上总结，redis 主逻辑在单进程主线程中实现，要保证不能影响主业务前提下，检查过期数据，不能太影响系统性能。主要三方面进行限制： (1) 检查时间限制。 (2) 过期数据检查数量限制。 (3) 过期数据是否达到可接受比例。</p><p>至此，redis 中 key 的过期逻辑就讲完了。顺便说一下，为了解决删大 key 带来的阻塞风险，在更高版本的 redis 中，将删 key 放到了 bio 后台线程中。</p><h2 id="附录">附录</h2><p><code>activeExpireCycleTryExpire</code> 函数将试着将存储的过期 key 从全局 key 的 dict 和 expire 的 dict 中删掉。如果发现 key 过期了，操作后返回 1，否则什么也不做，返回 0。代码逻辑如下，</p><pre><code class="language-c">int activeExpireCycleTryExpire(redisDb *db, dictEntry *de, long long now) {long long t = dictGetSignedIntegerVal(de);
+    if (now &gt; t) {sds key = dictGetKey(de);
+        robj *keyobj = createStringObject(key,sdslen(key));
+
+        // 广播到 slave 和 aof
+        propagateExpire(db,keyobj);
+
+        // 删 key
+        dbDelete(db,keyobj);
+        notifyKeyspaceEvent(NOTIFY_EXPIRED,
+            &quot;expired&quot;,keyobj,db-&gt;id);
+        decrRefCount(keyobj);
+
+        // 更新统计
+        server.stat_expiredkeys++;
+        return 1;
+    } else {return 0;}
+}
+</code></pre></div><hr><div><p><span><i class="iconfont icon-inbox"></i> <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a> &nbsp;</span> &nbsp;&nbsp;<span><i class="iconfont icon-tag"></i> <a class="hover-with-bg" href="/tags/redis/">redis</a></span></p><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p><div class="post-prevnext row"><div class="post-prev col-6"></div><div class="post-next col-6"> <a href="/badab03c.html"><span class="hidden-mobile">Redis 源码分析之数据迁移 (2)</span> <span class="visible-mobile">下一篇</span><i class="fa fa-chevron-right"></i></a></div></div></div><div class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">!function(e,t){var r,n=e.getElementsByTagName(t)[0];"function"!=typeof LivereTower&&((r=e.createElement(t)).src="https://cdn-city.livere.com/js/embed.dist.js",r.defer=!0,n.parentNode.insertBefore(r,n))}(document,"script")</script><noscript> 为正常使用来必力评论功能请激活JavaScript</noscript></div></div></div></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc-start"></div><div id="toc"><p class="h5"><i class="far fa-list-alt"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div><div class="col-lg-7 mx-auto nopadding-md"><div class="container custom post-content mx-auto"> <img src="https://octodex.github.com/images/jetpacktocat.png" srcset="/img/loading.gif" class="rounded mx-auto d-block mt-5" style="width:150px;height:150px"></div></div></main><a class="z-depth-1" id="scroll-top-button" href="#" role="button"><i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4> <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"> <input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div> <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><b>Hexo</b></a><i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><b>Fluid</b></a></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js"></script><script>$(document).ready(function(){var s=$("#navbar").height(),c=$("#toc"),t=$("#board-ctn"),o=t.offset().top,i=2*o+t.height();$(window).scroll(function(){var t=$("#toc-start").offset().top-s,o=document.body.scrollTop+document.documentElement.scrollTop;t<=o&&o<=i?c.css({display:"block",position:"fixed",top:s}):o<=t?c.css({position:"",top:""}):i<o&&c.css("display","none")}),tocbot.init({tocSelector:"#tocbot",contentSelector:".post-content",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",scrollSmooth:!0,headingsOffset:-o}),0<$(".toc-list-item").length&&$("#toc > p").css("visibility","visible");var l=t.css("margin-right");$("#toc-ctn").css({right:l})})</script><script defer="defer" src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer="defer" src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script defer="defer">var _hmt=_hmt||[];!function(){var e=document.createElement("script");e.src="https://hm.baidu.com/hm.js?882b48640075e00a238ae94a7eec0d40";var t=document.getElementsByTagName("script")[0];t.parentNode.insertBefore(e,t)}()</script><script defer="defer">var _mtac={};!function(){var t=document.createElement("script");t.src="//pingjs.qq.com/h5/stats.js?v2.0.4",t.setAttribute("name","MTAH5"),t.setAttribute("sid","");var e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(t,e)}()</script><script src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js"></script><script>$(document).ready(function(){$("pre").addClass("prettyprint  "),prettyPrint()})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","Redis 源码分析之 key 过期&nbsp;"],cursorChar:"_",typeSpeed:80,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>
+    anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))
+  </script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){getSearchFile(path),this.onclick=null}</script><script defer="defer" src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><script>$("#post img:not(.no-zoom img, img[no-zoom])").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>
