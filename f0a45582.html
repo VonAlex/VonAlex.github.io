@@ -1,0 +1,209 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#2f4154"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>Redis 源码分析之内存淘汰策略 - Happen&#39;s Memo</title><link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css"><link rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css"><link rel="stylesheet" href="/css/main.css"><link defer="defer" rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><link rel="stylesheet" href="/css/custom.css"></head><body><header style="height:70vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"> <a class="navbar-brand" href="/">&nbsp;<strong>Happen's Memo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="fa fa-home" aria-hidden="true"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="fa fa-archive" aria-hidden="true"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="fa fa-map-signs" aria-hidden="true"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="fa fa-tags" aria-hidden="true"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="fa fa-child" aria-hidden="true"></i> 关于</a></li><li class="nav-item" id="search-btn"> <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i class="iconfont icon-search"></i>&nbsp;&nbsp;</a></li></ul></div></div></nav><div class="view intro-2" id="background" parallax="true" style="background:url(/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask rgba-black-light flex-center"><div class="container text-center white-text fadeInUp"><span class="h2" id="subtitle"></span><p class="mt-3 post-meta"><i class="fas fa-calendar-alt" aria-hidden="true"></i> 2020/04/19, 星期日, 12:33</p><p class="mt-1"><span class="post-meta"><i class="far fa-chart-bar"></i> 4k 字</span><span class="post-meta"><i class="far fa-clock"></i> 16 分钟</span><span id="busuanzi_container_page_pv" class="post-meta" style="display:none"><i class="far fa-eye" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span> 次</span></p></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5 z-depth-3" id="board"><div class="post-content mx-auto" id="post"><p class="note note-warning">本文最后更新于：2020/04/20, 星期一, 16:33</p><div class="markdown-body"><p>redis 是内存数据库，当内存数据集达到一定大小时，命令处理会触发数据淘汰机制，直至把当前内存使用量降到设定值 (maxmemory) 以下。</p><a id="more"></a><p><strong>那为啥要做内存使用量的限制呢？</strong><br> 当 redis 使用内存量接近或超过物理机内存时，操作系统会根据内核参数 <code>vm.swappiness</code> 做内存页的 swap 操作或者 oom kill，这在生产环境是不能接受的。</p><p>maxmemory 可以通过配置文件 <code>redis.conf</code> 中的 <code>maxmemory</code> 配置项来设置，0 表示不做限制。也可以使用 <code>config set maxmemory 内存值</code> 命令来设置，内存值可使用的单位如下，</p><pre><code class="language-c">while(*u &amp;&amp; isdigit(*u)) u++;
+if (*u == '\0' || !strcasecmp(u,&quot;b&quot;)) {mul = 1;} else if (!strcasecmp(u,&quot;k&quot;)) {mul = 1000;} else if (!strcasecmp(u,&quot;kb&quot;)) {mul = 1024;} else if (!strcasecmp(u,&quot;m&quot;)) {mul = 1000*1000;} else if (!strcasecmp(u,&quot;mb&quot;)) {mul = 1024*1024;} else if (!strcasecmp(u,&quot;g&quot;)) {mul = 1000L*1000*1000;} else if (!strcasecmp(u,&quot;gb&quot;)) {mul = 1024L*1024*1024;} else {if (err) *err = 1;
+    return 0;
+}
+</code></pre><p>可以看到，当加上 <code>b</code> 时，以 1024 做换算，否则以 1000 做换算。</p><p>当服务器启动进行初始化时，对于 32 位系统，内存的最大使用量是 4G，如果用户没有做限制，那么设置 maxmemory 默认为 3G，并设置不做内存淘汰的策略，64 位系统则不做限制。</p><pre><code class="language-c">void initServer(void) {
+    ....
+    if (server.arch_bits == 32 &amp;&amp; server.maxmemory == 0) {serverLog(LL_WARNING,&quot;Warning: 32 bit instance detected but no memory limit set. Setting 3 GB maxmemory limit with 'noeviction' policy now.&quot;);
+        server.maxmemory = 3072LL*(1024*1024); /* 3 GB */
+        server.maxmemory_policy = MAXMEMORY_NO_EVICTION;
+    }
+    ...
+}
+</code></pre><p>redis 基本上是通过 <strong>zmalloc</strong> 统一接口进行内存管理的，在 <code>zmalloc.c</code> 文件中提供了丰富的接口来支持申请、释放和查询内存等操作。</p><h2 id="1- 内存淘汰概述">1. 内存淘汰概述</h2><p>在 redis 3.x 版本中一共提供了以下 4 种内存淘汰策略，</p><ul><li>不做淘汰</li><li>随机淘汰</li><li>先淘汰到期或快到期数据</li><li>近似 LRU 算法（最近最少使用）</li></ul><p class="note note-info"> 后续版本提供了更合理的近似 LFU 算法（最近使用频率最小）。</p><p>这些策略通过 <code>redis.conf</code> 中的 <code>maxmemory-policy</code> 配置项来设置，可用值如下，</p><ul><li>volatile-lru -&gt; 使用 LRU 算法淘汰设置了过期时间的 key</li><li>allkeys-lru -&gt; 使用 LRU 算法淘汰任意 key</li><li>volatile-random -&gt; 随机淘汰一个设置了过期时间的 key</li><li>allkeys-random -&gt; 随机淘汰任意一个 key</li><li>volatile-ttl -&gt; 淘汰最近要过期的 key，ttl 时间最小</li><li>noeviction -&gt; 不淘汰数据</li></ul><p>在源码中，有以下的宏定义，</p><pre><code class="language-c">/* Redis maxmemory strategies */
+#define MAXMEMORY_VOLATILE_LRU 0
+#define MAXMEMORY_VOLATILE_TTL 1
+#define MAXMEMORY_VOLATILE_RANDOM 2
+#define MAXMEMORY_ALLKEYS_LRU 3
+#define MAXMEMORY_ALLKEYS_RANDOM 4
+#define MAXMEMORY_NO_EVICTION 5
+#define CONFIG_DEFAULT_MAXMEMORY_POLICY MAXMEMORY_NO_EVICTION
+</code></pre><h2 id="2- 内存淘汰时机">2. 内存淘汰时机</h2><p>内存淘汰的核心逻辑在函数 <code>freeMemoryIfNeeded</code> 里。</p><p>有三个时机会触发这个函数的执行。</p><p>1）<strong>首先</strong>，使用 <code>config</code> 命令设置 maxmemory 时，代码如下，</p><pre><code class="language-c">config_set_memory_field(&quot;maxmemory&quot;,server.maxmemory) {if (server.maxmemory) {if (server.maxmemory &lt; zmalloc_used_memory()) {serverLog(LL_WARNING,&quot;WARNING: the new maxmemory value set via CONFIG SET is smaller than the current memory usage. This will result in keys eviction and/or inability to accept new write commands depending on the maxmemory-policy.&quot;);
+        }
+        freeMemoryIfNeeded();}
+}
+</code></pre><p>2）<strong>其次</strong>，在 lua 脚本的处理时，对于携带禁写 flag 的命令（这种命令会增大数据集），但是只能判断第一个写命令，脚本中间的无法判断。</p><pre><code class="language-c">int luaRedisGenericCommand(lua_State *lua, int raise_error) {
+  ...
+  if (server.maxmemory &amp;&amp; server.lua_write_dirty == 0 &amp;&amp;
+        (cmd-&gt;flags &amp; CMD_DENYOOM))
+    {if (freeMemoryIfNeeded() == C_ERR) {luaPushError(lua, shared.oomerr-&gt;ptr);
+            goto cleanup;
+        }
+    }
+  ...
+}
+</code></pre><p>3）<strong>最后</strong>，触发最频繁的是在命令处理的主流程里，如下，</p><pre><code class="language-c">int processCommand(client *c) {
+    ...
+    if (server.maxmemory) {int retval = freeMemoryIfNeeded();
+        if (server.current_client == NULL) return C_ERR;
+        if ((c-&gt;cmd-&gt;flags &amp; CMD_DENYOOM) &amp;&amp; retval == C_ERR) {flagTransaction(c);
+            addReply(c, shared.oomerr);
+            return C_OK;
+        }
+    }
+    ...
+}
+</code></pre><h2 id="3- 内存淘汰处理">3. 内存淘汰处理</h2><p>下面进入内存淘汰处理的分析，也就是 <code>freeMemoryIfNeeded</code> 函数的逻辑。</p><p>使用 zmalloc 接口获得现在已经使用的内存量，从中 <strong>减掉 slave 的 output buffers 和 AOF buffer</strong>，因为这两部分内存迟早会释放掉。</p><pre><code class="language-c">mem_used = zmalloc_used_memory();
+if (slaves) {
+    listIter li;
+    listNode *ln;
+
+    listRewind(server.slaves,&amp;li);
+    while((ln = listNext(&amp;li))) {client *slave = listNodeValue(ln);
+        unsigned long obuf_bytes = getClientOutputBufferMemoryUsage(slave);
+        if (obuf_bytes &gt; mem_used)
+            mem_used = 0;
+        else
+            mem_used -= obuf_bytes;
+    }
+}
+if (server.aof_state != AOF_OFF) {mem_used -= sdslen(server.aof_buf);
+    mem_used -= aofRewriteBufferSize();}
+</code></pre><p>代码中使用了 <code>getClientOutputBufferMemoryUsage</code> 函数来获得没有被 client 读取的 <strong>虚拟</strong> 字节数。之所以说 <strong>虚拟</strong>，是由于 reply output 列表中可能包含一些共享对象，而这部分对象是不占用额外内存的。这个函数的调用非常快。<br> 所以，从上面可以看到，aof 缓存和主从复制缓存区内的数据是不会被淘汰的，也没有算在 <code>mem_used</code> 内。</p><p>当使用内存小于 maxmemory 时，直接返回 <strong>C_OK</strong>，这时没必要做内存淘汰。</p><pre><code class="language-c">if (mem_used &lt;= server.maxmemory) return C_OK;
+</code></pre><p>而超限后，就需要做内存淘汰了。</p><p>基本代码框架如下，从每个 db 中按照配置的淘汰策略抽出 key 进行内存淘汰，直至内存降到 maxmemory 以下，可见当需要淘汰的内存非常多时，代码会 <strong>堵塞</strong> 到这里，不响应用户请求。因此，在设计这部分逻辑的原则也是要尽量地快！</p><pre><code class="language-c">// 计算出有多大内存需要淘汰
+mem_tofree = mem_used - server.maxmemory;
+// 已经淘汰掉多少内存
+mem_freed = 0;
+latencyStartMonitor(latency);
+while (mem_freed &lt; mem_tofree) {
+    int j, k, keys_freed = 0;
+    for (j = 0; j &lt; server.dbnum; j++) { // 操作每个 db
+        ...
+    }
+    if (!keys_freed) {latencyEndMonitor(latency);
+        latencyAddSampleIfNeeded(&quot;eviction-cycle&quot;,latency);
+        return C_ERR; /* nothing to free... */
+    }
+}
+latencyEndMonitor(latency);
+latencyAddSampleIfNeeded(&quot;eviction-cycle&quot;,latency);
+return C_OK;
+</code></pre><p>下面讨论各淘汰策略的具体做法。</p><h3 id="3-1-MAXMEMORY-NO-EVICTION">3.1 MAXMEMORY_NO_EVICTION</h3><pre><code class="language-c">if (server.maxmemory_policy == MAXMEMORY_NO_EVICTION)
+    return C_ERR;
+</code></pre><p>服务器配置的策略是不淘汰数据，所以这里报错，返回 <strong>C_ERR</strong>，返回到 <code>processCommand</code> 函数中，对于禁写的命令返回错误 <strong>-OOM command not allowed when used memory &gt; 'maxmemory</strong>。</p><p>禁写命令携带 <strong>CMD_DENYOOM</strong> 这个 flag，也就是在 <code>redisCommandTable</code> 中 command 携带的 m 标识，如，</p><pre><code class="language-c">{&quot;set&quot;,setCommand,-3,&quot;wm&quot;,0,NULL,1,1,1,0,0},
+</code></pre><p>大部分可以改变数据库状态的命令都带有此标识。</p><h3 id="3-2-MAXMEMORY-xxx-RANDOM">3.2 MAXMEMORY_xxx_RANDOM</h3><p>ALLKEYS 还是 VOLATILE 决定了从哪个 dict 里取 key 进行淘汰，</p><pre><code class="language-c">if (server.maxmemory_policy == MAXMEMORY_ALLKEYS_LRU ||
+    server.maxmemory_policy == MAXMEMORY_ALLKEYS_RANDOM)
+{   // 如果选择的淘汰策略是 MAXMEMORY_ALLKEYS_xxx，就是所有的数据都是潜在淘汰对象
+    dict = server.db[j].dict;
+} else {
+    // 否则只从带过期时间的 key 里进行淘汰
+    dict = server.db[j].expires;
+}
+</code></pre><pre><code class="language-c">// dict 里没有 key，就跳过吧
+if (dictSize(dict) == 0) continue;
+</code></pre><p>random 策略，从 dict 里随机选一个 key。</p><pre><code class="language-c">if (server.maxmemory_policy == MAXMEMORY_ALLKEYS_RANDOM ||
+    server.maxmemory_policy == MAXMEMORY_VOLATILE_RANDOM)
+{de = dictGetRandomKey(dict);
+    bestkey = dictGetKey(de);
+}
+</code></pre><h3 id="3-3-MAXMEMORY-xxx-LRU">3.3 MAXMEMORY_xxx_LRU</h3><p>redis 实现的 LRU 并不是一个严格的 LRU 算法，只是一个近似算法。</p><p>一般来说，缓存应该保留那些在未来高概率被访问到的 key，作为淘汰策略，恰恰相反，应该将那些在未来低概率被访问到的 key 从数据集中淘汰掉。但有一个问题，redis 和其他缓存都无法预测未来。虽说不可预测未来，但是用以下方式推断：<strong>那些最近经常被访问的 key，很可能会再一次被访问</strong> 。由于访问模型通常不会突然变更，因此，这是一个有效的策略。对于“ <strong>最近经常访问</strong>”的概念，就被简化成了 LRU 算法，只记录一个 key 上一次被访问的时间戳。</p><p class="note note-info"> 严格来说，LRU 算法，要把所有要淘汰的 key 放到一个链表中，当一个 key 可以被访问时，把它移到 list 的头端，当需要淘汰 key 的时候，直接从尾部淘汰。</p><p>但是 redis 之前是不支持 LRU 淘汰数据的，如果要改成严格 LRU 是算法，那么需要对现有的数据结构进行一个大的改动，另外需要很多的内存存储 metadata。而算法实现要做到高效，不能因选出要淘汰 key 的流程致使服务器性能大幅下降。且 maxmemory 导致触发数据淘汰是一个低频操作。总之就是改起来性价比较低。因此采用近似 LRU 算法，通过采样的方式获得目标 key。</p><p>那么，下面有两个问题需要解决。</p><p>1）<strong>如何计算 LRU 值？</strong></p><p>在 object 中腾出 24 bits 空间存储 unix 时间（秒）的最低有效位。这种表示，在 redis 源码称为 <strong>LRU clock</strong>，<strong>194 天会溢出</strong>，但 key 基本信息会频繁更新，因此这个方案已经足够好了。因此，这里的 LRU 值是个近似值。</p><pre><code class="language-c">#define LRU_BITS 24
+typedef struct redisObject {
+    unsigned type:4;
+    unsigned encoding:4;
+    unsigned lru:LRU_BITS;
+    int refcount;
+    void *ptr;
+} robj;
+</code></pre><p>在每次访问 key 的时候，根据 flag，对 key 的 lru 时间进行更新，代码如下，</p><pre><code class="language-c">robj *lookupKey(redisDb *db, robj *key, int flags) {dictEntry *de = dictFind(db-&gt;dict,key-&gt;ptr);
+    if (de) {robj *val = dictGetVal(de);
+
+        // 只在不存在子进程时执行，防止破坏 copy-on-write 机制
+        if (server.rdb_child_pid == -1 &amp;&amp;
+            server.aof_child_pid == -1 &amp;&amp;
+            !(flags &amp; LOOKUP_NOTOUCH))
+        {val-&gt;lru = LRU_CLOCK();
+        }
+        return val;
+    } else {return NULL;}
+}
+</code></pre><p>2）<strong>如何选出 idletime 最大的 key？</strong></p><p><strong>最简单的办法</strong> 是，从 key 空间中随机选择 n 个（n = 5 效果就很好了），然后淘汰那个 idle 最大的 key，这种方案虽然简单，但是效果不错，在精确度上是有问题的。这是 2.8 版本中的实现方案。</p><p class="note note-primary"> 作者是这样做测试的，向 redis 中写入一定数量的 key，此时已经达到 maxmemory，然后依次访问它们，这样就可以使它们的 idletime 是一个依序递减的，当再次写入 50% 数量的 key 时，按道理应该将源数据中后 50% 的 key 淘汰掉，但是测试发现一些新写入的 key 也有部分被淘汰掉了。这个结果其实是显而易见的，因为 key 的选取的 random 的，因此作者对 random 算法进行了改进，这就是 3.x 版本中用到的算法，引入 pool 存放待淘汰的 key。</p><p>说完作者的优化思路，现在回到 <code>freeMemoryIfNeeded</code> 的代码逻辑，</p><pre><code class="language-c">else if (server.maxmemory_policy == MAXMEMORY_ALLKEYS_LRU ||
+    server.maxmemory_policy == MAXMEMORY_VOLATILE_LRU)
+{
+    struct evictionPoolEntry *pool = db-&gt;eviction_pool;
+
+    while(bestkey == NULL) {
+        // 更新回收池
+        evictionPoolPopulate(dict, db-&gt;dict, db-&gt;eviction_pool);
+
+        // 从 eviction_pool 里 idletime 最大的 key（在数组最右边）开始处理
+        for (k = MAXMEMORY_EVICTION_POOL_SIZE-1; k &gt;= 0; k--) {if (pool[k].key == NULL) continue;
+            de = dictFind(dict,pool[k].key);
+
+            // 从 pool 里删掉第 k 个数据
+            sdsfree(pool[k].key);
+
+            // 将 k 右边的数据通通左移
+            memmove(pool+k,pool+k+1,
+                sizeof(pool[0])*(MAXMEMORY_EVICTION_POOL_SIZE-k-1));
+
+            // 因为我们往左移动了一个位置，初始化 pool 最右边那个位置（因为左移而填充的未知值）
+            pool[MAXMEMORY_EVICTION_POOL_SIZE-1].key = NULL;
+            pool[MAXMEMORY_EVICTION_POOL_SIZE-1].idle = 0;
+
+            // 如果找到 key 了，那么保存到 bestkey 里，到此为止
+            // 否则重试一下
+            if (de) {bestkey = dictGetKey(de);
+                break;
+            } else {
+                /* Ghost... */
+                continue;
+            }
+        }
+    }
+}
+</code></pre><p>每个 db 都有一个 <code>eviction_pool</code> 的结构，存放潜在的淘汰对象，就是那些 idle 时间很大的 key，长度为 16，该 pool 的结构如下图所示，</p><p><img src="redis-evictionpool.jpg" srcset="/img/loading.gif" alt=""></p><p>可以看到，在 pool 中，key 按照 idletime 升序排列，所以淘汰数据时，从右侧开始遍历 pool，也就是拿到 pool 中 idletime 最大的那个 key 进行淘汰，这个 key 就是代码中的 <code>bestkey</code>。</p><p>代码中，更新 pool 是关键的操作，每次需要从 dict 中选出 <code>maxmemory_samples</code> 个 key，然后对 pool 进行更新。<code>maxmemory_samples</code> 值由配置文件中的 <strong>maxmemory-samples</strong> 配置项决定，默认值是 5，5 的效果已经足够好了，10 基本接近真实 LRU 算法的效果，但是多消耗一点 CPU。</p><ul><li>当 pool 不满时，采样 key 总是能够插入到 pool 里的。</li><li>当 pool 满了时，pool 中所有的 key 的 idletime 均大于采样 key 时，无法插入，否则释放掉 pool 中 idletime 最小的那个 key（也就是 pool 最左边的那个 key），然后插入采样 key。<br> 以上的插入过长中，都要使用 <code>memmove</code> 函数进行元素的移动。</li></ul><p>逻辑主要如下图所示，这里就不贴代码了，<br> <img src="ecictionpoo-update.jpg" srcset="/img/loading.gif" alt=""></p><p>需要注意的一点是，在 idletime 的获取时，需要兼容 24 bit lru lock 溢出的情况。</p><pre><code class="language-c">#define LRU_CLOCK_RESOLUTION 1000
+
+// 精度为 s
+unsigned int getLRUClock(void) {return (mstime()/LRU_CLOCK_RESOLUTION) &amp; LRU_CLOCK_MAX;
+}
+
+// 如果 cron 执行的频率高于 LRU 算法的精度，返回之前计算好的 lruclock，
+// 否则需要一次系统调用
+#define LRU_CLOCK() ((1000/server.hz &lt;= LRU_CLOCK_RESOLUTION) ? server.lruclock : getLRUClock())
+
+// 使用近似 LRU 算法，计算出给定对象的闲置时长(毫秒)
+unsigned long long estimateObjectIdleTime(robj *o) {unsigned long long lruclock = LRU_CLOCK();
+    if (lruclock &gt;= o-&gt;lru) {return (lruclock - o-&gt;lru) * LRU_CLOCK_RESOLUTION;
+
+    // 这种情况一般不会发生，key 长时间不访问，LRU 时间发生了 wrap
+    } else {return (lruclock + (LRU_CLOCK_MAX - o-&gt;lru)) *
+                    LRU_CLOCK_RESOLUTION;
+    }
+}
+</code></pre><p>上面的 <code>server.lruclock</code> 变量在每次执行 <code>serverCron</code> 函数时更新一次，而该函数 <code>1000/server.hz</code> 毫秒内执行一次，默认是 100ms，所以如果 <code>serverCron</code> 函数执行不及时的时候，就自动调用一下 <code>getLRUClock</code> 函数拿当前时间。</p><p class="note note-info"> 上面的实现中，每个 db 都有一个 pool，这可能有个问题。</p><p>当 db0 中所有的 key 的 idle 都小于 db1 中的 key，按道理这时应该淘汰 db1 的数据，但是上面的逻辑中仍然会淘汰一部分 db0 中的数据。<br> 实际上，当 redis 被用做缓存时，很少会使用到不同的 db，然而作者还是在后面的 redis 版本中做了相关优化，pool 中带上了 dbid，使用一个大的 pool 负责所有的 db。</p><p></p><p><strong>LRU 算法受限于采样，每轮采样 10 个 key，使得该近似算法的精确度已经接近理论 LRU 了，所以作者在后面的版本中又探索了 LFU 算法，根据访问频率去淘汰数据是更加准确的。</strong></p><p>关于作者对淘汰策略的设计思路，可以参考文章 《<a href="http://antirez.com/news/109" target="_blank" rel="noopener">Random notes on improving the Redis LRU algorithm</a>》</p><h3 id="3-3-MAXMEMORY-VOLATILE-TTL">3.3 MAXMEMORY_VOLATILE_TTL</h3><p>该策略会随机选择 maxmemory_samples 个 key，选 ttl 最小的 key，也就是最先过期的 key。</p><pre><code class="language-c">else if (server.maxmemory_policy == MAXMEMORY_VOLATILE_TTL) {for (k = 0; k &lt; server.maxmemory_samples; k++) {
+        sds thiskey;
+        long thisval;
+
+        de = dictGetRandomKey(dict);
+        thiskey = dictGetKey(de);
+        thisval = (long) dictGetVal(de);
+
+        if (bestkey == NULL || thisval &lt; bestval) {
+            bestkey = thiskey;
+            bestval = thisval;
+        }
+    }
+}
+</code></pre><hr><p>经过上面的策略，获得 bestkey，也就是最终要淘汰的 key。</p><p>首先是把这个 key 的信息传播到 slave 和 aof，<code>propagateExpire</code> 函数的逻辑，在 key 过期那篇文章讲过，在此不做赘述。</p><pre><code class="language-c">robj *keyobj = createStringObject(bestkey,sdslen(bestkey));
+propagateExpire(db,keyobj);
+</code></pre><p>然后从 key space 中删掉这个 key，更新相关变量。</p><pre><code class="language-c">delta = (long long) zmalloc_used_memory();
+dbDelete(db,keyobj);
+delta -= (long long) zmalloc_used_memory();
+mem_freed += delta;  // 更新内存释放量
+server.stat_evictedkeys++;
+decrRefCount(keyobj);
+keys_freed++;
+</code></pre><p>最后，强制刷一次 slave 输出缓冲区数据，因为当待释放的内存比较大时，在 loop 里要花很长时间，因此不可能尽快的把数据传给 slave。</p><pre><code class="language-c">if (slaves) flushSlavesOutputBuffers();
+</code></pre><p>然后还有一些就是统计 latency 的更新，会记录每次释放 key 的耗时、每个 db 释放 key 的耗时等等。</p><h2 id="4- 总结">4. 总结</h2><ol><li>maxmemory 淘汰数据机制，主要淘汰的数据分为两部分，一是整个 key space 里的 key，二是设置了过期时间的 key。</li><li>maxmemory 淘汰数据算法，3.x 版本的 redis 里主要有，ttl、LRU 和 random，后续版本加入了 LFU。</li><li>redis 版本从 2.x 到 6.x，一直不停地改进迭代，redis 作者精益求精的精神值得我们学习。</li><li>LRU 算法的加入，从性价比方面考虑，没有采用精确 LRU 算法，而是使用的一个近似算法，代码改动很小，但是收益却很大，这种代码设计上的取舍很值得学习。</li><li>在做数据淘汰时，在 loop 里会一直做淘汰，直到使用内存量降至 maxmemory 以下，当要淘汰的数据过多时，会一直阻塞在这里，无法正常处理用户请求，这一点是需要特别注意的。</li><li>虽然有数据淘汰机制，但是在生产环境下应该严格监控，确保内存使用量在 maxmemory 以下。</li><li>maxmemory 不建议设置过大，否则数据过多，实例启动和主从同步的时间都会很长，单点风险增大。</li></ol></div><hr><div><p><span><i class="iconfont icon-inbox"></i> <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a> &nbsp;</span> &nbsp;&nbsp;<span><i class="iconfont icon-tag"></i> <a class="hover-with-bg" href="/tags/redis/">redis</a></span></p><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p><div class="post-prevnext row"><div class="post-prev col-6"></div><div class="post-next col-6"> <a href="/5a077de9.html"><span class="hidden-mobile">Redis 源码分析之 key 过期</span> <span class="visible-mobile">下一篇</span><i class="fa fa-chevron-right"></i></a></div></div></div><div class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">!function(e,t){var r,n=e.getElementsByTagName(t)[0];"function"!=typeof LivereTower&&((r=e.createElement(t)).src="https://cdn-city.livere.com/js/embed.dist.js",r.defer=!0,n.parentNode.insertBefore(r,n))}(document,"script")</script><noscript> 为正常使用来必力评论功能请激活JavaScript</noscript></div></div></div></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc-start"></div><div id="toc"><p class="h5"><i class="far fa-list-alt"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div><div class="col-lg-7 mx-auto nopadding-md"><div class="container custom post-content mx-auto"> <img src="https://octodex.github.com/images/jetpacktocat.png" srcset="/img/loading.gif" class="rounded mx-auto d-block mt-5" style="width:150px;height:150px"></div></div></main><a class="z-depth-1" id="scroll-top-button" href="#" role="button"><i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4> <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"> <input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div> <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><b>Hexo</b></a><i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><b>Fluid</b></a></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js"></script><script>$(document).ready(function(){var s=$("#navbar").height(),c=$("#toc"),t=$("#board-ctn"),o=t.offset().top,i=2*o+t.height();$(window).scroll(function(){var t=$("#toc-start").offset().top-s,o=document.body.scrollTop+document.documentElement.scrollTop;t<=o&&o<=i?c.css({display:"block",position:"fixed",top:s}):o<=t?c.css({position:"",top:""}):i<o&&c.css("display","none")}),tocbot.init({tocSelector:"#tocbot",contentSelector:".post-content",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",scrollSmooth:!0,headingsOffset:-o}),0<$(".toc-list-item").length&&$("#toc > p").css("visibility","visible");var l=t.css("margin-right");$("#toc-ctn").css({right:l})})</script><script defer="defer" src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer="defer" src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script defer="defer">var _hmt=_hmt||[];!function(){var e=document.createElement("script");e.src="https://hm.baidu.com/hm.js?882b48640075e00a238ae94a7eec0d40";var t=document.getElementsByTagName("script")[0];t.parentNode.insertBefore(e,t)}()</script><script defer="defer">var _mtac={};!function(){var t=document.createElement("script");t.src="//pingjs.qq.com/h5/stats.js?v2.0.4",t.setAttribute("name","MTAH5"),t.setAttribute("sid","");var e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(t,e)}()</script><script src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js"></script><script>$(document).ready(function(){$("pre").addClass("prettyprint  "),prettyPrint()})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","Redis 源码分析之内存淘汰策略&nbsp;"],cursorChar:"_",typeSpeed:80,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>
+    anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))
+  </script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){getSearchFile(path),this.onclick=null}</script><script defer="defer" src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><script>$("#post img:not(.no-zoom img, img[no-zoom])").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>
