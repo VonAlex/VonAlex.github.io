@@ -1,19 +1,273 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#2f4154"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>sublime text3 配置 [python 篇] - Happen&#39;s Memo</title><link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css"><link rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css"><link rel="stylesheet" href="/css/main.css"><link defer="defer" rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><link rel="stylesheet" href="/css/custom.css"></head><body><header style="height:70vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"> <a class="navbar-brand" href="/">&nbsp;<strong>Happen's Memo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="fa fa-home" aria-hidden="true"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="fa fa-archive" aria-hidden="true"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="fa fa-map-signs" aria-hidden="true"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="fa fa-tags" aria-hidden="true"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="fa fa-child" aria-hidden="true"></i> 关于</a></li><li class="nav-item" id="search-btn"> <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i class="iconfont icon-search"></i>&nbsp;&nbsp;</a></li></ul></div></div></nav><div class="view intro-2" id="background" parallax="true" style="background:url(/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask rgba-black-light flex-center"><div class="container text-center white-text fadeInUp"><span class="h2" id="subtitle"></span><p class="mt-3 post-meta"><i class="fas fa-calendar-alt" aria-hidden="true"></i> 2016/05/12, 星期四, 23:24</p><p class="mt-1"><span class="post-meta"><i class="far fa-chart-bar"></i> 1.7k 字</span><span class="post-meta"><i class="far fa-clock"></i> 7 分钟</span><span id="busuanzi_container_page_pv" class="post-meta" style="display:none"><i class="far fa-eye" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span> 次</span></p></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5 z-depth-3" id="board"><div class="post-content mx-auto" id="post"><p class="note note-warning">本文最后更新于：2020/04/03, 星期五, 02:29</p><div class="markdown-body"><p>古语有云，工欲善其事必先利其器。选择一个好的工具，往往能达到意想不到的效果。因为个人电脑原因，用 pycharm 太卡，所以想起了 sublime text，配置了一下，觉得挺好用。</p><a id="more"></a><h2 id="下载">下载</h2><p>下载 <a href="http://pan.baidu.com/s/1qYoZ5Pa" target="_blank" rel="noopener">Sublime Text3 Build 3080 x64</a>，文件中有 <strong>License</strong>，输入一个即可破解。<br> 当然了，还是希望支持 <strong>正版</strong>。</p><h2 id="配置">配置</h2><p>我的用户配置文件如下：</p><pre><code class="language-othe">{
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=&#34;auto&#34;>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png">
+  <link rel="icon" type="image/png" href="/images/dolphin.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="description" content="">
+  <meta name="author" content="Happen">
+  <meta name="keywords" content="">
+  <title>sublime text3 配置 [python 篇] - HappenのMemo</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/atom-one-dark.min.css" />
+    
+  
+
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 5.1.1"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/links/">
+                <i class="iconfont icon-link-fill"></i>
+                友链
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;</a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" href="javascript:">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner intro-2" id="background" parallax=true
+         style="background: url('/images/about-banner.jpg') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="container page-header text-center fade-in-up">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-author" aria-hidden="true"></i>
+      Happen
+    </span>
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2016-05-12 23:24" pubdate>
+        2016年5月12日 晚上
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      1.8k 字
+    </span>
+  
+
+  
+    
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      23
+       分钟
+    </span>
+  
+
+  
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="container nopadding-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto" id="post">
+            <!-- SEO header -->
+            <h1 style="display: none">sublime text3 配置 [python 篇]</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2016年5月12日 晚上
+                
+              </p>
+            
+            <div class="markdown-body" id="post-body">
+              <p>古语有云，工欲善其事必先利其器。选择一个好的工具，往往能达到意想不到的效果。因为个人电脑原因，用 pycharm 太卡，所以想起了 sublime text，配置了一下，觉得挺好用。</p>
+<a id="more"></a>
+<h2 id="下载">下载</h2>
+<p>下载 <a target="_blank" rel="noopener" href="http://pan.baidu.com/s/1qYoZ5Pa">Sublime Text3 Build 3080 x64</a>，文件中有 <strong>License</strong>，输入一个即可破解。<br>
+当然了，还是希望支持 <strong> 正版</strong>。</p>
+<h2 id="配置">配置</h2>
+<p>我的用户配置文件如下：</p>
+<div class="hljs"><pre><code class="hljs othe">&#123;
     &quot;auto_complete_commit_on_tab&quot;: true,
-    &quot;bold_folder_labels&quot;: true, // 侧边栏文件夹加粗
-&quot;color_scheme&quot;: &quot;Packages/Tomorrow Color Schemes/Tomorrow-Night.tmTheme&quot;,
-    &quot;draw_minimap_border&quot;: false, // 右侧缩略图边框
-    &quot;ensure_newline_at_eof_on_save&quot;: true, // 文件末尾自动保留一个空行
-    &quot;fade_fold_buttons&quot;: false, // 显示代码块的倒三角
-    &quot;line_numbers&quot;: true, // 是否显示行号，默认显示
-    // 哪些文件不要被显示到侧边栏
+    &quot;bold_folder_labels&quot;: true, &#x2F;&#x2F; 侧边栏文件夹加粗
+&quot;color_scheme&quot;: &quot;Packages&#x2F;Tomorrow Color Schemes&#x2F;Tomorrow-Night.tmTheme&quot;,
+    &quot;draw_minimap_border&quot;: false, &#x2F;&#x2F; 右侧缩略图边框
+    &quot;ensure_newline_at_eof_on_save&quot;: true, &#x2F;&#x2F; 文件末尾自动保留一个空行
+    &quot;fade_fold_buttons&quot;: false, &#x2F;&#x2F; 显示代码块的倒三角
+    &quot;line_numbers&quot;: true, &#x2F;&#x2F; 是否显示行号，默认显示
+    &#x2F;&#x2F; 哪些文件不要被显示到侧边栏
     &quot;file_exclude_patterns&quot;:
     [
         &quot;.DS_Store&quot;,
         &quot;*.pid&quot;,
         &quot;*.pyc&quot;
     ],
-    // 哪些文件夹不要被显示到侧边栏
+    &#x2F;&#x2F; 哪些文件夹不要被显示到侧边栏
     &quot;folder_exclude_patterns&quot;:
     [
         &quot;.git&quot;,
@@ -21,23 +275,25 @@
         &quot;.idea&quot;,
     ],
     &quot;font_size&quot;: 11,
-    // 删除想要忽略的插件，需要重启, 去掉 Vinage 开启 vim 模式
+    &#x2F;&#x2F; 删除想要忽略的插件，需要重启, 去掉 Vinage 开启 vim 模式
     &quot;ignored_packages&quot;:
     [&quot;Vintage&quot;],
-    &quot;line_padding_bottom&quot;: 3, // 设置行间距
+    &quot;line_padding_bottom&quot;: 3, &#x2F;&#x2F; 设置行间距
     &quot;line_padding_top&quot;: 3,
-    &quot;save_on_focus_lost&quot;: true, // 当前行标亮
-    &quot;spell_check&quot;: false, // 不进行拼写检查
-    &quot;tab_size&quot;: 4,  // 1 个 tab=4 个空格
-    &quot;translate_tabs_to_spaces&quot;: true, // 缩进和遇到 Tab 键时是否使用空格替代
-    // 保存文件时是否删除每行结束后多余的空格
+    &quot;save_on_focus_lost&quot;: true, &#x2F;&#x2F; 当前行标亮
+    &quot;spell_check&quot;: false, &#x2F;&#x2F; 不进行拼写检查
+    &quot;tab_size&quot;: 4,  &#x2F;&#x2F; 1 个 tab&#x3D;4 个空格
+    &quot;translate_tabs_to_spaces&quot;: true, &#x2F;&#x2F; 缩进和遇到 Tab 键时是否使用空格替代
+    &#x2F;&#x2F; 保存文件时是否删除每行结束后多余的空格
     &quot;trim_trailing_white_space_on_save&quot;: false,
-    &quot;update_check&quot;: false,  // // 禁止检查更新
-   &quot;default_encoding&quot;: &quot;UTF-8&quot;, // 默认编码格式
-   &quot;match_selection&quot;: true, // 全文突出显示和当前选中字符相同的字符, 默认为 true
-}
-
-</code></pre><h2 id="常用快捷键">常用快捷键</h2><p>所有的快捷键都可以在 <code>Preferences -&gt; Key Bindings - Default</code> 这里找到，或者打开命令面板，输入 <code>Key Bindings</code>。</p><pre><code class="language-othe">Ctrl + shift + n 新建窗口
+    &quot;update_check&quot;: false,  &#x2F;&#x2F; &#x2F;&#x2F; 禁止检查更新
+   &quot;default_encoding&quot;: &quot;UTF-8&quot;, &#x2F;&#x2F; 默认编码格式
+   &quot;match_selection&quot;: true, &#x2F;&#x2F; 全文突出显示和当前选中字符相同的字符, 默认为 true
+&#125;
+</code></pre></div>
+<h2 id="常用快捷键">常用快捷键</h2>
+<p>所有的快捷键都可以在 <code>Preferences -&gt; Key Bindings - Default</code> 这里找到，或者打开命令面板，输入 <code>Key Bindings</code>。</p>
+<div class="hljs"><pre><code class="hljs othe">Ctrl + shift + n 新建窗口
 ctrl + shift + w 关闭窗口
 Ctrl + n 新建文件
 Ctrl + w 关闭当前文件
@@ -45,8 +301,8 @@ Ctrl + w 关闭当前文件
 ctrl + tab 在两个标签之间跳转
 ctrl +　j 在某行末尾敲该快捷键，会将下一行合并上来
 ctrl + shift + d 将当前行复制到下一行
-ctrl + shift + up/down 上下交换行
-ctrl + ]/[  当前行缩进一个级别 / 取消缩进
+ctrl + shift + up&#x2F;down 上下交换行
+ctrl + ]&#x2F;[  当前行缩进一个级别 &#x2F; 取消缩进
 ctrl + l 选择当前行
 Ctrl+Shift+l 先选中多行，再按下快捷键，会在每行行尾插入光标，即可同时编辑这些行。
 ctrl + d 选中一个后，按此快捷键可以同时选中另一个，同时多了另一个光标
@@ -70,49 +326,346 @@ Alt+Shift+8 垂直分屏 -2 屏
 Alt+Shift+9 垂直分屏 -3 屏
 
 Ctrl + g，输入行号，可以快速跳转到该行。
-Ctrl+K+B 开启 / 关闭侧边栏。
+Ctrl+K+B 开启 &#x2F; 关闭侧边栏。
 
 Ctrl + \  打开控制行
-Ctrl + Shift + P 打开命令面板
-</code></pre><h2 id="常用插件">常用插件</h2><h3 id="Package-Control">Package Control</h3><p>进行包管理的必装插件，<a href="https://packagecontrol.io/installation#st3" target="_blank" rel="noopener">安装方式看这里</a></p><h3 id="SublimeTmpl">SublimeTmpl</h3><p>提供了常用文件的模板，新建文件时很有用。也可以自动定制，模版文件位置在 <code>\Packages\SublimeTmpl\templates\*.tmpl</code>, 模版文件中的 <code>author</code>，<code>Date</code> 等字段的默认值在 <code>Setting-Default</code> 中，可以在 <code>Setting-User</code> 中进行重写覆盖。</p><h3 id="Code-Snippets">Code Snippets</h3><p>补全代码片段，可以 <a href="http://9iphp.com/web/html/sublime-text-code-snippets.html" target="_blank" rel="noopener">自定义代码片段</a>, 或者直接安装代码片段。</p><h3 id="SublimeCodeIntel">SublimeCodeIntel</h3><p>智能提示插件，这个插件的智能提示功能非常强大，可以自定义提示的内容库，我的 Python 智能提示设置,<br> <strong>注意</strong>：我的 python 安装径为 <code>D:/Python27/python.exe</code>，请视情况自行调整<br> 在该插件的配置文件中添加如下内容（大括号内）：</p><pre><code class="language-othe">&quot;Python&quot;: {
-        &quot;python&quot;:&quot;D:/Python27/python.exe&quot;,
+Ctrl + Shift + P 打开命令面板</code></pre></div>
+<h2 id="常用插件">常用插件</h2>
+<h3 id="Package-Control">Package Control</h3>
+<p>进行包管理的必装插件，<a target="_blank" rel="noopener" href="https://packagecontrol.io/installation#st3">安装方式看这里</a></p>
+<h3 id="SublimeTmpl">SublimeTmpl</h3>
+<p>提供了常用文件的模板，新建文件时很有用。也可以自动定制，模版文件位置在 <code>\Packages\SublimeTmpl\templates\*.tmpl</code>, 模版文件中的 <code>author</code>，<code>Date</code> 等字段的默认值在 <code>Setting-Default </code>中，可以在 <code>Setting-User</code> 中进行重写覆盖。</p>
+<h3 id="Code-Snippets">Code Snippets</h3>
+<p>补全代码片段，可以 <a target="_blank" rel="noopener" href="http://9iphp.com/web/html/sublime-text-code-snippets.html"> 自定义代码片段</a>, 或者直接安装代码片段。</p>
+<h3 id="SublimeCodeIntel">SublimeCodeIntel</h3>
+<p>智能提示插件，这个插件的智能提示功能非常强大，可以自定义提示的内容库，我的 Python 智能提示设置,<br>
+<strong>注意</strong>：我的 python 安装径为<code> D:/Python27/python.exe</code>，请视情况自行调整<br>
+在该插件的配置文件中添加如下内容（大括号内）：</p>
+<div class="hljs"><pre><code class="hljs othe">&quot;Python&quot;: &#123;
+        &quot;python&quot;:&quot;D:&#x2F;Python27&#x2F;python.exe&quot;,
         &quot;pythonExtraPaths&quot;:
             [
-                &quot;D:/Python27&quot;,
-                 &quot;D:/Python27/DLLs&quot;,
-                 &quot;D:/Python27/Lib&quot;,
-                 &quot;D:/Python27/Lib/lib-tk&quot;,
-                 &quot;D:/Python27/Lib/site-packages&quot;
+                &quot;D:&#x2F;Python27&quot;,
+                 &quot;D:&#x2F;Python27&#x2F;DLLs&quot;,
+                 &quot;D:&#x2F;Python27&#x2F;Lib&quot;,
+                 &quot;D:&#x2F;Python27&#x2F;Lib&#x2F;lib-tk&quot;,
+                 &quot;D:&#x2F;Python27&#x2F;Lib&#x2F;site-packages&quot;
             ]
-        }
-</code></pre><h3 id="Anaconda">Anaconda</h3><p>可以提示模块的类和方法，简单设置如下：</p><pre><code class="language-othe">{
-    &quot;python_interpreter&quot;: &quot;D:/Python27/python.exe&quot;,
-    &quot;complete_parameters&quot;: true,  // 补齐方法参数
+        &#125;</code></pre></div>
+<h3 id="Anaconda">Anaconda</h3>
+<p>可以提示模块的类和方法，简单设置如下：</p>
+<div class="hljs"><pre><code class="hljs othe">&#123;
+    &quot;python_interpreter&quot;: &quot;D:&#x2F;Python27&#x2F;python.exe&quot;,
+    &quot;complete_parameters&quot;: true,  &#x2F;&#x2F; 补齐方法参数
     &quot;suppress_word_completions&quot;: true,
     &quot;suppress_explicit_completions&quot;: true,
     &quot;pep8_ignore&quot;:
-    [&quot;E501&quot;],  // 忽略每行长度的限定，默认是 79 个字符
-}
-</code></pre><p>本插件默认支持 pep8 格式化，可以在默认配置文件中查看。<br> 新建一个配置文件 <code>Python.sublime-settings</code>，并把它存放在包安装路径, 即 User 目录下，文件内容如下：</p><pre><code class="language-othe">{
+    [&quot;E501&quot;],  &#x2F;&#x2F; 忽略每行长度的限定，默认是 79 个字符
+&#125;</code></pre></div>
+<p>本插件默认支持 pep8 格式化，可以在默认配置文件中查看。<br>
+新建一个配置文件 <code>Python.sublime-settings</code>，并把它存放在包安装路径, 即 User 目录下，文件内容如下：</p>
+<div class="hljs"><pre><code class="hljs othe">&#123;
     &quot;auto_complete_triggers&quot;:
-    [{&quot;selector&quot;: &quot;source.python - string - comment - constant.numeric&quot;, &quot;characters&quot;: &quot;.&quot;}]
-}
-</code></pre><h3 id="autoPep8">autoPep8</h3><p>格式化 Python 代码<br> <code>ctrl+shift+8</code> 进行 pep8 格式化，<code>ctrl+8</code> 进行预览<br> 配置一下：</p><pre><code class="language-othe">{
+    [&#123;&quot;selector&quot;: &quot;source.python - string - comment - constant.numeric&quot;, &quot;characters&quot;: &quot;.&quot;&#125;]
+&#125;</code></pre></div>
+<h3 id="autoPep8">autoPep8</h3>
+<p>格式化 Python 代码<br>
+<code>ctrl+shift+8</code> 进行 pep8 格式化，<code>ctrl+8</code> 进行预览<br>
+配置一下：</p>
+<div class="hljs"><pre><code class="hljs othe">&#123;
     &quot;ignore&quot;: &quot;E501&quot;,
-    &quot;format_on_save&quot;: true,// 保存时就自动格式化
-}
-</code></pre><h3 id="SublimeREPL">SublimeREPL</h3><p>提供 Sublime 可以执行许多脚本语言的直译器环境<br> 以 python 为例进行配置，（在自定义配置文件中进行配置）</p><pre><code class="language-otghe">｛
-    &quot;default_extend_env&quot;: {&quot;PATH&quot;: &quot;{PATH};D:/Python27&quot;}
-｝
-</code></pre><p><code>D:/Python27</code> 为本地安装的 python 的路径，打开控制面板，选择 <code>SublimeREPL:Python</code>，就可以打开 python 的命令行，<br> 选择 <code>SublimeREPL:Python-RUN current file</code> 就可以运行本文件，还可以使用 pdb 调试程序，<br> ** 小问题：** 关于 ipython 没有配置好找了网上的方法也有点问题，先不管了，不影响其他使用。</p><h3 id="BracketHighlighter">BracketHighlighter</h3><p>BracketHighlighter 插件能为 Sublime Text 提供括号，引号这类高亮功能。<br> 将默认配置文件复制到自定义配置文件中，然后配置，找到 “bracket_styles” 这一项，<br> style 类型有 outline， underline， highlight 和 solid 四种，对应关系是这样的，</p><pre><code class="language-other">{} － curly
+    &quot;format_on_save&quot;: true,&#x2F;&#x2F; 保存时就自动格式化
+&#125;</code></pre></div>
+<h3 id="SublimeREPL">SublimeREPL</h3>
+<p>提供 Sublime 可以执行许多脚本语言的直译器环境<br>
+以 python 为例进行配置，（在自定义配置文件中进行配置）</p>
+<div class="hljs"><pre><code class="hljs otghe">｛
+    &quot;default_extend_env&quot;: &#123;&quot;PATH&quot;: &quot;&#123;PATH&#125;;D:&#x2F;Python27&quot;&#125;
+｝</code></pre></div>
+<p><code>D:/Python27</code> 为本地安装的 python 的路径，打开控制面板，选择 <code>SublimeREPL:Python</code>，就可以打开 python 的命令行，<br>
+选择 <code>SublimeREPL:Python-RUN current file</code> 就可以运行本文件，还可以使用 pdb 调试程序，<br>
+** 小问题：** 关于 ipython 没有配置好找了网上的方法也有点问题，先不管了，不影响其他使用。</p>
+<h3 id="BracketHighlighter">BracketHighlighter</h3>
+<p>BracketHighlighter 插件能为 Sublime Text 提供括号，引号这类高亮功能。<br>
+将默认配置文件复制到自定义配置文件中，然后配置，找到 “bracket_styles” 这一项，<br>
+style 类型有 outline， underline， highlight 和 solid 四种，对应关系是这样的，</p>
+<div class="hljs"><pre><code class="hljs other">&#123;&#125; － curly
 () － round
 [] － square
 &lt;&gt; － angle
-“” ” － quote
-</code></pre><h3 id="SublimeGit">SublimeGit</h3><p><code>ctrl+shift+p</code> 输入 <code>git</code> 可以查看到所有的命令，当然也可以设置快捷键。</p><h3 id="ConvertToUTF8">ConvertToUTF8</h3><p>GBK 编码兼容。</p><h3 id="ColorSublime">ColorSublime</h3><p>用来安装其 <a href="http://colorsublime.com/" target="_blank" rel="noopener">官网</a> 上的所有主题。 安装此插件后，Ctrl+Shift+P，输入 install theme 并回车，等待片刻即缓存其官网所有主题到本地，按上下键可以即时预览效果，回车键安装。</p><h3 id="sidebarenhancement">sidebarenhancement</h3><p>侧边栏增强工具，<a href="https://segmentfault.com/a/1190000004464318" target="_blank" rel="noopener">sublime text 3 扩展插件 SideBarEnhancements 用法教程–使用浏览器快捷预览网页</a></p><h3 id="SyncedSidebarBg">SyncedSidebarBg</h3><p>同步侧边栏的颜色与主题一致</p><h3 id="material-theme"><a href="https://github.com/equinusocio/material-theme" target="_blank" rel="noopener"><strong>material-theme</strong></a></h3><p>一款扁平化主题，自认为是用过的最好的一款</p><h2 id="运行">运行</h2><p>可以直接使用 <strong>ctrl+b</strong> 在运行，也可以是使用 REPL 中的 <strong>RUN pythpn</strong></p><p><strong>注：</strong> 若出现 Package Control 不能使用的情况，可以将插件下载下来以后，放在 \Data\Packages 路径下</p><h2 id="参考">参考</h2><ol><li><a href="https://gist.github.com/MattDMo/6cb1dfbe8a124e1ca5af" target="_blank" rel="noopener">MattDMo/ipy_repl.py</a></li><li><a href="http://www.dbpoo.com/sublime-text3-brackethighlighter/" target="_blank" rel="noopener">Sublime Text3 BracketHighlighter 色彩配置</a></li><li><a href="https://www.zybuluo.com/king/note/47271" target="_blank" rel="noopener">Sublime Text 3 配置和使用方法</a></li><li> <a href="http://blog.csdn.net/hexrain/article/details/13997565" target="_blank" rel="noopener">Sublime Text 3 配置分析与我的配置</a></li><li><a href="http://www.imooc.com/article/1356" target="_blank" rel="noopener">Sublime Text 3 使用心得</a></li></ol></div><hr><div><p><span><i class="iconfont icon-inbox"></i> <a class="hover-with-bg" href="/categories/tools/">tools</a> &nbsp;</span> &nbsp;&nbsp;<span><i class="iconfont icon-tag"></i> <a class="hover-with-bg" href="/tags/sublime/">sublime</a></span></p><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p><div class="post-prevnext row"><div class="post-prev col-6"><a href="/4ada5477.html"><i class="fa fa-chevron-left"></i> <span class="hidden-mobile">爬虫问题总结</span> <span class="visible-mobile">上一篇</span></a></div><div class="post-next col-6"> <a href="/24aff268.html"><span class="hidden-mobile">Scrapy Demo</span> <span class="visible-mobile">下一篇</span><i class="fa fa-chevron-right"></i></a></div></div></div><div class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">!function(e,t){var r,n=e.getElementsByTagName(t)[0];"function"!=typeof LivereTower&&((r=e.createElement(t)).src="https://cdn-city.livere.com/js/embed.dist.js",r.defer=!0,n.parentNode.insertBefore(r,n))}(document,"script")</script><noscript> 为正常使用来必力评论功能请激活JavaScript</noscript></div></div></div></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc-start"></div><div id="toc"><p class="h5"><i class="far fa-list-alt"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div><div class="col-lg-7 mx-auto nopadding-md"><div class="container custom post-content mx-auto"> <img src="https://octodex.github.com/images/jetpacktocat.png" srcset="/img/loading.gif" class="rounded mx-auto d-block mt-5" style="width:150px;height:150px"></div></div></main><a class="z-depth-1" id="scroll-top-button" href="#" role="button"><i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4> <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"> <input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div> <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><b>Hexo</b></a><i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><b>Fluid</b></a></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js"></script><script>$(document).ready(function(){var s=$("#navbar").height(),c=$("#toc"),t=$("#board-ctn"),o=t.offset().top,i=2*o+t.height();$(window).scroll(function(){var t=$("#toc-start").offset().top-s,o=document.body.scrollTop+document.documentElement.scrollTop;t<=o&&o<=i?c.css({display:"block",position:"fixed",top:s}):o<=t?c.css({position:"",top:""}):i<o&&c.css("display","none")}),tocbot.init({tocSelector:"#tocbot",contentSelector:".post-content",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",scrollSmooth:!0,headingsOffset:-o}),0<$(".toc-list-item").length&&$("#toc > p").css("visibility","visible");var l=t.css("margin-right");$("#toc-ctn").css({right:l})})</script><script defer="defer" src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer="defer" src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script defer="defer">var _hmt=_hmt||[];!function(){var e=document.createElement("script");e.src="https://hm.baidu.com/hm.js?882b48640075e00a238ae94a7eec0d40";var t=document.getElementsByTagName("script")[0];t.parentNode.insertBefore(e,t)}()</script><script defer="defer">var _mtac={};!function(){var t=document.createElement("script");t.src="//pingjs.qq.com/h5/stats.js?v2.0.4",t.setAttribute("name","MTAH5"),t.setAttribute("sid","");var e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(t,e)}()</script><script src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js"></script><script>$(document).ready(function(){$("pre").addClass("prettyprint  "),prettyPrint()})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","sublime text3 配置 [python 篇]&nbsp;"],cursorChar:"_",typeSpeed:80,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>
+“” ” － quote</code></pre></div>
+<h3 id="SublimeGit">SublimeGit</h3>
+<p><code>ctrl+shift+p</code> 输入 <code>git</code> 可以查看到所有的命令，当然也可以设置快捷键。</p>
+<h3 id="ConvertToUTF8">ConvertToUTF8</h3>
+<p>GBK 编码兼容。</p>
+<h3 id="ColorSublime">ColorSublime</h3>
+<p>用来安装其 <a target="_blank" rel="noopener" href="http://colorsublime.com/"> 官网 </a> 上的所有主题。 安装此插件后，Ctrl+Shift+P，输入 install theme 并回车，等待片刻即缓存其官网所有主题到本地，按上下键可以即时预览效果，回车键安装。</p>
+<h3 id="sidebarenhancement">sidebarenhancement</h3>
+<p>侧边栏增强工具，<a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000004464318">sublime text 3 扩展插件 SideBarEnhancements 用法教程–使用浏览器快捷预览网页</a></p>
+<h3 id="SyncedSidebarBg">SyncedSidebarBg</h3>
+<p>同步侧边栏的颜色与主题一致</p>
+<h3 id="material-theme"><a target="_blank" rel="noopener" href="https://github.com/equinusocio/material-theme"><strong>material-theme</strong></a></h3>
+<p>一款扁平化主题，自认为是用过的最好的一款</p>
+<h2 id="运行">运行</h2>
+<p>可以直接使用 <strong>ctrl+b</strong> 在运行，也可以是使用 REPL 中的 <strong>RUN pythpn</strong></p>
+<p><strong>注：</strong> 若出现 Package Control 不能使用的情况，可以将插件下载下来以后，放在 \Data\Packages 路径下</p>
+<h2 id="参考">参考</h2>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://gist.github.com/MattDMo/6cb1dfbe8a124e1ca5af">MattDMo/ipy_repl.py</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.dbpoo.com/sublime-text3-brackethighlighter/">Sublime Text3 BracketHighlighter 色彩配置</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.zybuluo.com/king/note/47271">Sublime Text 3 配置和使用方法</a></li>
+<li><a target="_blank" rel="noopener" href="http://blog.csdn.net/hexrain/article/details/13997565"> Sublime Text 3 配置分析与我的配置</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.imooc.com/article/1356">Sublime Text 3 使用心得</a></li>
+</ol>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/tools/">tools</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/sublime/">sublime</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p>
+              
+              
+                <div class="post-prevnext row">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/4ada5477.html">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">爬虫问题总结</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/24aff268.html">
+                        <span class="hidden-mobile">Scrapy Demo</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments">
+                
+                
+  <div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw">
+    <script type="text/javascript">
+      function loadLivere() {
+        addScript('https://cdn-city.livere.com/js/embed.dist.js');
+      }
+      waitElementVisible('lv-container', loadLivere);
+    </script>
+    <noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript>
+  </div>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div id="tocbot"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+  </main>
+
+  
+    <a id="scroll-top-button" href="#" role="button">
+      <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+    <div>
+      <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a>
+      <i class="iconfont icon-love"></i>
+      <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener">
+        <span>Fluid</span></a>
+    </div>
+    
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- 不蒜子统计PV -->
+        <span id="busuanzi_container_site_pv" style="display: none">
+            总访问量 
+            <span id="busuanzi_value_site_pv"></span>
+             次
+          </span>
+      
+      
+        <!-- 不蒜子统计UV -->
+        <span id="busuanzi_container_site_uv" style="display: none">
+            总访客数 
+            <span id="busuanzi_value_site_uv"></span>
+             人
+          </span>
+      
+    
+  </div>
+
+
+    
+
+    
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="/js/debouncer.js" ></script>
+<script  src="/js/main.js" ></script>
+
+<!-- Plugins -->
+
+
+  
+    <script  src="/js/lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
+  <script  src="/js/clipboard-use.js" ></script>
+
+
+
+  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+
+  <script  src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var boardCtn = $('#board-ctn');
+      var boardTop = boardCtn.offset().top;
+
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '#post-body',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        collapseDepth: 2,
+        scrollSmooth: true,
+        headingsOffset: -boardTop
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc').css('visibility', 'visible');
+      }
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "sublime text3 配置 [python 篇]&nbsp;",
+      ],
+      cursorChar: "_",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
     anchors.options = {
       placement: "right",
       visible: "hover",
+      
+      icon: "§"
       
     };
     var el = "h1,h2,h3,h4,h5,h6".split(",");
@@ -121,4 +674,54 @@ Ctrl + Shift + P 打开命令面板
       res.push(".markdown-body > " + item)
     }
     anchors.add(res.join(", "))
-  </script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){getSearchFile(path),this.onclick=null}</script><script defer="defer" src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><script>$("#post img:not(.no-zoom img, img[no-zoom])").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      searchFunc(path, 'local-search-input', 'local-search-result');
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+  <script>
+    $('#post img:not(.no-zoom img, img[no-zoom]), img[zoom]').each(
+      function () {
+        var element = document.createElement('a');
+        $(element).attr('data-fancybox', 'images');
+        $(element).attr('href', $(this).attr('src'));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

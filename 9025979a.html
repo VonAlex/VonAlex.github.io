@@ -1,495 +1,1116 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#2f4154"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>Redis 源码之主从复制 (4) - Happen&#39;s Memo</title><link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css"><link rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css"><link rel="stylesheet" href="/css/main.css"><link defer="defer" rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><link rel="stylesheet" href="/css/custom.css"></head><body><header style="height:70vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"> <a class="navbar-brand" href="/">&nbsp;<strong>Happen's Memo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="fa fa-home" aria-hidden="true"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="fa fa-archive" aria-hidden="true"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="fa fa-map-signs" aria-hidden="true"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="fa fa-tags" aria-hidden="true"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="fa fa-child" aria-hidden="true"></i> 关于</a></li><li class="nav-item" id="search-btn"> <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i class="iconfont icon-search"></i>&nbsp;&nbsp;</a></li></ul></div></div></nav><div class="view intro-2" id="background" parallax="true" style="background:url(/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask rgba-black-light flex-center"><div class="container text-center white-text fadeInUp"><span class="h2" id="subtitle"></span><p class="mt-3 post-meta"><i class="fas fa-calendar-alt" aria-hidden="true"></i> 2019/11/13, 星期三, 02:34</p><p class="mt-1"><span class="post-meta"><i class="far fa-chart-bar"></i> 5.5k 字</span><span class="post-meta"><i class="far fa-clock"></i> 26 分钟</span><span id="busuanzi_container_page_pv" class="post-meta" style="display:none"><i class="far fa-eye" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span> 次</span></p></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5 z-depth-3" id="board"><div class="post-content mx-auto" id="post"><p class="note note-warning">本文最后更新于：2020/04/03, 星期五, 01:46</p><div class="markdown-body"><p>在上一篇文章，主要介绍了主从复制流程中 slave 的状态机流转，本篇文章中，将做相应的 master 逻辑的相关分析。</p><a id="more"></a><h2 id="主从建链与握手阶段">主从建链与握手阶段</h2><blockquote><p>slave 在向 master 发起 TCP 建链，以及复制握手过程中，master 一直把 slave 当成一个普通的 client 来处理。也就是说，不为 slave 保存状态，只是收到 slave 发来的命令进而处理并回复而已。</p></blockquote><h3 id="PING- 命令处理">PING 命令处理</h3><p>握手过程中，首先 slave 会发过来一个 PING 命令，master 使用 <strong>pingCommand</strong> 函数来进行处理。回复字符串 <strong>+PONG</strong>，还是权限错误，视情况而定。</p><h3 id="AUTH- 命令处理">AUTH 命令处理</h3><p>可能会有一个鉴权过程，master 收到 slave 发来 AUTH 命令，使用 <strong>authCommand</strong> 函数进行处理，代码大概如下，</p><pre><code class="language-c">void authCommand(client *c) {if (!server.requirepass) { // 未设置 auth passwd
-        addReplyError(c,&quot;Client sent AUTH, but no password is set&quot;);
-    } else if (!time_independent_strcmp(c-&gt;argv[1]-&gt;ptr, server.requirepass)) {
-      c-&gt;authenticated = 1;
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=&#34;auto&#34;>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png">
+  <link rel="icon" type="image/png" href="/images/dolphin.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="description" content="">
+  <meta name="author" content="Happen">
+  <meta name="keywords" content="">
+  <title>Redis 源码之主从复制 (4) - HappenのMemo</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/atom-one-dark.min.css" />
+    
+  
+
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 5.1.1"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/links/">
+                <i class="iconfont icon-link-fill"></i>
+                友链
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;</a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" href="javascript:">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner intro-2" id="background" parallax=true
+         style="background: url('/images/about-banner.jpg') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="container page-header text-center fade-in-up">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-author" aria-hidden="true"></i>
+      Happen
+    </span>
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2019-11-13 02:34" pubdate>
+        2019年11月13日 凌晨
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      5.7k 字
+    </span>
+  
+
+  
+    
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      85
+       分钟
+    </span>
+  
+
+  
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="container nopadding-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto" id="post">
+            <!-- SEO header -->
+            <h1 style="display: none">Redis 源码之主从复制 (4)</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2019年11月13日 凌晨
+                
+              </p>
+            
+            <div class="markdown-body" id="post-body">
+              <p>在上一篇文章，主要介绍了主从复制流程中 slave 的状态机流转，本篇文章中，将做相应的 master 逻辑的相关分析。</p>
+<!--more---->
+<h2 id="主从建链与握手阶段">主从建链与握手阶段</h2>
+<blockquote>
+<p>slave 在向 master 发起 TCP 建链，以及复制握手过程中，master 一直把 slave 当成一个普通的 client 来处理。也就是说，不为 slave 保存状态，只是收到 slave 发来的命令进而处理并回复而已。</p>
+</blockquote>
+<h3 id="PING- 命令处理">PING 命令处理</h3>
+<p>握手过程中，首先 slave 会发过来一个 PING 命令，master 使用 <strong>pingCommand</strong> 函数来进行处理。回复字符串 <strong>+PONG</strong>，还是权限错误，视情况而定。</p>
+<h3 id="AUTH- 命令处理">AUTH 命令处理</h3>
+<p>可能会有一个鉴权过程，master 收到 slave 发来 AUTH 命令，使用 <strong>authCommand</strong> 函数进行处理，代码大概如下，</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">authCommand</span><span class="hljs-params">(client *c)</span> </span>&#123;
+    <span class="hljs-keyword">if</span> (!server.requirepass) &#123; <span class="hljs-comment">// 未设置 auth passwd</span>
+        addReplyError(c,<span class="hljs-string">&quot;Client sent AUTH, but no password is set&quot;</span>);
+    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!time_independent_strcmp(c-&gt;argv[<span class="hljs-number">1</span>]-&gt;ptr, server.requirepass)) &#123;
+      c-&gt;authenticated = <span class="hljs-number">1</span>;
       addReply(c,shared.ok);
-    } else {
-      c-&gt;authenticated = 0;
-      addReplyError(c,&quot;invalid password&quot;);
-    }
-}
-</code></pre><p>client 的 <strong>authenticated</strong> 属性表明 server 是否设置了鉴权。</p><h3 id="REPLCONF- 命令处理">REPLCONF 命令处理</h3><p>接下来就是 REPLCONF 命令，相应处理函数为 <strong>replconfCommand</strong>，用于保存 slave 告知的端口号、地址和能力等。该函数代码逻辑基本如下，</p><p>首先进行必要的参数校验，命令格式为 <code>REPLCONF &lt;option&gt; &lt;value&gt; &lt;option&gt; &lt;value&gt; ...</code>，可以看出，后面的参数值是成对出现的，加上 REPLCONF 本身，参数个数肯定是奇数个，那么偶数个就肯定是有问题的。</p><pre><code class="language-c">if ((c-&gt;argc % 2) == 0) {
-    /* Number of arguments must be odd to make sure that every
-     * option has a corresponding value. */
+    &#125; <span class="hljs-keyword">else</span> &#123;
+      c-&gt;authenticated = <span class="hljs-number">0</span>;
+      addReplyError(c,<span class="hljs-string">&quot;invalid password&quot;</span>);
+    &#125;
+&#125;</code></pre></div>
+<p>client 的 <strong>authenticated</strong> 属性表明 server 是否设置了鉴权。</p>
+<h3 id="REPLCONF- 命令处理">REPLCONF 命令处理</h3>
+<p>接下来就是 REPLCONF 命令，相应处理函数为 <strong>replconfCommand</strong>，用于保存 slave 告知的端口号、地址和能力等。该函数代码逻辑基本如下，</p>
+<p>首先进行必要的参数校验，命令格式为 <code>REPLCONF &lt;option&gt; &lt;value&gt; &lt;option&gt; &lt;value&gt; ...</code>，可以看出，后面的参数值是成对出现的，加上 REPLCONF 本身，参数个数肯定是奇数个，那么偶数个就肯定是有问题的。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> ((c-&gt;argc % <span class="hljs-number">2</span>) == <span class="hljs-number">0</span>) &#123;
+    <span class="hljs-comment">/* Number of arguments must be odd to make sure that every</span>
+<span class="hljs-comment">     * option has a corresponding value. */</span>
     addReply(c,shared.syntaxerr);
-    return;
-}
-</code></pre><p>接着，匹配到各选项分别处理，目前支持的选项有 listening-port、ip-address、capa、ack 和 getack，不支持的选项在报错后会返回，代码处理如下，</p><pre><code class="language-c">for (j = 1; j &lt; c-&gt;argc; j+=2) {if (!strcasecmp(c-&gt;argv[j]-&gt;ptr,&quot;listening-port&quot;)) {
-        long port;
+    <span class="hljs-keyword">return</span>;
+&#125;</code></pre></div>
+<p>接着，匹配到各选项分别处理，目前支持的选项有 listening-port、ip-address、capa、ack 和 getack，不支持的选项在报错后会返回，代码处理如下，</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">for</span> (j = <span class="hljs-number">1</span>; j &lt; c-&gt;argc; j+=<span class="hljs-number">2</span>) &#123;
+    <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[j]-&gt;ptr,<span class="hljs-string">&quot;listening-port&quot;</span>)) &#123;
+        <span class="hljs-keyword">long</span> port;
 
-        if ((getLongFromObjectOrReply(c,c-&gt;argv[j+1],
-                &amp;port,NULL) != C_OK))
-            return;
+        <span class="hljs-keyword">if</span> ((getLongFromObjectOrReply(c,c-&gt;argv[j+<span class="hljs-number">1</span>],
+                &amp;port,<span class="hljs-literal">NULL</span>) != C_OK))
+            <span class="hljs-keyword">return</span>;
         c-&gt;slave_listening_port = port;
-    } else if (!strcasecmp(c-&gt;argv[j]-&gt;ptr,&quot;ip-address&quot;)) {sds ip = c-&gt;argv[j+1]-&gt;ptr;
-        if (sdslen(ip) &lt; sizeof(c-&gt;slave_ip)) {memcpy(c-&gt;slave_ip,ip,sdslen(ip)+1);
-        } else {
-            addReplyErrorFormat(c,&quot;REPLCONF ip-address provided by &quot;
-                &quot;slave instance is too long: %zd bytes&quot;, sdslen(ip));
-            return;
-        }
-    } else if (!strcasecmp(c-&gt;argv[j]-&gt;ptr,&quot;capa&quot;)) {
-        /* Ignore capabilities not understood by this master. */
-        if (!strcasecmp(c-&gt;argv[j+1]-&gt;ptr,&quot;eof&quot;))
+    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[j]-&gt;ptr,<span class="hljs-string">&quot;ip-address&quot;</span>)) &#123;
+        sds ip = c-&gt;argv[j+<span class="hljs-number">1</span>]-&gt;ptr;
+        <span class="hljs-keyword">if</span> (sdslen(ip) &lt; <span class="hljs-keyword">sizeof</span>(c-&gt;slave_ip)) &#123;
+            <span class="hljs-built_in">memcpy</span>(c-&gt;slave_ip,ip,sdslen(ip)+<span class="hljs-number">1</span>);
+        &#125; <span class="hljs-keyword">else</span> &#123;
+            addReplyErrorFormat(c,<span class="hljs-string">&quot;REPLCONF ip-address provided by &quot;</span>
+                <span class="hljs-string">&quot;slave instance is too long: %zd bytes&quot;</span>, sdslen(ip));
+            <span class="hljs-keyword">return</span>;
+        &#125;
+    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[j]-&gt;ptr,<span class="hljs-string">&quot;capa&quot;</span>)) &#123;
+        <span class="hljs-comment">/* Ignore capabilities not understood by this master. */</span>
+        <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[j+<span class="hljs-number">1</span>]-&gt;ptr,<span class="hljs-string">&quot;eof&quot;</span>))
             c-&gt;slave_capa |= SLAVE_CAPA_EOF;
-    } else if {.....}
-    } else {
-        addReplyErrorFormat(c,&quot;Unrecognized REPLCONF option: %s&quot;,
-            (char*)c-&gt;argv[j]-&gt;ptr);
-        return;
-    }
-}
-</code></pre><h2 id="主从复制阶段">主从复制阶段</h2><p>接下来，slave 会向 master 发送 SYNC/PSYNC 命令，请求进行完全重同步或者部分重同步。master 为 slave 保存的状态记录在 client 的 <strong>replstate</strong> 属性中。</p><p>从 master 的角度看，slave 需要经历的如下状态：<strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> → <strong>SLAVE_REPL_WAIT_BGSAVE_END</strong> → <strong>SLAVE_REPL_SEND_BULK</strong> → <strong>SLAVE_REPL_ONLINE</strong>。状态转换图在前一篇文章开头画过，这里不做赘述。</p><h3 id="SYNC-PSYNC- 命令处理">SYNC/PSYNC 命令处理</h3><p>SYNC/PSYNC 命令的处理函数为 <strong>syncCommand</strong>。</p><h4 id="前置 -check">前置 check</h4><p>首先，需要做一些必要的 check。</p><pre><code class="language-c">/* ignore SYNC if already slave or in monitor mode */
-if (c-&gt;flags &amp; CLIENT_SLAVE) return;
+    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> &#123;
+        .....
+    &#125;
+    &#125; <span class="hljs-keyword">else</span> &#123;
+        addReplyErrorFormat(c,<span class="hljs-string">&quot;Unrecognized REPLCONF option: %s&quot;</span>,
+            (<span class="hljs-keyword">char</span>*)c-&gt;argv[j]-&gt;ptr);
+        <span class="hljs-keyword">return</span>;
+    &#125;
+&#125;</code></pre></div>
+<h2 id="主从复制阶段">主从复制阶段</h2>
+<p>接下来，slave 会向 master 发送 SYNC/PSYNC 命令，请求进行完全重同步或者部分重同步。master 为 slave 保存的状态记录在 client 的 <strong>replstate</strong> 属性中。</p>
+<p>从 master 的角度看，slave 需要经历的如下状态：<strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> → <strong>SLAVE_REPL_WAIT_BGSAVE_END</strong> → <strong>SLAVE_REPL_SEND_BULK</strong> → <strong>SLAVE_REPL_ONLINE</strong>。状态转换图在前一篇文章开头画过，这里不做赘述。</p>
+<h3 id="SYNC-PSYNC- 命令处理">SYNC/PSYNC 命令处理</h3>
+<p>SYNC/PSYNC 命令的处理函数为 <strong>syncCommand</strong>。</p>
+<h4 id="前置 -check">前置 check</h4>
+<p>首先，需要做一些必要的 check。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* ignore SYNC if already slave or in monitor mode */</span>
+<span class="hljs-keyword">if</span> (c-&gt;flags &amp; CLIENT_SLAVE) <span class="hljs-keyword">return</span>;
 
-// 本节点是其他节点的 slave，但是还没有同步好数据，
-// 此时不能为本节点的 slave 进行数据同步(因为数据不全)
-if (server.masterhost &amp;&amp; server.repl_state != REPL_STATE_CONNECTED) {addReplyError(c,&quot;Can't SYNC while not connected with my master&quot;);
-    return;
-}
+<span class="hljs-comment">// 本节点是其他节点的 slave，但是还没有同步好数据，</span>
+<span class="hljs-comment">// 此时不能为本节点的 slave 进行数据同步(因为数据不全)</span>
+<span class="hljs-keyword">if</span> (server.masterhost &amp;&amp; server.repl_state != REPL_STATE_CONNECTED) &#123;
+    addReplyError(c,<span class="hljs-string">&quot;Can&#x27;t SYNC while not connected with my master&quot;</span>);
+    <span class="hljs-keyword">return</span>;
+&#125;
 
-/* 因为 master 接下来需要为该 slave 进行后台 RDB 数据转储了，
- * 同时需要将前台接收到的其他 client 命令请求缓存到该 slave client 的输出缓存中，
- * 这就需要一个完全清空的输出缓存，才能为该 slave 保存从执行 BGSAVE 开始的命令流。
- *
- * 在 master 收到 slave 发来的 SYNC(PSYNC)命令之前，两者之间的交互信息都是比较短的，
- * 因此，在网络正常的情况下，slave client 中的输出缓存应该是很容易就发送给该 slave，并清空的。
- * 所以，如果不为空，说明可能有问题 */
-if (clientHasPendingReplies(c)) {addReplyError(c,&quot;SYNC and PSYNC are invalid with pending output&quot;);
-    return;
-}
-</code></pre><h4 id="完全重同步 -or- 部分重同步">完全重同步 or 部分重同步</h4><p>下面就开始进入正题，SYNC/PSYNC 命令进行了区别对待。</p><pre><code class="language-c">// slave 发来 psync 命令
-if (!strcasecmp(c-&gt;argv[0]-&gt;ptr,&quot;psync&quot;)) {if (masterTryPartialResynchronization(c) == C_OK) {
+<span class="hljs-comment">/* 因为 master 接下来需要为该 slave 进行后台 RDB 数据转储了，</span>
+<span class="hljs-comment"> * 同时需要将前台接收到的其他 client 命令请求缓存到该 slave client 的输出缓存中，</span>
+<span class="hljs-comment"> * 这就需要一个完全清空的输出缓存，才能为该 slave 保存从执行 BGSAVE 开始的命令流。</span>
+<span class="hljs-comment"> *</span>
+<span class="hljs-comment"> * 在 master 收到 slave 发来的 SYNC(PSYNC)命令之前，两者之间的交互信息都是比较短的，</span>
+<span class="hljs-comment"> * 因此，在网络正常的情况下，slave client 中的输出缓存应该是很容易就发送给该 slave，并清空的。</span>
+<span class="hljs-comment"> * 所以，如果不为空，说明可能有问题 */</span>
+<span class="hljs-keyword">if</span> (clientHasPendingReplies(c)) &#123;
+    addReplyError(c,<span class="hljs-string">&quot;SYNC and PSYNC are invalid with pending output&quot;</span>);
+    <span class="hljs-keyword">return</span>;
+&#125;</code></pre></div>
+<h4 id="完全重同步 -or- 部分重同步">完全重同步 or 部分重同步</h4>
+<p>下面就开始进入正题，SYNC/PSYNC 命令进行了区别对待。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// slave 发来 psync 命令</span>
+<span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="hljs-number">0</span>]-&gt;ptr,<span class="hljs-string">&quot;psync&quot;</span>)) &#123;
+    <span class="hljs-keyword">if</span> (masterTryPartialResynchronization(c) == C_OK) &#123;
         server.stat_sync_partial_ok++;
-        return; /* No full resync needed, return. */
-    } else {char *master_runid = c-&gt;argv[1]-&gt;ptr;
+        <span class="hljs-keyword">return</span>; <span class="hljs-comment">/* No full resync needed, return. */</span>
+    &#125; <span class="hljs-keyword">else</span> &#123;
+        <span class="hljs-keyword">char</span> *master_runid = c-&gt;argv[<span class="hljs-number">1</span>]-&gt;ptr;
 
-        /* Increment stats for failed PSYNCs, but only if the
-         * runid is not &quot;?&quot;, as this is used by slaves to force a full
-         * resync on purpose when they are not albe to partially
-         * resync. */
-        if (master_runid[0] != '?') server.stat_sync_partial_err++;
-    }
-// slave 发来 sync 命令
-} else {
-    /* If a slave uses SYNC, we are dealing with an old implementation
-     * of the replication protocol (like redis-cli --slave). Flag the client
-     * so that we don't expect to receive REPLCONF ACK feedbacks. */
-    c-&gt;flags |= CLIENT_PRE_PSYNC; // 老版本实例
-}
-</code></pre><p>从上面代码可以看出，当需要进行 <strong>部分重同步</strong> 时，函数会直接返回，否则，开始着手处理 <strong>完全重同步</strong> 的情况，此时 master 要执行一次 rdb 。</p><p>处理 PSYNC 命令的函数是 <strong>masterTryPartialResynchronization</strong>，该函数通过返回值来进行区分是否进行部分重同步，<code>C_OK</code> 表示部分重同步，<code>C_ERR</code> 表示完全重同步，下面进行具体分析。</p><p>首先，把自己的 runid 与 slave 发来的 <strong>master_runid</strong> 相匹配，如果不匹配，说明是一个新的 slave，此时需要进行 <strong>完全重同步</strong>，代码如下。</p><pre><code class="language-c">char *master_runid = c-&gt;argv[1]-&gt;ptr;
+        <span class="hljs-comment">/* Increment stats for failed PSYNCs, but only if the</span>
+<span class="hljs-comment">         * runid is not &quot;?&quot;, as this is used by slaves to force a full</span>
+<span class="hljs-comment">         * resync on purpose when they are not albe to partially</span>
+<span class="hljs-comment">         * resync. */</span>
+        <span class="hljs-keyword">if</span> (master_runid[<span class="hljs-number">0</span>] != <span class="hljs-string">&#x27;?&#x27;</span>) server.stat_sync_partial_err++;
+    &#125;
+<span class="hljs-comment">// slave 发来 sync 命令</span>
+&#125; <span class="hljs-keyword">else</span> &#123;
+    <span class="hljs-comment">/* If a slave uses SYNC, we are dealing with an old implementation</span>
+<span class="hljs-comment">     * of the replication protocol (like redis-cli --slave). Flag the client</span>
+<span class="hljs-comment">     * so that we don&#x27;t expect to receive REPLCONF ACK feedbacks. */</span>
+    c-&gt;flags |= CLIENT_PRE_PSYNC; <span class="hljs-comment">// 老版本实例</span>
+&#125;</code></pre></div>
+<p>从上面代码可以看出，当需要进行 <strong> 部分重同步 </strong> 时，函数会直接返回，否则，开始着手处理 <strong> 完全重同步 </strong> 的情况，此时 master 要执行一次 rdb 。</p>
+<p>处理 PSYNC 命令的函数是 <strong>masterTryPartialResynchronization</strong>，该函数通过返回值来进行区分是否进行部分重同步，<code>C_OK</code> 表示部分重同步，<code>C_ERR</code> 表示完全重同步，下面进行具体分析。</p>
+<p>首先，把自己的 runid 与 slave 发来的 <strong>master_runid</strong> 相匹配，如果不匹配，说明是一个新的 slave，此时需要进行 <strong> 完全重同步</strong>，代码如下。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">char</span> *master_runid = c-&gt;argv[<span class="hljs-number">1</span>]-&gt;ptr;
 ... ...
 
-if (strcasecmp(master_runid, server.runid)) {
+<span class="hljs-keyword">if</span> (strcasecmp(master_runid, server.runid)) &#123;
 
-    // slave 通过发送 runid 为 `？` 来触发一次完全重同步。
-    if (master_runid[0] != '?') {
-        serverLog(LL_NOTICE,&quot;Partial resynchronization not accepted: &quot;
-            &quot;Runid mismatch (Client asked for runid '%s', my runid is '%s')&quot;,
+    <span class="hljs-comment">// slave 通过发送 runid 为 `？` 来触发一次完全重同步。</span>
+    <span class="hljs-keyword">if</span> (master_runid[<span class="hljs-number">0</span>] != <span class="hljs-string">&#x27;?&#x27;</span>) &#123;
+        serverLog(LL_NOTICE,<span class="hljs-string">&quot;Partial resynchronization not accepted: &quot;</span>
+            <span class="hljs-string">&quot;Runid mismatch (Client asked for runid &#x27;%s&#x27;, my runid is &#x27;%s&#x27;)&quot;</span>,
             master_runid, server.runid);
-    } else {
-        serverLog(LL_NOTICE,&quot;Full resync requested by slave %s&quot;,
+    &#125; <span class="hljs-keyword">else</span> &#123;
+        serverLog(LL_NOTICE,<span class="hljs-string">&quot;Full resync requested by slave %s&quot;</span>,
             replicationGetSlaveName(c));
-    }
-    goto need_full_resync;
-}
-</code></pre><p>然后，取出 slave 的复制偏移量 <strong>psync_offset</strong>，master 据此来判断是否可以进行完全重同步，关于复制偏移量的问题，前面的文章已经提过。</p><pre><code class="language-c">if (getLongLongFromObjectOrReply(c,c-&gt;argv[2],&amp;psync_offset,NULL) !=
-    C_OK) goto need_full_resync;
-if (!server.repl_backlog ||
+    &#125;
+    <span class="hljs-keyword">goto</span> need_full_resync;
+&#125;</code></pre></div>
+<p>然后，取出 slave 的复制偏移量 <strong>psync_offset</strong>，master 据此来判断是否可以进行完全重同步，关于复制偏移量的问题，前面的文章已经提过。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (getLongLongFromObjectOrReply(c,c-&gt;argv[<span class="hljs-number">2</span>],&amp;psync_offset,<span class="hljs-literal">NULL</span>) !=
+    C_OK) <span class="hljs-keyword">goto</span> need_full_resync;
+<span class="hljs-keyword">if</span> (!server.repl_backlog ||
     psync_offset &lt; server.repl_backlog_off ||
     psync_offset &gt; (server.repl_backlog_off + server.repl_backlog_histlen))
-{
+&#123;
     serverLog(LL_NOTICE,
-        &quot;Unable to partial resync with slave %s for lack of backlog (Slave request was: %lld).&quot;, replicationGetSlaveName(c), psync_offset);
-    if (psync_offset &gt; server.master_repl_offset) {
+        <span class="hljs-string">&quot;Unable to partial resync with slave %s for lack of backlog (Slave request was: %lld).&quot;</span>, replicationGetSlaveName(c), psync_offset);
+    <span class="hljs-keyword">if</span> (psync_offset &gt; server.master_repl_offset) &#123;
         serverLog(LL_WARNING,
-            &quot;Warning: slave %s tried to PSYNC with an offset that is greater than the master replication offset.&quot;, replicationGetSlaveName(c));
-    }
-    goto need_full_resync;
-}
-</code></pre><p>以上出现的两种需要进行完全重同步的情况，都会进入 <strong>need_full_resync</strong> 的逻辑，最后返回 <code>C_ERR</code>。</p><pre><code class="language-c">need_full_resync:
-    /* We need a full resync for some reason... Note that we can't
-     * reply to PSYNC right now if a full SYNC is needed. The reply
-     * must include the master offset at the time the RDB file we transfer
-     * is generated, so we need to delay the reply to that moment. */
-    return C_ERR;
-</code></pre><p>否则，表示需要进行部分重同步，进行相应变量的初始化，返回<code>C_OK</code>。</p><pre><code class="language-c">c-&gt;flags |= CLIENT_SLAVE;
+            <span class="hljs-string">&quot;Warning: slave %s tried to PSYNC with an offset that is greater than the master replication offset.&quot;</span>, replicationGetSlaveName(c));
+    &#125;
+    <span class="hljs-keyword">goto</span> need_full_resync;
+&#125;</code></pre></div>
+<p>以上出现的两种需要进行完全重同步的情况，都会进入 <strong>need_full_resync</strong> 的逻辑，最后返回 <code>C_ERR</code>。</p>
+<div class="hljs"><pre><code class="hljs c">need_full_resync:
+    <span class="hljs-comment">/* We need a full resync for some reason... Note that we can&#x27;t</span>
+<span class="hljs-comment">     * reply to PSYNC right now if a full SYNC is needed. The reply</span>
+<span class="hljs-comment">     * must include the master offset at the time the RDB file we transfer</span>
+<span class="hljs-comment">     * is generated, so we need to delay the reply to that moment. */</span>
+    <span class="hljs-keyword">return</span> C_ERR;</code></pre></div>
+<p>否则，表示需要进行部分重同步，进行相应变量的初始化，返回<code>C_OK</code>。</p>
+<div class="hljs"><pre><code class="hljs c">c-&gt;flags |= CLIENT_SLAVE;
 c-&gt;replstate = SLAVE_STATE_ONLINE;
 c-&gt;repl_ack_time = server.unixtime;
-c-&gt;repl_put_online_on_ack = 0;
+c-&gt;repl_put_online_on_ack = <span class="hljs-number">0</span>;
 
 listAddNodeTail(server.slaves,c);
 
-// 这里不能用输出缓存，因为输出缓存只能用于累积命令流。
-// 之前 master 向 slave 发送的信息很少，因此内核的输出缓存中应该会有空间，
-// 所以，这里直接的 write 操作一般不会出错。
+<span class="hljs-comment">// 这里不能用输出缓存，因为输出缓存只能用于累积命令流。</span>
+<span class="hljs-comment">// 之前 master 向 slave 发送的信息很少，因此内核的输出缓存中应该会有空间，</span>
+<span class="hljs-comment">// 所以，这里直接的 write 操作一般不会出错。</span>
 
-// 回复 slave +CONTINUE
-buflen = snprintf(buf,sizeof(buf),&quot;+CONTINUE\r\n&quot;);
-if (write(c-&gt;fd,buf,buflen) != buflen) {freeClientAsync(c);
-    return C_OK;
-}
-// 将积压队列中 psync_offset 之后的数据复制到客户端输出缓存中
+<span class="hljs-comment">// 回复 slave +CONTINUE</span>
+buflen = <span class="hljs-built_in">snprintf</span>(buf,<span class="hljs-keyword">sizeof</span>(buf),<span class="hljs-string">&quot;+CONTINUE\r\n&quot;</span>);
+<span class="hljs-keyword">if</span> (write(c-&gt;fd,buf,buflen) != buflen) &#123;
+    freeClientAsync(c);
+    <span class="hljs-keyword">return</span> C_OK;
+&#125;
+<span class="hljs-comment">// 将积压队列中 psync_offset 之后的数据复制到客户端输出缓存中</span>
 psync_len = addReplyReplicationBacklog(c,psync_offset);
 
-/* Note that we don't need to set the selected DB at server.slaveseldb
- * to -1 to force the master to emit SELECT, since the slave already
- * has this state from the previous connection with the master. */
+<span class="hljs-comment">/* Note that we don&#x27;t need to set the selected DB at server.slaveseldb</span>
+<span class="hljs-comment"> * to -1 to force the master to emit SELECT, since the slave already</span>
+<span class="hljs-comment"> * has this state from the previous connection with the master. */</span>
 
-// 更新当前状态正常的 slave 数量
+<span class="hljs-comment">// 更新当前状态正常的 slave 数量</span>
 refreshGoodSlavesCount();
-return C_OK; /* The caller can return, no full resync needed. */
-</code></pre><p><strong>addReplyReplicationBacklog</strong> 函数的逻辑也已经在前面讲过。</p><h4 id="完全重同步过程">完全重同步过程</h4><p>首先，一些变量的更新，将 <strong>replstate</strong> 更新为 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 状态。</p><pre><code class="language-c">server.stat_sync_full++;
+<span class="hljs-keyword">return</span> C_OK; <span class="hljs-comment">/* The caller can return, no full resync needed. */</span></code></pre></div>
+<p><strong>addReplyReplicationBacklog</strong> 函数的逻辑也已经在前面讲过。</p>
+<h4 id="完全重同步过程">完全重同步过程</h4>
+<p>首先，一些变量的更新，将 <strong>replstate</strong> 更新为 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 状态。</p>
+<div class="hljs"><pre><code class="hljs c">server.stat_sync_full++;
 
-/* Setup the slave as one waiting for BGSAVE to start. The following code
-    * paths will change the state if we handle the slave differently. */
+<span class="hljs-comment">/* Setup the slave as one waiting for BGSAVE to start. The following code</span>
+<span class="hljs-comment">    * paths will change the state if we handle the slave differently. */</span>
 c-&gt;replstate = SLAVE_STATE_WAIT_BGSAVE_START;
-if (server.repl_disable_tcp_nodelay)
-    anetDisableTcpNoDelay(NULL, c-&gt;fd); /* Non critical if it fails. */
-c-&gt;repldbfd = -1;
+<span class="hljs-keyword">if</span> (server.repl_disable_tcp_nodelay)
+    anetDisableTcpNoDelay(<span class="hljs-literal">NULL</span>, c-&gt;fd); <span class="hljs-comment">/* Non critical if it fails. */</span>
+c-&gt;repldbfd = <span class="hljs-number">-1</span>;
 c-&gt;flags |= CLIENT_SLAVE;
-listAddNodeTail(server.slaves,c);
-</code></pre><p>完全重同步时，master 需要做一次 rdb。后台 rdb 数据生成时需要做 <code>fork</code>，这对性能是有所牺牲的，所以要先看下是否有现成的 rdb 数据可以复用。分以下 3 种清理，</p><p>【1】如果后台有 rdb 任务在执行，并且使用的是 <strong>有硬盘复制</strong> 的方式（将 rdb 数据保存在本地临时文件），然后发送给 slave。</p><pre><code class="language-c">/* CASE 1: BGSAVE is in progress, with disk target. */
-if (server.rdb_child_pid != -1 &amp;&amp;
+listAddNodeTail(server.slaves,c);</code></pre></div>
+<p>完全重同步时，master 需要做一次 rdb。后台 rdb 数据生成时需要做 <code>fork</code>，这对性能是有所牺牲的，所以要先看下是否有现成的 rdb 数据可以复用。分以下 3 种清理，</p>
+<p>【1】如果后台有 rdb 任务在执行，并且使用的是 <strong> 有硬盘复制 </strong> 的方式（将 rdb 数据保存在本地临时文件），然后发送给 slave。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* CASE 1: BGSAVE is in progress, with disk target. */</span>
+<span class="hljs-keyword">if</span> (server.rdb_child_pid != <span class="hljs-number">-1</span> &amp;&amp;
     server.rdb_child_type == RDB_CHILD_TYPE_DISK)
-{
-    /* Ok a background save is in progress. Let's check if it is a good
-     * one for replication, i.e. if there is another slave that is
-     * registering differences since the server forked to save. */
+&#123;
+    <span class="hljs-comment">/* Ok a background save is in progress. Let&#x27;s check if it is a good</span>
+<span class="hljs-comment">     * one for replication, i.e. if there is another slave that is</span>
+<span class="hljs-comment">     * registering differences since the server forked to save. */</span>
     client *slave;
     listNode *ln;
     listIter li;
 
     listRewind(server.slaves,&amp;li);
-    while((ln = listNext(&amp;li))) {
+    <span class="hljs-keyword">while</span>((ln = listNext(&amp;li))) &#123;
         slave = ln-&gt;value;
-        if (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_END) break;
-    }
+        <span class="hljs-keyword">if</span> (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_END) <span class="hljs-keyword">break</span>;
+    &#125;
 
-    /* To attach this slave, we check that it has at least all the
-     * capabilities of the slave that triggered the current BGSAVE. */
-    if (ln &amp;&amp; ((c-&gt;slave_capa &amp; slave-&gt;slave_capa) == slave-&gt;slave_capa)) {
+    <span class="hljs-comment">/* To attach this slave, we check that it has at least all the</span>
+<span class="hljs-comment">     * capabilities of the slave that triggered the current BGSAVE. */</span>
+    <span class="hljs-keyword">if</span> (ln &amp;&amp; ((c-&gt;slave_capa &amp; slave-&gt;slave_capa) == slave-&gt;slave_capa)) &#123;
 
-        /* Perfect, the server is already registering differences for
-         * another slave. Set the right state, and copy the buffer. */
+        <span class="hljs-comment">/* Perfect, the server is already registering differences for</span>
+<span class="hljs-comment">         * another slave. Set the right state, and copy the buffer. */</span>
         copyClientOutputBuffer(c,slave);
         replicationSetupSlaveForFullResync(c,slave-&gt;psync_initial_offset);
-        serverLog(LL_NOTICE,&quot;Waiting for end of BGSAVE for SYNC&quot;);
-    } else {
+        serverLog(LL_NOTICE,<span class="hljs-string">&quot;Waiting for end of BGSAVE for SYNC&quot;</span>);
+    &#125; <span class="hljs-keyword">else</span> &#123;
 
-        /* No way, we need to wait for the next BGSAVE in order to
-         * register differences. */
-        serverLog(LL_NOTICE,&quot;Can't attach the slave to the current BGSAVE. Waiting for next BGSAVE for SYNC&quot;);
-    }
-}
-</code></pre><p>代码中，在 master 所有 slave 中找到一个处于 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong> 状态的 slaveX。<br> 将 slaveX 输出缓存内容 copy 一份给当前的 client，然后调用函数 <strong>replicationSetupSlaveForFullResync</strong>，将 client 状态设置为 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong>，并发送 <strong>+FULLRESYNC</strong> 回复，代码如下，</p><pre><code class="language-c">int replicationSetupSlaveForFullResync(client *slave, long long offset) {char buf[128];
-    int buflen;
+        <span class="hljs-comment">/* No way, we need to wait for the next BGSAVE in order to</span>
+<span class="hljs-comment">         * register differences. */</span>
+        serverLog(LL_NOTICE,<span class="hljs-string">&quot;Can&#x27;t attach the slave to the current BGSAVE. Waiting for next BGSAVE for SYNC&quot;</span>);
+    &#125;
+&#125;</code></pre></div>
+<p>代码中，在 master 所有 slave 中找到一个处于 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong> 状态的 slaveX。<br>
+将 slaveX 输出缓存内容 copy 一份给当前的 client，然后调用函数 <strong>replicationSetupSlaveForFullResync</strong>，将 client 状态设置为 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong>，并发送 <strong>+FULLRESYNC</strong> 回复，代码如下，</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">replicationSetupSlaveForFullResync</span><span class="hljs-params">(client *slave, <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> offset)</span> </span>&#123;
+    <span class="hljs-keyword">char</span> buf[<span class="hljs-number">128</span>];
+    <span class="hljs-keyword">int</span> buflen;
 
     slave-&gt;psync_initial_offset = offset;
     slave-&gt;replstate = SLAVE_STATE_WAIT_BGSAVE_END;
 
-    /* We are going to accumulate the incremental changes for this
-     * slave as well. Set slaveseldb to -1 in order to force to re-emit
-     * a SELECT statement in the replication stream. */
-    server.slaveseldb = -1;
+    <span class="hljs-comment">/* We are going to accumulate the incremental changes for this</span>
+<span class="hljs-comment">     * slave as well. Set slaveseldb to -1 in order to force to re-emit</span>
+<span class="hljs-comment">     * a SELECT statement in the replication stream. */</span>
+    server.slaveseldb = <span class="hljs-number">-1</span>;
 
-    /* Don't send this reply to slaves that approached us with
-     * the old SYNC command. */
-    if (!(slave-&gt;flags &amp; CLIENT_PRE_PSYNC)) {buflen = snprintf(buf,sizeof(buf),&quot;+FULLRESYNC %s %lld\r\n&quot;,
+    <span class="hljs-comment">/* Don&#x27;t send this reply to slaves that approached us with</span>
+<span class="hljs-comment">     * the old SYNC command. */</span>
+    <span class="hljs-keyword">if</span> (!(slave-&gt;flags &amp; CLIENT_PRE_PSYNC)) &#123;
+        buflen = <span class="hljs-built_in">snprintf</span>(buf,<span class="hljs-keyword">sizeof</span>(buf),<span class="hljs-string">&quot;+FULLRESYNC %s %lld\r\n&quot;</span>,
                           server.runid,offset);
-        if (write(slave-&gt;fd,buf,buflen) != buflen) {return C_ERR;}
-    }
-    return C_OK;
-}
-</code></pre><p>这个函数主要做了以下 4 件事：</p><ul><li>设置 slave 的 <strong>psync_initial_offset</strong> 属性，方便后面再进来的 slave，可以最大限度的复用。</li><li>设置 slave 的当前状态为 <strong>WAIT_BGSAVE_END</strong>，表明 slave 可以从这个点来累积前台发过来的命令流，并等待 rdb 转储完成。</li><li>设置 slave 的 <strong>slaveseldb</strong> 属性为 -1，这样可以在开始累积命令流时，强制增加一条 SELECT 命令到客户端输出缓存中，以免第一条命令没有选择数据库。</li><li>给 slave 一个 <strong>+FULLRESYNC</strong> 的回复。</li></ul><p>该函数应当在以下 2 个时刻立即被调用：</p><ul><li>由复制而发起的一次成功的 bgsave 之后；</li><li>找到了一个可以复用的 slave 之后。</li></ul><p>如果找不到一个可以复用的 slave，那么 master 需要在当前的 bgsave 操作完成之后，再执行一次。</p><p>【2】如果后台有 rdb 任务在执行，并且使用的是 <strong>无硬盘复制</strong> 的方式。</p><p>此时，当前 slave 无法重用 rdb 数据，必须在当前的 bgsave 操作完成之后，再执行一次。代码如下，</p><pre><code class="language-c">/* CASE 2: BGSAVE is in progress, with socket target. */
-else if (server.rdb_child_pid != -1 &amp;&amp;
+        <span class="hljs-keyword">if</span> (write(slave-&gt;fd,buf,buflen) != buflen) &#123;
+            <span class="hljs-keyword">return</span> C_ERR;
+        &#125;
+    &#125;
+    <span class="hljs-keyword">return</span> C_OK;
+&#125;</code></pre></div>
+<p>这个函数主要做了以下 4 件事：</p>
+<ul>
+<li>设置 slave 的 <strong>psync_initial_offset</strong> 属性，方便后面再进来的 slave，可以最大限度的复用。</li>
+<li>设置 slave 的当前状态为 <strong>WAIT_BGSAVE_END</strong>，表明 slave 可以从这个点来累积前台发过来的命令流，并等待 rdb 转储完成。</li>
+<li>设置 slave 的 <strong>slaveseldb</strong> 属性为 -1，这样可以在开始累积命令流时，强制增加一条 SELECT 命令到客户端输出缓存中，以免第一条命令没有选择数据库。</li>
+<li>给 slave 一个 <strong>+FULLRESYNC</strong> 的回复。</li>
+</ul>
+<p>该函数应当在以下 2 个时刻立即被调用：</p>
+<ul>
+<li>由复制而发起的一次成功的 bgsave 之后；</li>
+<li>找到了一个可以复用的 slave 之后。</li>
+</ul>
+<p>如果找不到一个可以复用的 slave，那么 master 需要在当前的 bgsave 操作完成之后，再执行一次。</p>
+<p>【2】如果后台有 rdb 任务在执行，并且使用的是 <strong> 无硬盘复制 </strong> 的方式。</p>
+<p>此时，当前 slave 无法重用 rdb 数据，必须在当前的 bgsave 操作完成之后，再执行一次。代码如下，</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* CASE 2: BGSAVE is in progress, with socket target. */</span>
+<span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (server.rdb_child_pid != <span class="hljs-number">-1</span> &amp;&amp;
             server.rdb_child_type == RDB_CHILD_TYPE_SOCKET)
-{
-    /* There is an RDB child process but it is writing directly to
-     * children sockets. We need to wait for the next BGSAVE
-     * in order to synchronize. */
-    serverLog(LL_NOTICE,&quot;Current BGSAVE has socket target. Waiting for next BGSAVE for SYNC&quot;);
-}
-</code></pre><p>【3】如果后台没有 rdb 任务在执行。</p><p>若当前 slave 使用的是 <strong>无磁盘化复制</strong> ，那么暂时先不进行 bgsave，把它推迟到 <strong>replicationCron</strong> 函数，这是 <strong>为了等待更多的 slave，以减少执行 bgsave 的次数</strong>，因为使用 diskless 的方式进行主从复制，后来的 slave 不能 attach 到已有 slave 上，只能重新做 bgsave。</p><p>若当前 slave 使用的是 <strong>有磁盘化复制</strong>，调用 <strong>startBgsaveForReplication</strong> 函数开始一次新的 bgsave，需要注意的是这里要避开后台的 aofrewite。代码如下，</p><pre><code class="language-c">/* CASE 3: There is no BGSAVE is progress. */
-else {if (server.repl_diskless_sync &amp;&amp; (c-&gt;slave_capa &amp; SLAVE_CAPA_EOF)) {
+&#123;
+    <span class="hljs-comment">/* There is an RDB child process but it is writing directly to</span>
+<span class="hljs-comment">     * children sockets. We need to wait for the next BGSAVE</span>
+<span class="hljs-comment">     * in order to synchronize. */</span>
+    serverLog(LL_NOTICE,<span class="hljs-string">&quot;Current BGSAVE has socket target. Waiting for next BGSAVE for SYNC&quot;</span>);
+&#125;</code></pre></div>
+<p>【3】如果后台没有 rdb 任务在执行。</p>
+<p>若当前 slave 使用的是 <strong> 无磁盘化复制 </strong>，那么暂时先不进行 bgsave，把它推迟到 <strong>replicationCron</strong> 函数，这是<strong> 为了等待更多的 slave，以减少执行 bgsave 的次数</strong>，因为使用 diskless 的方式进行主从复制，后来的 slave 不能 attach 到已有 slave 上，只能重新做 bgsave。</p>
+<p>若当前 slave 使用的是 <strong> 有磁盘化复制</strong>，调用 <strong>startBgsaveForReplication</strong> 函数开始一次新的 bgsave，需要注意的是这里要避开后台的 aofrewite。代码如下，</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* CASE 3: There is no BGSAVE is progress. */</span>
+<span class="hljs-keyword">else</span> &#123;
+    <span class="hljs-keyword">if</span> (server.repl_diskless_sync &amp;&amp; (c-&gt;slave_capa &amp; SLAVE_CAPA_EOF)) &#123;
 
-        /* Diskless replication RDB child is created inside
-         * replicationCron() since we want to delay its start a
-         * few seconds to wait for more slaves to arrive. */
-        if (server.repl_diskless_sync_delay)
-            serverLog(LL_NOTICE,&quot;Delay next BGSAVE for diskless SYNC&quot;);
-    } else {
+        <span class="hljs-comment">/* Diskless replication RDB child is created inside</span>
+<span class="hljs-comment">         * replicationCron() since we want to delay its start a</span>
+<span class="hljs-comment">         * few seconds to wait for more slaves to arrive. */</span>
+        <span class="hljs-keyword">if</span> (server.repl_diskless_sync_delay)
+            serverLog(LL_NOTICE,<span class="hljs-string">&quot;Delay next BGSAVE for diskless SYNC&quot;</span>);
+    &#125; <span class="hljs-keyword">else</span> &#123;
 
-        /* Target is disk (or the slave is not capable of supporting
-         * diskless replication) and we don't have a BGSAVE in progress,
-         * let's start one. */
-        if (server.aof_child_pid == -1) {startBgsaveForReplication(c-&gt;slave_capa); // 直接进行 bgsave
-        } else {
+        <span class="hljs-comment">/* Target is disk (or the slave is not capable of supporting</span>
+<span class="hljs-comment">         * diskless replication) and we don&#x27;t have a BGSAVE in progress,</span>
+<span class="hljs-comment">         * let&#x27;s start one. */</span>
+        <span class="hljs-keyword">if</span> (server.aof_child_pid == <span class="hljs-number">-1</span>) &#123;
+            startBgsaveForReplication(c-&gt;slave_capa); <span class="hljs-comment">// 直接进行 bgsave</span>
+        &#125; <span class="hljs-keyword">else</span> &#123;
             serverLog(LL_NOTICE,
-                &quot;No BGSAVE in progress, but an AOF rewrite is active. &quot;
-                &quot;BGSAVE for replication delayed&quot;);
-        }
-    }
-}
-</code></pre><p>最后，如果有必要的话，创建 backlog。</p><pre><code class="language-c">if (listLength(server.slaves) == 1 &amp;&amp; server.repl_backlog == NULL)
-    createReplicationBacklog();
-</code></pre><pre><code class="language-c">void createReplicationBacklog(void) {serverAssert(server.repl_backlog == NULL);
+                <span class="hljs-string">&quot;No BGSAVE in progress, but an AOF rewrite is active. &quot;</span>
+                <span class="hljs-string">&quot;BGSAVE for replication delayed&quot;</span>);
+        &#125;
+    &#125;
+&#125;</code></pre></div>
+<p>最后，如果有必要的话，创建 backlog。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (listLength(server.slaves) == <span class="hljs-number">1</span> &amp;&amp; server.repl_backlog == <span class="hljs-literal">NULL</span>)
+    createReplicationBacklog();</code></pre></div>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">createReplicationBacklog</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+    serverAssert(server.repl_backlog == <span class="hljs-literal">NULL</span>);
     server.repl_backlog = zmalloc(server.repl_backlog_size);
-    server.repl_backlog_histlen = 0;
-    server.repl_backlog_idx = 0;
+    server.repl_backlog_histlen = <span class="hljs-number">0</span>;
+    server.repl_backlog_idx = <span class="hljs-number">0</span>;
 
-    // 避免之前使用过 backlog 的 slave 引发错误的 PSYNC 操作
+    <span class="hljs-comment">// 避免之前使用过 backlog 的 slave 引发错误的 PSYNC 操作</span>
     server.master_repl_offset++;
 
-    // 尽管没有数据，但事实上，第一个字节的逻辑位置是 master_repl_offset 的下一个字节
-    server.repl_backlog_off = server.master_repl_offset+1;
-}
-</code></pre><h4 id="执行 -bgsave- 操作">执行 bgsave 操作</h4><p>接上一小节，bgsave 操作的处理函数为 <strong>startBgsaveForReplication</strong>。<br> 首先根据传入的参数，针对有无磁盘化复制调用不同的处理函数，即，</p><pre><code class="language-c">int retval;
-int socket_target = server.repl_diskless_sync &amp;&amp; (mincapa &amp; SLAVE_CAPA_EOF);
+    <span class="hljs-comment">// 尽管没有数据，但事实上，第一个字节的逻辑位置是 master_repl_offset 的下一个字节</span>
+    server.repl_backlog_off = server.master_repl_offset+<span class="hljs-number">1</span>;
+&#125;</code></pre></div>
+<h4 id="执行 -bgsave- 操作">执行 bgsave 操作</h4>
+<p>接上一小节，bgsave 操作的处理函数为 <strong>startBgsaveForReplication</strong>。<br>
+首先根据传入的参数，针对有无磁盘化复制调用不同的处理函数，即，</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">int</span> retval;
+<span class="hljs-keyword">int</span> socket_target = server.repl_diskless_sync &amp;&amp; (mincapa &amp; SLAVE_CAPA_EOF);
 listIter li;
 listNode *ln;
 
-serverLog(LL_NOTICE,&quot;Starting BGSAVE for SYNC with target: %s&quot;,
-    socket_target ? &quot;slaves sockets&quot; : &quot;disk&quot;);
+serverLog(LL_NOTICE,<span class="hljs-string">&quot;Starting BGSAVE for SYNC with target: %s&quot;</span>,
+    socket_target ? <span class="hljs-string">&quot;slaves sockets&quot;</span> : <span class="hljs-string">&quot;disk&quot;</span>);
 
-if (socket_target)
+<span class="hljs-keyword">if</span> (socket_target)
     retval = rdbSaveToSlavesSockets();
-else
-    retval = rdbSaveBackground(server.rdb_filename);
-</code></pre><p>参数 <strong>mincapa</strong>，表示 slave 的 &quot; 能力 &quot;，即是否能接受无硬盘复制的 rdb 数据。<br> 如果选项<code>server.repl_diskless_sync</code> 为真，且 <strong>mincapa</strong> 中包含 <strong>SLAVE_CAPA_EOF</strong>，说明可以为该 slave 直接发送无硬盘复制的 rdb 数据，调用 <strong>rdbSaveToSlavesSockets</strong> 函数，在后台将 rdb 数据通过 socket 发送给所有状态为 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 的 slave。<br> 否则，调用<strong>rdbSaveBackground</strong> 函数，在后台将 rdb 数据转储到本地文件。</p><p>如果以上的 rdb 处理函数调用失败，从 slave 列表中删除处于 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 状态的 slave，并在 slave 中加入 <strong>CLIENT_CLOSE_AFTER_REPLY</strong> 标识，以便在回复错误消息后关闭连接。代码逻辑如下，</p><pre><code class="language-c">if (retval == C_ERR) {serverLog(LL_WARNING,&quot;BGSAVE for replication failed&quot;);
+<span class="hljs-keyword">else</span>
+    retval = rdbSaveBackground(server.rdb_filename);</code></pre></div>
+<p>参数 <strong>mincapa</strong>，表示 slave 的 &quot; 能力 &quot;，即是否能接受无硬盘复制的 rdb 数据。<br>
+如果选项<code>server.repl_diskless_sync</code> 为真，且 <strong>mincapa</strong> 中包含 <strong>SLAVE_CAPA_EOF</strong>，说明可以为该 slave 直接发送无硬盘复制的 rdb 数据，调用 <strong>rdbSaveToSlavesSockets</strong> 函数，在后台将 rdb 数据通过 socket 发送给所有状态为 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 的 slave。<br>
+否则，调用<strong>rdbSaveBackground</strong> 函数，在后台将 rdb 数据转储到本地文件。</p>
+<p>如果以上的 rdb 处理函数调用失败，从 slave 列表中删除处于 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 状态的 slave，并在 slave 中加入 <strong>CLIENT_CLOSE_AFTER_REPLY</strong> 标识，以便在回复错误消息后关闭连接。代码逻辑如下，</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (retval == C_ERR) &#123;
+    serverLog(LL_WARNING,<span class="hljs-string">&quot;BGSAVE for replication failed&quot;</span>);
     listRewind(server.slaves,&amp;li);
-    while((ln = listNext(&amp;li))) {
+    <span class="hljs-keyword">while</span>((ln = listNext(&amp;li))) &#123;
         client *slave = ln-&gt;value;
 
-        if (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) {
+        <span class="hljs-keyword">if</span> (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) &#123;
             slave-&gt;flags &amp;= ~CLIENT_SLAVE;
             listDelNode(server.slaves,ln);
             addReplyError(slave,
-                &quot;BGSAVE failed, replication can't continue&quot;);
+                <span class="hljs-string">&quot;BGSAVE failed, replication can&#x27;t continue&quot;</span>);
             slave-&gt;flags |= CLIENT_CLOSE_AFTER_REPLY;
-        }
-    }
-    return retval;
-}
-</code></pre><p>如果使用的是有磁盘复制，那么从 slave 列表中找到处于 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 状态的 slave，调用 <strong>replicationSetupSlaveForFullResync</strong> 函数，把 slave 状态置为 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong>，并回复 <strong>+FULLRESYNC</strong>，这个前面说过。代码如下，</p><pre><code class="language-c">/* If the target is socket, rdbSaveToSlavesSockets() already setup
- * the salves for a full resync. Otherwise for disk target do it now.*/
-if (!socket_target) {listRewind(server.slaves,&amp;li);
-    while((ln = listNext(&amp;li))) {
+        &#125;
+    &#125;
+    <span class="hljs-keyword">return</span> retval;
+&#125;</code></pre></div>
+<p>如果使用的是有磁盘复制，那么从 slave 列表中找到处于 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 状态的 slave，调用 <strong>replicationSetupSlaveForFullResync</strong> 函数，把 slave 状态置为 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong>，并回复 <strong>+FULLRESYNC</strong>，这个前面说过。代码如下，</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* If the target is socket, rdbSaveToSlavesSockets() already setup</span>
+<span class="hljs-comment"> * the salves for a full resync. Otherwise for disk target do it now.*/</span>
+<span class="hljs-keyword">if</span> (!socket_target) &#123;
+    listRewind(server.slaves,&amp;li);
+    <span class="hljs-keyword">while</span>((ln = listNext(&amp;li))) &#123;
         client *slave = ln-&gt;value;
 
-        if (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) {
+        <span class="hljs-keyword">if</span> (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) &#123;
                 replicationSetupSlaveForFullResync(slave,
                         getPsyncInitialOffset());
-        }
-    }
-}
-</code></pre><p>最后调用函数 <strong>replicationScriptCacheFlush</strong> 清空 lua 脚本缓存。</p><h3 id="累积命令流过程">累积命令流过程</h3><p>当 master 收到 client 发来的命令后，会调用 <strong>call</strong> 函数执行相应的命令处理函数。在代码中 <strong>PROPAGATE_REPL</strong> 标识表示需要将命令同步给 slave，有如下逻辑，</p><pre><code class="language-c">void call(client *c, int flags) {
+        &#125;
+    &#125;
+&#125;</code></pre></div>
+<p>最后调用函数 <strong>replicationScriptCacheFlush</strong> 清空 lua 脚本缓存。</p>
+<h3 id="累积命令流过程">累积命令流过程</h3>
+<p>当 master 收到 client 发来的命令后，会调用 <strong>call</strong> 函数执行相应的命令处理函数。在代码中 <strong>PROPAGATE_REPL</strong> 标识表示需要将命令同步给 slave，有如下逻辑，</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">call</span><span class="hljs-params">(client *c, <span class="hljs-keyword">int</span> flags)</span> </span>&#123;
     ......
-   /* Propagate the command into the AOF and replication link */
-    if (flags &amp; CMD_CALL_PROPAGATE &amp;&amp;
+   <span class="hljs-comment">/* Propagate the command into the AOF and replication link */</span>
+    <span class="hljs-keyword">if</span> (flags &amp; CMD_CALL_PROPAGATE &amp;&amp;
         (c-&gt;flags &amp; CLIENT_PREVENT_PROP) != CLIENT_PREVENT_PROP)
-    {
+    &#123;
         ......
-        /* Check if the command operated changes in the data set. If so
-         * set for replication / AOF propagation. */
-        if (dirty) propagate_flags |= (PROPAGATE_AOF|PROPAGATE_REPL);
-
-        ......
-
-        /* If the client forced AOF / replication of the command, set
-         * the flags regardless of the command effects on the data set. */
-        if (c-&gt;flags &amp; CLIENT_FORCE_REPL) propagate_flags |= PROPAGATE_REPL;
+        <span class="hljs-comment">/* Check if the command operated changes in the data set. If so</span>
+<span class="hljs-comment">         * set for replication / AOF propagation. */</span>
+        <span class="hljs-keyword">if</span> (dirty) propagate_flags |= (PROPAGATE_AOF|PROPAGATE_REPL);
 
         ......
 
-        /* Call propagate() only if at least one of AOF / replication
-         * propagation is needed. */
-        if (propagate_flags != PROPAGATE_NONE)
+        <span class="hljs-comment">/* If the client forced AOF / replication of the command, set</span>
+<span class="hljs-comment">         * the flags regardless of the command effects on the data set. */</span>
+        <span class="hljs-keyword">if</span> (c-&gt;flags &amp; CLIENT_FORCE_REPL) propagate_flags |= PROPAGATE_REPL;
+
+        ......
+
+        <span class="hljs-comment">/* Call propagate() only if at least one of AOF / replication</span>
+<span class="hljs-comment">         * propagation is needed. */</span>
+        <span class="hljs-keyword">if</span> (propagate_flags != PROPAGATE_NONE)
             propagate(c-&gt;cmd,c-&gt;db-&gt;id,c-&gt;argv,c-&gt;argc,propagate_flags);
-    }
-}
+    &#125;
+&#125;
 
 
-void propagate(struct redisCommand *cmd, int dbid, robj **argv, int argc,
-               int flags)
-{if (server.aof_state != AOF_OFF &amp;&amp; flags &amp; PROPAGATE_AOF)
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">propagate</span><span class="hljs-params">(struct redisCommand *cmd, <span class="hljs-keyword">int</span> dbid, robj **argv, <span class="hljs-keyword">int</span> argc,</span></span>
+<span class="hljs-function"><span class="hljs-params">               <span class="hljs-keyword">int</span> flags)</span></span>
+<span class="hljs-function"></span>&#123;
+    <span class="hljs-keyword">if</span> (server.aof_state != AOF_OFF &amp;&amp; flags &amp; PROPAGATE_AOF)
         feedAppendOnlyFile(cmd,dbid,argv,argc);
-    if (flags &amp; PROPAGATE_REPL)
+    <span class="hljs-keyword">if</span> (flags &amp; PROPAGATE_REPL)
         replicationFeedSlaves(server.slaves,dbid,argv,argc);
-}
-</code></pre><p>现在来看重点处理函数 <strong>replicationFeedSlaves</strong>，现在分析如下。</p><p>首先，必要的 check。</p><pre><code class="language-c">// 如果 backlog 为空，且本节点没有 slave，那么下面的逻辑就没必要走了
-if (server.repl_backlog == NULL &amp;&amp; listLength(slaves) == 0) return;
-</code></pre><p>如果有必要的话，将 SELECT 命令添加到 backlog 和所有状态不是 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 的 slave 输出缓存中，其他命令也是如此，代码大概如下，</p><pre><code class="language-c">/* Write the command to the replication backlog if any. */
-if (server.repl_backlog) {char aux[LONG_STR_SIZE+3];
+&#125;</code></pre></div>
+<p>现在来看重点处理函数 <strong>replicationFeedSlaves</strong>，现在分析如下。</p>
+<p>首先，必要的 check。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 如果 backlog 为空，且本节点没有 slave，那么下面的逻辑就没必要走了</span>
+<span class="hljs-keyword">if</span> (server.repl_backlog == <span class="hljs-literal">NULL</span> &amp;&amp; listLength(slaves) == <span class="hljs-number">0</span>) <span class="hljs-keyword">return</span>;</code></pre></div>
+<p>如果有必要的话，将 SELECT 命令添加到 backlog 和所有状态不是 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 的 slave 输出缓存中，其他命令也是如此，代码大概如下，</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Write the command to the replication backlog if any. */</span>
+<span class="hljs-keyword">if</span> (server.repl_backlog) &#123;
+    <span class="hljs-keyword">char</span> aux[LONG_STR_SIZE+<span class="hljs-number">3</span>];
 
-    /* Add the multi bulk reply length. */
-    // *..CRLF
-    aux[0] = '*';
-    len = ll2string(aux+1,sizeof(aux)-1,argc);
-    aux[len+1] = '\r';
-    aux[len+2] = '\n';
-    feedReplicationBacklog(aux,len+3);// argc 转换成字符串的长度 + 3，即 * 以及 CRLF
+    <span class="hljs-comment">/* Add the multi bulk reply length. */</span>
+    <span class="hljs-comment">// *..CRLF</span>
+    aux[<span class="hljs-number">0</span>] = <span class="hljs-string">&#x27;*&#x27;</span>;
+    len = ll2string(aux+<span class="hljs-number">1</span>,<span class="hljs-keyword">sizeof</span>(aux)<span class="hljs-number">-1</span>,argc);
+    aux[len+<span class="hljs-number">1</span>] = <span class="hljs-string">&#x27;\r&#x27;</span>;
+    aux[len+<span class="hljs-number">2</span>] = <span class="hljs-string">&#x27;\n&#x27;</span>;
+    feedReplicationBacklog(aux,len+<span class="hljs-number">3</span>);<span class="hljs-comment">// argc 转换成字符串的长度 + 3，即 * 以及 CRLF</span>
 
-    for (j = 0; j &lt; argc; j++) {long objlen = stringObjectLen(argv[j]);
+    <span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; argc; j++) &#123;
+        <span class="hljs-keyword">long</span> objlen = stringObjectLen(argv[j]);
 
-        /* We need to feed the buffer with the object as a bulk reply
-         * not just as a plain string, so create the $..CRLF payload len
-         * and add the final CRLF */
-        aux[0] = '$';
-        len = ll2string(aux+1,sizeof(aux)-1,objlen);
-        aux[len+1] = '\r';
-        aux[len+2] = '\n';
-        feedReplicationBacklog(aux,len+3);
+        <span class="hljs-comment">/* We need to feed the buffer with the object as a bulk reply</span>
+<span class="hljs-comment">         * not just as a plain string, so create the $..CRLF payload len</span>
+<span class="hljs-comment">         * and add the final CRLF */</span>
+        aux[<span class="hljs-number">0</span>] = <span class="hljs-string">&#x27;$&#x27;</span>;
+        len = ll2string(aux+<span class="hljs-number">1</span>,<span class="hljs-keyword">sizeof</span>(aux)<span class="hljs-number">-1</span>,objlen);
+        aux[len+<span class="hljs-number">1</span>] = <span class="hljs-string">&#x27;\r&#x27;</span>;
+        aux[len+<span class="hljs-number">2</span>] = <span class="hljs-string">&#x27;\n&#x27;</span>;
+        feedReplicationBacklog(aux,len+<span class="hljs-number">3</span>);
         feedReplicationBacklogWithObject(argv[j]);
-        feedReplicationBacklog(aux+len+1,2); // CRLF
-    }
-}
+        feedReplicationBacklog(aux+len+<span class="hljs-number">1</span>,<span class="hljs-number">2</span>); <span class="hljs-comment">// CRLF</span>
+    &#125;
+&#125;
 
-/* Write the command to every slave. */
+<span class="hljs-comment">/* Write the command to every slave. */</span>
 listRewind(server.slaves,&amp;li);
-while((ln = listNext(&amp;li))) {
+<span class="hljs-keyword">while</span>((ln = listNext(&amp;li))) &#123;
     client *slave = ln-&gt;value;
 
-    /* Don't feed slaves that are still waiting for BGSAVE to start */
-    if (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) continue;
+    <span class="hljs-comment">/* Don&#x27;t feed slaves that are still waiting for BGSAVE to start */</span>
+    <span class="hljs-keyword">if</span> (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) <span class="hljs-keyword">continue</span>;
 
-    /* Feed slaves that are waiting for the initial SYNC (so these commands
-        * are queued in the output buffer until the initial SYNC completes),
-        * or are already in sync with the master. */
+    <span class="hljs-comment">/* Feed slaves that are waiting for the initial SYNC (so these commands</span>
+<span class="hljs-comment">        * are queued in the output buffer until the initial SYNC completes),</span>
+<span class="hljs-comment">        * or are already in sync with the master. */</span>
 
-    /* Add the multi bulk length. */
+    <span class="hljs-comment">/* Add the multi bulk length. */</span>
     addReplyMultiBulkLen(slave,argc);
 
-    /* Finally any additional argument that was not stored inside the
-        * static buffer if any (from j to argc). */
-    for (j = 0; j &lt; argc; j++)
+    <span class="hljs-comment">/* Finally any additional argument that was not stored inside the</span>
+<span class="hljs-comment">        * static buffer if any (from j to argc). */</span>
+    <span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; argc; j++)
         addReplyBulk(slave,argv[j]);
-}
-</code></pre><p>向 slave 输出缓存追加命令流时，调用的是 addReply 类的函数。</p><h2 id="bgsave- 收尾阶段">bgsave 收尾阶段</h2><p>当完成 bgsave 后，无论是有无磁盘复制，都要调用 <strong>updateSlavesWaitingBgsave</strong> 函数进行最后的处理，主要是为了前面说过的 <strong>被推迟的 bgsave</strong>。</p><pre><code class="language-c">void updateSlavesWaitingBgsave(int bgsaveerr, int type) {.....}
-</code></pre><p>遍历 slave 列表，如果 slave 的复制状态处于 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong>，那么调用 <strong>startBgsaveForReplication</strong> 函数，开始一次新的 bgsave。</p><pre><code class="language-c">if (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) {
-    startbgsave = 1;
-    mincapa = (mincapa == -1) ? slave-&gt;slave_capa :
-                                (mincapa &amp; slave-&gt;slave_capa);
-</code></pre><p>如果 slave 的复制状态处于 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong>，说明该 slave 正在等待 rdb 数据处理完成，此时需要根据有无磁盘化复制，区别对待处理。</p><h3 id="无磁盘复制">无磁盘复制</h3><pre><code class="language-c">if (type == RDB_CHILD_TYPE_SOCKET) {
+&#125;</code></pre></div>
+<p>向 slave 输出缓存追加命令流时，调用的是 addReply 类的函数。</p>
+<h2 id="bgsave- 收尾阶段">bgsave 收尾阶段</h2>
+<p>当完成 bgsave 后，无论是有无磁盘复制，都要调用 <strong>updateSlavesWaitingBgsave</strong> 函数进行最后的处理，主要是为了前面说过的 <strong> 被推迟的 bgsave</strong>。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">updateSlavesWaitingBgsave</span><span class="hljs-params">(<span class="hljs-keyword">int</span> bgsaveerr, <span class="hljs-keyword">int</span> type)</span> </span>&#123;.....&#125;</code></pre></div>
+<p>遍历 slave 列表，如果 slave 的复制状态处于 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong>，那么调用 <strong>startBgsaveForReplication</strong> 函数，开始一次新的 bgsave。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) &#123;
+    startbgsave = <span class="hljs-number">1</span>;
+    mincapa = (mincapa == <span class="hljs-number">-1</span>) ? slave-&gt;slave_capa :
+                                (mincapa &amp; slave-&gt;slave_capa);</code></pre></div>
+<p>如果 slave 的复制状态处于 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong>，说明该 slave 正在等待 rdb 数据处理完成，此时需要根据有无磁盘化复制，区别对待处理。</p>
+<h3 id="无磁盘复制">无磁盘复制</h3>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (type == RDB_CHILD_TYPE_SOCKET) &#123;
     serverLog(LL_NOTICE,
-        &quot;Streamed RDB transfer with slave %s succeeded (socket). Waiting for REPLCONF ACK from slave to enable streaming&quot;,
+        <span class="hljs-string">&quot;Streamed RDB transfer with slave %s succeeded (socket). Waiting for REPLCONF ACK from slave to enable streaming&quot;</span>,
             replicationGetSlaveName(slave));
 
-    /* Note: we wait for a REPLCONF ACK message from slave in
-     * order to really put it online (install the write handler
-     * so that the accumulated data can be transfered). However
-     * we change the replication state ASAP, since our slave
-     * is technically online now. */
+    <span class="hljs-comment">/* Note: we wait for a REPLCONF ACK message from slave in</span>
+<span class="hljs-comment">     * order to really put it online (install the write handler</span>
+<span class="hljs-comment">     * so that the accumulated data can be transfered). However</span>
+<span class="hljs-comment">     * we change the replication state ASAP, since our slave</span>
+<span class="hljs-comment">     * is technically online now. */</span>
     slave-&gt;replstate = SLAVE_STATE_ONLINE;
-    slave-&gt;repl_put_online_on_ack = 1;
-    slave-&gt;repl_ack_time = server.unixtime; /* Timeout otherwise. */
-}
-</code></pre><p>将 slave 的复制状态置为 <strong>SLAVE_STATE_ONLINE</strong>，属性 <strong>repl_put_online_on_ack</strong> 置为 1。<br> ⚠ <strong>注意</strong>，在收到该 slave 第一个 <code>replconf ack &lt;offset&gt;</code> 命令之后，master 才真正调用 <strong>putSlaveOnline</strong> 函数将该 slave 置为 <strong>REDIS_REPL_ONLINE</strong> 状态，并且开始发送缓存的命令流。</p><pre><code class="language-c">void replconfCommand(client *c) {
+    slave-&gt;repl_put_online_on_ack = <span class="hljs-number">1</span>;
+    slave-&gt;repl_ack_time = server.unixtime; <span class="hljs-comment">/* Timeout otherwise. */</span>
+&#125;</code></pre></div>
+<p>将 slave 的复制状态置为 <strong>SLAVE_STATE_ONLINE</strong>，属性 <strong>repl_put_online_on_ack</strong> 置为 1。<br>
+⚠ <strong>注意</strong>，在收到该 slave 第一个 <code>replconf ack &lt;offset&gt;</code> 命令之后，master 才真正调用 <strong>putSlaveOnline</strong> 函数将该 slave 置为 <strong>REDIS_REPL_ONLINE</strong> 状态，并且开始发送缓存的命令流。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">replconfCommand</span><span class="hljs-params">(client *c)</span> </span>&#123;
     .....
-    else if (!strcasecmp(c-&gt;argv[j]-&gt;ptr,&quot;ack&quot;)) {
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[j]-&gt;ptr,<span class="hljs-string">&quot;ack&quot;</span>)) &#123;
 
-        /* REPLCONF ACK is used by slave to inform the master the amount
-         * of replication stream that it processed so far. It is an
-         * internal only command that normal clients should never use. */
-        long long offset;
+        <span class="hljs-comment">/* REPLCONF ACK is used by slave to inform the master the amount</span>
+<span class="hljs-comment">         * of replication stream that it processed so far. It is an</span>
+<span class="hljs-comment">         * internal only command that normal clients should never use. */</span>
+        <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> offset;
 
-        if (!(c-&gt;flags &amp; CLIENT_SLAVE)) return;
-        if ((getLongLongFromObject(c-&gt;argv[j+1], &amp;offset) != C_OK))
-            return;
-        if (offset &gt; c-&gt;repl_ack_off)
+        <span class="hljs-keyword">if</span> (!(c-&gt;flags &amp; CLIENT_SLAVE)) <span class="hljs-keyword">return</span>;
+        <span class="hljs-keyword">if</span> ((getLongLongFromObject(c-&gt;argv[j+<span class="hljs-number">1</span>], &amp;offset) != C_OK))
+            <span class="hljs-keyword">return</span>;
+        <span class="hljs-keyword">if</span> (offset &gt; c-&gt;repl_ack_off)
             c-&gt;repl_ack_off = offset;
         c-&gt;repl_ack_time = server.unixtime;
 
-        /* If this was a diskless replication, we need to really put
-         * the slave online when the first ACK is received (which
-         * confirms slave is online and ready to get more data). */
-        if (c-&gt;repl_put_online_on_ack &amp;&amp; c-&gt;replstate == SLAVE_STATE_ONLINE)
+        <span class="hljs-comment">/* If this was a diskless replication, we need to really put</span>
+<span class="hljs-comment">         * the slave online when the first ACK is received (which</span>
+<span class="hljs-comment">         * confirms slave is online and ready to get more data). */</span>
+        <span class="hljs-keyword">if</span> (c-&gt;repl_put_online_on_ack &amp;&amp; c-&gt;replstate == SLAVE_STATE_ONLINE)
             putSlaveOnline(c);
 
-        /* Note: this command does not reply anything! */
-        return;
-    }
+        <span class="hljs-comment">/* Note: this command does not reply anything! */</span>
+        <span class="hljs-keyword">return</span>;
+    &#125;
     ......
-}
-</code></pre><p>之所以这样设计，与这两种复制方式有关。</p><p>当使用 <strong>有磁盘复制</strong> 方式时，master 会先把 rdb 数据的长度以 <code>$&lt;len&gt;/r/n</code> 的格式发送给 slave，slave 在解析到 len 后，从 socket 中读取到特定长度的 rdb 数据。<br> 当使用 <strong>无磁盘复制</strong> 方式时，master 预先无法获知 rdb 数据的长度，那 slave 如何判断 rdb 数据是否读完了呢？在发送 rdb 数据之前，master 会先以 <code>$EOF:&lt;40 bytes delimiter&gt;</code> 的格式发送一个 40 字节的魔数，当 rdb 数据发送完后，再次发送这个魔数，这样 slave 就可以检测到 rdb 数据发送结束了。</p><p>如果 master 发送完 rdb 数据后，直接将 slave 状态置为 <strong>SLAVE_STATE_ONLINE</strong> ，接着发送缓存的命令流。<br> 当采用 <strong>无磁盘复制</strong> 方式时，slave 最后读到的数据很有可能包含了命令流数据。因此，需要等到 slave 发送的第一个 <code>replconf ack &lt;offset&gt;</code> 命令之后，master 再把 slave 状态置为 <strong>SLAVE_STATE_ONLINE</strong>。</p><p>可以参考作者的解释 <a href="https://github.com/antirez/redis/commit/bb7fea0d5ca7b3a53532338e8654e409014c1194" target="_blank" rel="noopener">https://github.com/antirez/redis/commit/bb7fea0d5ca7b3a53532338e8654e409014c1194</a>。</p><h3 id="有磁盘复制">有磁盘复制</h3><pre><code class="language-c">if (bgsaveerr != C_OK) {freeClient(slave);
-        serverLog(LL_WARNING,&quot;SYNC failed. BGSAVE child returned an error&quot;);
-        continue;
-}
+&#125;</code></pre></div>
+<p>之所以这样设计，与这两种复制方式有关。</p>
+<p>当使用 <strong> 有磁盘复制 </strong> 方式时，master 会先把 rdb 数据的长度以 <code>$&lt;len&gt;/r/n</code> 的格式发送给 slave，slave 在解析到 len 后，从 socket 中读取到特定长度的 rdb 数据。<br>
+当使用 <strong> 无磁盘复制 </strong> 方式时，master 预先无法获知 rdb 数据的长度，那 slave 如何判断 rdb 数据是否读完了呢？在发送 rdb 数据之前，master 会先以 <code>$EOF:&lt;40 bytes delimiter&gt;</code> 的格式发送一个 40 字节的魔数，当 rdb 数据发送完后，再次发送这个魔数，这样 slave 就可以检测到 rdb 数据发送结束了。</p>
+<p>如果 master 发送完 rdb 数据后，直接将 slave 状态置为 <strong>SLAVE_STATE_ONLINE</strong> ，接着发送缓存的命令流。<br>
+当采用 <strong> 无磁盘复制 </strong> 方式时，slave 最后读到的数据很有可能包含了命令流数据。因此，需要等到 slave 发送的第一个 <code>replconf ack &lt;offset&gt;</code> 命令之后，master 再把 slave 状态置为 <strong>SLAVE_STATE_ONLINE</strong>。</p>
+<p>可以参考作者的解释 <a target="_blank" rel="noopener" href="https://github.com/antirez/redis/commit/bb7fea0d5ca7b3a53532338e8654e409014c1194">https://github.com/antirez/redis/commit/bb7fea0d5ca7b3a53532338e8654e409014c1194</a>。</p>
+<h3 id="有磁盘复制">有磁盘复制</h3>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (bgsaveerr != C_OK) &#123;
+    freeClient(slave);
+        serverLog(LL_WARNING,<span class="hljs-string">&quot;SYNC failed. BGSAVE child returned an error&quot;</span>);
+        <span class="hljs-keyword">continue</span>;
+&#125;
 
-if ((slave-&gt;repldbfd = open(server.rdb_filename,O_RDONLY)) == -1 ||
-    redis_fstat(slave-&gt;repldbfd,&amp;buf) == -1) {freeClient(slave);
-    serverLog(LL_WARNING,&quot;SYNC failed. Can't open/stat DB after BGSAVE: %s&quot;, strerror(errno));
-    continue;
-}
+<span class="hljs-keyword">if</span> ((slave-&gt;repldbfd = open(server.rdb_filename,O_RDONLY)) == <span class="hljs-number">-1</span> ||
+    redis_fstat(slave-&gt;repldbfd,&amp;buf) == <span class="hljs-number">-1</span>) &#123;
+    freeClient(slave);
+    serverLog(LL_WARNING,<span class="hljs-string">&quot;SYNC failed. Can&#x27;t open/stat DB after BGSAVE: %s&quot;</span>, strerror(errno));
+    <span class="hljs-keyword">continue</span>;
+&#125;
 
-slave-&gt;repldboff = 0;
+slave-&gt;repldboff = <span class="hljs-number">0</span>;
 slave-&gt;repldbsize = buf.st_size;
 slave-&gt;replstate = SLAVE_STATE_SEND_BULK;
-slave-&gt;replpreamble = sdscatprintf(sdsempty(),&quot;$%lld\r\n&quot;,
-    (unsigned long long) slave-&gt;repldbsize);
+slave-&gt;replpreamble = sdscatprintf(sdsempty(),<span class="hljs-string">&quot;$%lld\r\n&quot;</span>,
+    (<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span>) slave-&gt;repldbsize);
 
 aeDeleteFileEvent(server.el,slave-&gt;fd,AE_WRITABLE);
-if (aeCreateFileEvent(server.el, slave-&gt;fd, AE_WRITABLE, sendBulkToSlave, slave) == AE_ERR) {freeClient(slave);
-    continue;
-}
-</code></pre><p>如果前面做 bgsave 出错了，那么这里会释放掉 client。<br> 否则，打开生成的 rdb 文件，将 fd 保存到 <strong>repldbfd</strong> 属性中，状态置为 <strong>SLAVE_STATE_SEND_BULK</strong>，这表示要把 rdb 数据发送给 slave 了，将 rdb 大小写入 <strong>replpreamble</strong> 属性。<br> 重新注册 slave 上的写事件，回调函数为 <strong>sendBulkToSlave</strong>，该函数做以下分析，</p><pre><code class="language-c">/* Before sending the RDB file, we send the preamble as configured by the
- * replication process. Currently the preamble is just the bulk count of
- * the file in the form &quot;$&lt;length&gt;\r\n&quot;. */
-if (slave-&gt;replpreamble) {nwritten = write(fd,slave-&gt;replpreamble,sdslen(slave-&gt;replpreamble));
-    if (nwritten == -1) {
-        serverLog(LL_VERBOSE,&quot;Write error sending RDB preamble to slave: %s&quot;,
-            strerror(errno));
-        freeClient(slave);
-        return;
-    }
-    server.stat_net_output_bytes += nwritten;
-    sdsrange(slave-&gt;replpreamble,nwritten,-1);
-    if (sdslen(slave-&gt;replpreamble) == 0) {sdsfree(slave-&gt;replpreamble);
-        slave-&gt;replpreamble = NULL;
-        /* fall through sending data. */
-    } else {return;}
-}
-</code></pre><p>如果 <strong>replpreamble</strong> 属性不为空，说明是第一次触发该回调，那么先把这个 rdb 数据的长度信息发送给 slave。<br> 否则，进入发送实际 rdb 数据阶段。从 rdb 文件中读取数据，然后发送给 slave，代码中使用 repldboff 属性记录累积发送过多少数据。<br> 默认一次发送的数据量为 <strong>PROTO_IOBUF_LEN</strong>，大小为 16K。</p><pre><code class="language-c">/* If the preamble was already transfered, send the RDB bulk data. */
-lseek(slave-&gt;repldbfd,slave-&gt;repldboff,SEEK_SET);
-buflen = read(slave-&gt;repldbfd,buf,PROTO_IOBUF_LEN); // 读 16k 数据
-if (buflen &lt;= 0) {
-    serverLog(LL_WARNING,&quot;Read error sending DB to slave: %s&quot;,
-        (buflen == 0) ? &quot;premature EOF&quot; : strerror(errno));
+<span class="hljs-keyword">if</span> (aeCreateFileEvent(server.el, slave-&gt;fd, AE_WRITABLE, sendBulkToSlave, slave) == AE_ERR) &#123;
     freeClient(slave);
-    return;
-}
-if ((nwritten = write(fd,buf,buflen)) == -1) {if (errno != EAGAIN) {
-        serverLog(LL_WARNING,&quot;Write error sending DB to slave: %s&quot;,
+    <span class="hljs-keyword">continue</span>;
+&#125;</code></pre></div>
+<p>如果前面做 bgsave 出错了，那么这里会释放掉 client。<br>
+否则，打开生成的 rdb 文件，将 fd 保存到 <strong>repldbfd</strong> 属性中，状态置为 <strong>SLAVE_STATE_SEND_BULK</strong>，这表示要把 rdb 数据发送给 slave 了，将 rdb 大小写入 <strong>replpreamble</strong> 属性。<br>
+重新注册 slave 上的写事件，回调函数为 <strong>sendBulkToSlave</strong>，该函数做以下分析，</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Before sending the RDB file, we send the preamble as configured by the</span>
+<span class="hljs-comment"> * replication process. Currently the preamble is just the bulk count of</span>
+<span class="hljs-comment"> * the file in the form &quot;$&lt;length&gt;\r\n&quot;. */</span>
+<span class="hljs-keyword">if</span> (slave-&gt;replpreamble) &#123;
+    nwritten = write(fd,slave-&gt;replpreamble,sdslen(slave-&gt;replpreamble));
+    <span class="hljs-keyword">if</span> (nwritten == <span class="hljs-number">-1</span>) &#123;
+        serverLog(LL_VERBOSE,<span class="hljs-string">&quot;Write error sending RDB preamble to slave: %s&quot;</span>,
             strerror(errno));
         freeClient(slave);
-    }
-    return;
-}
+        <span class="hljs-keyword">return</span>;
+    &#125;
+    server.stat_net_output_bytes += nwritten;
+    sdsrange(slave-&gt;replpreamble,nwritten,<span class="hljs-number">-1</span>);
+    <span class="hljs-keyword">if</span> (sdslen(slave-&gt;replpreamble) == <span class="hljs-number">0</span>) &#123;
+        sdsfree(slave-&gt;replpreamble);
+        slave-&gt;replpreamble = <span class="hljs-literal">NULL</span>;
+        <span class="hljs-comment">/* fall through sending data. */</span>
+    &#125; <span class="hljs-keyword">else</span> &#123;
+        <span class="hljs-keyword">return</span>;
+    &#125;
+&#125;</code></pre></div>
+<p>如果 <strong>replpreamble</strong> 属性不为空，说明是第一次触发该回调，那么先把这个 rdb 数据的长度信息发送给 slave。<br>
+否则，进入发送实际 rdb 数据阶段。从 rdb 文件中读取数据，然后发送给 slave，代码中使用 repldboff 属性记录累积发送过多少数据。<br>
+默认一次发送的数据量为 <strong>PROTO_IOBUF_LEN</strong>，大小为 16K。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* If the preamble was already transfered, send the RDB bulk data. */</span>
+lseek(slave-&gt;repldbfd,slave-&gt;repldboff,SEEK_SET);
+buflen = read(slave-&gt;repldbfd,buf,PROTO_IOBUF_LEN); <span class="hljs-comment">// 读 16k 数据</span>
+<span class="hljs-keyword">if</span> (buflen &lt;= <span class="hljs-number">0</span>) &#123;
+    serverLog(LL_WARNING,<span class="hljs-string">&quot;Read error sending DB to slave: %s&quot;</span>,
+        (buflen == <span class="hljs-number">0</span>) ? <span class="hljs-string">&quot;premature EOF&quot;</span> : strerror(errno));
+    freeClient(slave);
+    <span class="hljs-keyword">return</span>;
+&#125;
+<span class="hljs-keyword">if</span> ((nwritten = write(fd,buf,buflen)) == <span class="hljs-number">-1</span>) &#123;
+    <span class="hljs-keyword">if</span> (errno != EAGAIN) &#123;
+        serverLog(LL_WARNING,<span class="hljs-string">&quot;Write error sending DB to slave: %s&quot;</span>,
+            strerror(errno));
+        freeClient(slave);
+    &#125;
+    <span class="hljs-keyword">return</span>;
+&#125;
 slave-&gt;repldboff += nwritten;
-server.stat_net_output_bytes += nwritten;
-</code></pre><p>当 rdb 数据完全发送完以后，关闭 rdb 文件 fd，删除 fd 的写事件，重置 repldbfd。</p><pre><code class="language-c">if (slave-&gt;repldboff == slave-&gt;repldbsize) { // 发送完 rdb 文件，删除可读事件
+server.stat_net_output_bytes += nwritten;</code></pre></div>
+<p>当 rdb 数据完全发送完以后，关闭 rdb 文件 fd，删除 fd 的写事件，重置 repldbfd。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (slave-&gt;repldboff == slave-&gt;repldbsize) &#123; <span class="hljs-comment">// 发送完 rdb 文件，删除可读事件</span>
     close(slave-&gt;repldbfd);
-    slave-&gt;repldbfd = -1;
+    slave-&gt;repldbfd = <span class="hljs-number">-1</span>;
     aeDeleteFileEvent(server.el,slave-&gt;fd,AE_WRITABLE);
     putSlaveOnline(slave);
-}
-</code></pre><p>最后调用 <strong>putSlaveOnline</strong> 函数，将 slave 的复制状态置为 <strong>SLAVE_STATE_ONLINE</strong>，重新注册 fd 的写事件，回调函数为 <strong>sendReplyToClient</strong>，向 slave 发送累积的命令流。</p><pre><code class="language-c">void putSlaveOnline(client *slave) {
+&#125;</code></pre></div>
+<p>最后调用 <strong>putSlaveOnline</strong> 函数，将 slave 的复制状态置为 <strong>SLAVE_STATE_ONLINE</strong>，重新注册 fd 的写事件，回调函数为 <strong>sendReplyToClient</strong>，向 slave 发送累积的命令流。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">putSlaveOnline</span><span class="hljs-params">(client *slave)</span> </span>&#123;
     slave-&gt;replstate = SLAVE_STATE_ONLINE;
-    slave-&gt;repl_put_online_on_ack = 0;
-    slave-&gt;repl_ack_time = server.unixtime; /* Prevent false timeout. */
-    if (aeCreateFileEvent(server.el, slave-&gt;fd, AE_WRITABLE,
-        sendReplyToClient, slave) == AE_ERR) {serverLog(LL_WARNING,&quot;Unable to register writable event for slave bulk transfer: %s&quot;, strerror(errno));
+    slave-&gt;repl_put_online_on_ack = <span class="hljs-number">0</span>;
+    slave-&gt;repl_ack_time = server.unixtime; <span class="hljs-comment">/* Prevent false timeout. */</span>
+    <span class="hljs-keyword">if</span> (aeCreateFileEvent(server.el, slave-&gt;fd, AE_WRITABLE,
+        sendReplyToClient, slave) == AE_ERR) &#123;
+        serverLog(LL_WARNING,<span class="hljs-string">&quot;Unable to register writable event for slave bulk transfer: %s&quot;</span>, strerror(errno));
         freeClient(slave);
-        return;
-    }
+        <span class="hljs-keyword">return</span>;
+    &#125;
     refreshGoodSlavesCount();
-    serverLog(LL_NOTICE,&quot;Synchronization with slave %s succeeded&quot;,
+    serverLog(LL_NOTICE,<span class="hljs-string">&quot;Synchronization with slave %s succeeded&quot;</span>,
         replicationGetSlaveName(slave));
-}
-</code></pre><p>设置 slave 属性 **repl_put_online_on_ack ** 为 0，表示该 <strong>slave 已完成初始同步，接下来进入命令传播阶段</strong>。<br> 最后，调用 <strong>refreshGoodSlavesCount</strong> 函数，更新当前状态正常的 slave 数量。</p><hr><p>到此，主从复制过程中 master 的逻辑就已经讲完了。</p></div><hr><div><p><span><i class="iconfont icon-inbox"></i> <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a> &nbsp;</span> &nbsp;&nbsp;<span><i class="iconfont icon-tag"></i> <a class="hover-with-bg" href="/tags/redis/">redis</a></span></p><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p><div class="post-prevnext row"><div class="post-prev col-6"><a href="/91f7e3ff.html"><i class="fa fa-chevron-left"></i> <span class="hidden-mobile">Redis 源码分析之数据迁移 (1)</span> <span class="visible-mobile">上一篇</span></a></div><div class="post-next col-6"> <a href="/968a029a.html"><span class="hidden-mobile">Redis 源码之主从复制 (3)</span> <span class="visible-mobile">下一篇</span><i class="fa fa-chevron-right"></i></a></div></div></div><div class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">!function(e,t){var r,n=e.getElementsByTagName(t)[0];"function"!=typeof LivereTower&&((r=e.createElement(t)).src="https://cdn-city.livere.com/js/embed.dist.js",r.defer=!0,n.parentNode.insertBefore(r,n))}(document,"script")</script><noscript> 为正常使用来必力评论功能请激活JavaScript</noscript></div></div></div></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc-start"></div><div id="toc"><p class="h5"><i class="far fa-list-alt"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div><div class="col-lg-7 mx-auto nopadding-md"><div class="container custom post-content mx-auto"> <img src="https://octodex.github.com/images/jetpacktocat.png" srcset="/img/loading.gif" class="rounded mx-auto d-block mt-5" style="width:150px;height:150px"></div></div></main><a class="z-depth-1" id="scroll-top-button" href="#" role="button"><i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4> <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"> <input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div> <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><b>Hexo</b></a><i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><b>Fluid</b></a></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js"></script><script>$(document).ready(function(){var s=$("#navbar").height(),c=$("#toc"),t=$("#board-ctn"),o=t.offset().top,i=2*o+t.height();$(window).scroll(function(){var t=$("#toc-start").offset().top-s,o=document.body.scrollTop+document.documentElement.scrollTop;t<=o&&o<=i?c.css({display:"block",position:"fixed",top:s}):o<=t?c.css({position:"",top:""}):i<o&&c.css("display","none")}),tocbot.init({tocSelector:"#tocbot",contentSelector:".post-content",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",scrollSmooth:!0,headingsOffset:-o}),0<$(".toc-list-item").length&&$("#toc > p").css("visibility","visible");var l=t.css("margin-right");$("#toc-ctn").css({right:l})})</script><script defer="defer" src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer="defer" src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script defer="defer">var _hmt=_hmt||[];!function(){var e=document.createElement("script");e.src="https://hm.baidu.com/hm.js?882b48640075e00a238ae94a7eec0d40";var t=document.getElementsByTagName("script")[0];t.parentNode.insertBefore(e,t)}()</script><script defer="defer">var _mtac={};!function(){var t=document.createElement("script");t.src="//pingjs.qq.com/h5/stats.js?v2.0.4",t.setAttribute("name","MTAH5"),t.setAttribute("sid","");var e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(t,e)}()</script><script src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js"></script><script>$(document).ready(function(){$("pre").addClass("prettyprint  "),prettyPrint()})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","Redis 源码之主从复制 (4)&nbsp;"],cursorChar:"_",typeSpeed:80,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>
+&#125;</code></pre></div>
+<p>设置 slave 属性 **repl_put_online_on_ack ** 为 0，表示该 <strong>slave 已完成初始同步，接下来进入命令传播阶段</strong>。<br>
+最后，调用 <strong>refreshGoodSlavesCount</strong> 函数，更新当前状态正常的 slave 数量。</p>
+<hr>
+<p>到此，主从复制过程中 master 的逻辑就已经讲完了。</p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/redis/">redis</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p>
+              
+              
+                <div class="post-prevnext row">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/91f7e3ff.html">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Redis 源码分析之数据迁移 (1)</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/968a029a.html">
+                        <span class="hidden-mobile">Redis 源码之主从复制 (3)</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments">
+                
+                
+  <div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw">
+    <script type="text/javascript">
+      function loadLivere() {
+        addScript('https://cdn-city.livere.com/js/embed.dist.js');
+      }
+      waitElementVisible('lv-container', loadLivere);
+    </script>
+    <noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript>
+  </div>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div id="tocbot"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+  </main>
+
+  
+    <a id="scroll-top-button" href="#" role="button">
+      <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+    <div>
+      <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a>
+      <i class="iconfont icon-love"></i>
+      <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener">
+        <span>Fluid</span></a>
+    </div>
+    
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- 不蒜子统计PV -->
+        <span id="busuanzi_container_site_pv" style="display: none">
+            总访问量 
+            <span id="busuanzi_value_site_pv"></span>
+             次
+          </span>
+      
+      
+        <!-- 不蒜子统计UV -->
+        <span id="busuanzi_container_site_uv" style="display: none">
+            总访客数 
+            <span id="busuanzi_value_site_uv"></span>
+             人
+          </span>
+      
+    
+  </div>
+
+
+    
+
+    
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="/js/debouncer.js" ></script>
+<script  src="/js/main.js" ></script>
+
+<!-- Plugins -->
+
+
+  
+    <script  src="/js/lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
+  <script  src="/js/clipboard-use.js" ></script>
+
+
+
+  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+
+  <script  src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var boardCtn = $('#board-ctn');
+      var boardTop = boardCtn.offset().top;
+
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '#post-body',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        collapseDepth: 2,
+        scrollSmooth: true,
+        headingsOffset: -boardTop
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc').css('visibility', 'visible');
+      }
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "Redis 源码之主从复制 (4)&nbsp;",
+      ],
+      cursorChar: "_",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
     anchors.options = {
       placement: "right",
       visible: "hover",
+      
+      icon: "§"
       
     };
     var el = "h1,h2,h3,h4,h5,h6".split(",");
@@ -498,4 +1119,54 @@ server.stat_net_output_bytes += nwritten;
       res.push(".markdown-body > " + item)
     }
     anchors.add(res.join(", "))
-  </script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){getSearchFile(path),this.onclick=null}</script><script defer="defer" src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><script>$("#post img:not(.no-zoom img, img[no-zoom])").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      searchFunc(path, 'local-search-input', 'local-search-result');
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+  <script>
+    $('#post img:not(.no-zoom img, img[no-zoom]), img[zoom]').each(
+      function () {
+        var element = document.createElement('a');
+        $(element).attr('data-fancybox', 'images');
+        $(element).attr('href', $(this).attr('src'));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

@@ -1,54 +1,685 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#2f4154"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>从 tcpdump 抓包看 TCP/IP 协议 - Happen&#39;s Memo</title><link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css"><link rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css"><link rel="stylesheet" href="/css/main.css"><link defer="defer" rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><link rel="stylesheet" href="/css/custom.css"></head><body><header style="height:70vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"> <a class="navbar-brand" href="/">&nbsp;<strong>Happen's Memo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="fa fa-home" aria-hidden="true"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="fa fa-archive" aria-hidden="true"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="fa fa-map-signs" aria-hidden="true"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="fa fa-tags" aria-hidden="true"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="fa fa-child" aria-hidden="true"></i> 关于</a></li><li class="nav-item" id="search-btn"> <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i class="iconfont icon-search"></i>&nbsp;&nbsp;</a></li></ul></div></div></nav><div class="view intro-2" id="background" parallax="true" style="background:url(/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask rgba-black-light flex-center"><div class="container text-center white-text fadeInUp"><span class="h2" id="subtitle"></span><p class="mt-3 post-meta"><i class="fas fa-calendar-alt" aria-hidden="true"></i> 2018/05/26, 星期六, 16:44</p><p class="mt-1"><span class="post-meta"><i class="far fa-chart-bar"></i> 3k 字</span><span class="post-meta"><i class="far fa-clock"></i> 12 分钟</span><span id="busuanzi_container_page_pv" class="post-meta" style="display:none"><i class="far fa-eye" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span> 次</span></p></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5 z-depth-3" id="board"><div class="post-content mx-auto" id="post"><p class="note note-warning">本文最后更新于：2020/04/03, 星期五, 02:23</p><div class="markdown-body"><p>因为最近要解析 TCP 报文中 option 段的一块数据，所以不得不详细了解下 TCP/IP 报文。虽然之前看过，很长时间没这么细致地用过，导致了健忘，借着这个机会，通过 tcpdump 抓包分析，详细捋一遍 TCP/IP 报文。</p><a id="more"></a><h2 id="报文获取">报文获取</h2><p>如果那样干巴巴地讲这个东西比较晕，而且网上的文章一大堆，没有什么创新。我选择换一个角度来切入 TCP/IP 协议。首先通过 tcpdump 准备报文。<br> 【1】我在 <code>192.168.1.22</code> 这台机器的 <code>10000</code> 端口启一个 <code>redis</code> 服务。<br> 【2】通过 tcpdump 这个工具来抓取数据包，命令如下：</p><pre><code class="language-shell">tcpdump -w /tmp/logs -i eth0 port 10000 -s0
-</code></pre><p>【3】在 <code>192.168.1.26</code> 这台机器上访问 <code>192.168.1.22:10000</code> 这个 redis 实例，可以用 <code>redis-cli</code> 客户端，也可以用 <code>telnet</code>，发送一个 <code>ping</code>, 得到对端回复 <code>pong</code>。<br> 【4】停止抓包，用 tcpdump 读取这个数据包（<code>-x</code> 以 16 进制形式展示，便于后面分析）</p><pre><code class="language-shell">tcpdump -r /tmp/logs -n -nn -x| vim -
-</code></pre><p>其中有一个数据包是这样的，这也是这篇文章要分析的:</p><pre><code class="language-other">10:54:54.270967 IP 192.168.1.26.61096 &gt; 192.168.1.22.10000: Flags [P.], seq 1041414875:1041414889, ack 658186233, win 115, options [nop,nop,TS val 2377448931 ecr 2741547141], length 14
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=&#34;auto&#34;>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png">
+  <link rel="icon" type="image/png" href="/images/dolphin.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="description" content="">
+  <meta name="author" content="Happen">
+  <meta name="keywords" content="">
+  <title>从 tcpdump 抓包看 TCP/IP 协议 - HappenのMemo</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/atom-one-dark.min.css" />
+    
+  
+
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 5.1.1"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/links/">
+                <i class="iconfont icon-link-fill"></i>
+                友链
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;</a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" href="javascript:">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner intro-2" id="background" parallax=true
+         style="background: url('/images/about-banner.jpg') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="container page-header text-center fade-in-up">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-author" aria-hidden="true"></i>
+      Happen
+    </span>
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2018-05-26 16:44" pubdate>
+        2018年5月26日 下午
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      3k 字
+    </span>
+  
+
+  
+    
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      37
+       分钟
+    </span>
+  
+
+  
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="container nopadding-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto" id="post">
+            <!-- SEO header -->
+            <h1 style="display: none">从 tcpdump 抓包看 TCP/IP 协议</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2018年5月26日 下午
+                
+              </p>
+            
+            <div class="markdown-body" id="post-body">
+              <p>因为最近要解析 TCP 报文中 option 段的一块数据，所以不得不详细了解下 TCP/IP 报文。虽然之前看过，很长时间没这么细致地用过，导致了健忘，借着这个机会，通过 tcpdump 抓包分析，详细捋一遍 TCP/IP 报文。</p>
+<!--more---->
+<h2 id="报文获取">报文获取</h2>
+<p>如果那样干巴巴地讲这个东西比较晕，而且网上的文章一大堆，没有什么创新。我选择换一个角度来切入 TCP/IP 协议。首先通过 tcpdump 准备报文。<br>
+【1】我在 <code>192.168.1.22</code> 这台机器的 <code>10000</code> 端口启一个 <code>redis</code> 服务。<br>
+【2】通过 tcpdump 这个工具来抓取数据包，命令如下：</p>
+<div class="hljs"><pre><code class="hljs shell">tcpdump -w /tmp/logs -i eth0 port 10000 -s0</code></pre></div>
+<p>【3】在 <code>192.168.1.26</code> 这台机器上访问 <code>192.168.1.22:10000</code> 这个 redis 实例，可以用 <code>redis-cli</code> 客户端，也可以用 <code>telnet</code>，发送一个 <code>ping</code>, 得到对端回复 <code>pong</code>。<br>
+【4】停止抓包，用 tcpdump 读取这个数据包（<code>-x</code> 以 16 进制形式展示，便于后面分析）</p>
+<div class="hljs"><pre><code class="hljs shell">tcpdump -r /tmp/logs -n -nn -x| vim -</code></pre></div>
+<p>其中有一个数据包是这样的，这也是这篇文章要分析的:</p>
+<div class="hljs"><pre><code class="hljs other">10:54:54.270967 IP 192.168.1.26.61096 &gt; 192.168.1.22.10000: Flags [P.], seq 1041414875:1041414889, ack 658186233, win 115, options [nop,nop,TS val 2377448931 ecr 2741547141], length 14
         0x0000: [4560 0042   7567 0000  3d06 6F3C C0A8 011A
-        0x0010:  C0A8 0116] {eea8 2710  3e12 badb 273b 1ff9
+        0x0010:  C0A8 0116] &#123;eea8 2710  3e12 badb 273b 1ff9
         0x0020:  8018 0073   64b0 0000  0101 080a 8db4 fde3
-        0x0030:  a368 b085}  2a31 0d0a  2434 0d0a 7069 6e67
-        0x0040:  0d0a
-</code></pre><p><strong>注意：</strong><br> 【1】之前在文章 <a href="https://vonalex.github.io/2017/08/05/%E5%B8%B8%E7%94%A8shell/">常用 shell</a> 中介绍过抓包神器 <strong>tcpdump</strong>，还不会的小伙伴可以偷瞄一眼。<br> 【2】上面报文数据中的 <code>[</code>、<code>]</code>、<code>{</code> 和 <code>}</code> 是为了方便区分数据，我自己加上的。<code>[]</code>包围的部分为本报文中的 IP 头，<code>{}</code>包围的部分为本报文中的 TCP 头。</p><h2 id="报文分析">报文分析</h2><p>IP 报文整体结构如下，因为抓到的数据包是请求 <code>redis</code> 服务，因此在传输层为 TCP 协议。<br> <img src="https://s1.ax1x.com/2018/10/28/icwsrn.jpg" srcset="/img/loading.gif" width="650"></p><h3 id="IP- 层解析">IP 层解析</h3><p>解析数据包之前，先把 IP 协议拿出来，如下：<br> <img src="https://s1.ax1x.com/2018/10/28/icwgaV.jpg" srcset="/img/loading.gif" width="650"><br> 可以看到，IP 报文头部采用 <code>固定长度 (20B) + 可变长度</code> 构成，下面的 TCP 头部也是这样。<br> 然后下面对着抓到的数据包进行分析：<br> 【1】<code>0x4</code> 4bit， <strong>ip 协议版本</strong><br> <code>0x4</code> 表示 IPv4。<br> 【2】<code>0x5</code> 4bit，<strong>ip 首部长度(IHL)</strong><br> 该字段表示单位是 32bits (4 字节) ，所以这个 ip 包的头部有 <code>5*4=20B</code>，这就可以推出，该 IP 报文头没有可选字段。4bit 可以表示最大的数为 0xF，因此，IP 头部的最大长度为 <code>15*4=60B</code>。该报文的 IP 头部我已经在报文中标注出来了。<br> 【3】<code>0x60</code> 8bit，<strong>服务类型 TOS</strong><br> 该段数据组成为 3bit 优先权字段(现已被忽略) + 4bit TOS 字段 + 1bit 保留字段(须为 0)。<br> 4bit TOS 字段分别表示最小时延、最大吞吐量、最高可用性和最小费用。只能置其中 1bit，全为 0 表示一般服务。<strong>现在大多数的 TCP/IP 实现都不支持 TOS 特性</strong> 。可以看到，本报文 TOS 字段为全 0。<br> 【4】<code>0x0042</code> 16bit， <strong>IP 报文总长度</strong><br> 单位字节，换算下来，该数据报的长度为 66 字节，数一下上面的报文，恰好 66B。<br> 从占位数来算， IP 数据报最长为 <code>2^16=65535B</code>，但大部分网络的链路层 MTU（最大传输单元）没有这么大，一些上层协议或主机也不会接受这么大的，故超长 IP 数据报在传输时会被分片。<br> 【5】<code>0x7567</code> 16bit，<strong>标识</strong><br> 唯一的标识主机发送的每一个数据报。通常每发送一个报文，它的值 +1。当 IP 报文分片时，该标识字段值被复制到所有数据分片的标识字段中，使得这些分片在达到最终目的地时可以依照标识字段的内容重新组成原先的数据。<br> 【6】<code>0x0000</code> 3bit <strong>标志</strong> + 13bit <strong>片偏移</strong><br> 3bit 标志对应 R、DF、MF。目前只有后两位有效，DF 位：为 1 表示不分片，为 0 表示分片。MF：为 1 表示“更多的片”，为 0 表示这是最后一片。<br> 13bit 片位移：本分片在原先数据报文中相对首位的偏移位。<strong>（需要再乘以 8）</strong><br> 【7】<code>0x3d</code> 8bit <strong>生存时间 TTL</strong><br> IP 报文所允许通过的路由器的最大数量。每经过一个路由器，TTL 减 1，当为 0 时，路由器将该数据报丢弃。TTL 字段是由发送端初始设置一个 8 bit 字段. 推荐的初始值由分配数字 RFC 指定。发送 ICMP 回显应答时经常把 TTL 设为最大值 255。TTL 可以防止数据报陷入路由循环。本报文该值为 61。<br> 【8】<code>0x06</code> 8bit <strong>协议</strong><br> 指出 IP 报文携带的数据使用的是哪种协议，以便目的主机的 IP 层能知道要将数据报上交到哪个进程。TCP 的协议号为 6，UDP 的协议号为 17。ICMP 的协议号为 1，IGMP 的协议号为 2。该 IP 报文携带的数据使用 TCP 协议，得到了验证。<br> 【9】<code>0x6F3C</code> 16bit <strong>IP 首部校验和</strong><br> 由发送端填充。以本报文为例，先说这个值是怎么计算出来的。</p><pre><code class="language-oth"># 将校验和字段 16bit 值抹去变为 `0x0000`，然后将首部 20 字节值相加
-0x4560 + 0x0042 + 0x7567 + 0x0000 + 0x3d06 + 0x0000 + 0xC0A8 + 0x011A + 0xC0A8 +0x0116 = 0x27B95
+        0x0030:  a368 b085&#125;  2a31 0d0a  2434 0d0a 7069 6e67
+        0x0040:  0d0a</code></pre></div>
+<p><strong>注意：</strong><br>
+【1】之前在文章 <a target="_blank" rel="noopener" href="https://vonalex.github.io/2017/08/05/%E5%B8%B8%E7%94%A8shell/"> 常用 shell</a> 中介绍过抓包神器 <strong>tcpdump</strong>，还不会的小伙伴可以偷瞄一眼。<br>
+【2】上面报文数据中的 <code>[</code>、<code>]</code>、<code>&#123;</code> 和 <code>&#125;</code> 是为了方便区分数据，我自己加上的。<code>[]</code>包围的部分为本报文中的 IP 头，<code>&#123;&#125;</code>包围的部分为本报文中的 TCP 头。</p>
+<h2 id="报文分析">报文分析</h2>
+<p>IP 报文整体结构如下，因为抓到的数据包是请求 <code>redis</code> 服务，因此在传输层为 TCP 协议。<br>
+<img src="https://s1.ax1x.com/2018/10/28/icwsrn.jpg" srcset="/img/loading.gif" width="650"/></p>
+<h3 id="IP- 层解析">IP 层解析</h3>
+<p>解析数据包之前，先把 IP 协议拿出来，如下：<br>
+<img src="https://s1.ax1x.com/2018/10/28/icwgaV.jpg" srcset="/img/loading.gif" width="650"/><br>
+可以看到，IP 报文头部采用 <code> 固定长度 (20B) + 可变长度</code> 构成，下面的 TCP 头部也是这样。<br>
+然后下面对着抓到的数据包进行分析：<br>
+【1】<code>0x4</code> 4bit， <strong>ip 协议版本</strong><br>
+<code>0x4</code> 表示 IPv4。<br>
+【2】<code>0x5</code> 4bit，<strong>ip 首部长度(IHL)</strong><br>
+该字段表示单位是 32bits (4 字节) ，所以这个 ip 包的头部有 <code>5*4=20B</code>，这就可以推出，该 IP 报文头没有可选字段。4bit 可以表示最大的数为 0xF，因此，IP 头部的最大长度为 <code>15*4=60B</code>。该报文的 IP 头部我已经在报文中标注出来了。<br>
+【3】<code>0x60</code> 8bit，<strong>服务类型 TOS</strong><br>
+该段数据组成为 3bit 优先权字段(现已被忽略) + 4bit TOS 字段 + 1bit 保留字段(须为 0)。<br>
+4bit TOS 字段分别表示最小时延、最大吞吐量、最高可用性和最小费用。只能置其中 1bit，全为 0 表示一般服务。<strong>现在大多数的 TCP/IP 实现都不支持 TOS 特性</strong> 。可以看到，本报文 TOS 字段为全 0。<br>
+【4】<code>0x0042</code> 16bit， <strong>IP 报文总长度</strong><br>
+单位字节，换算下来，该数据报的长度为 66 字节，数一下上面的报文，恰好 66B。<br>
+从占位数来算， IP 数据报最长为 <code>2^16=65535B</code>，但大部分网络的链路层 MTU（最大传输单元）没有这么大，一些上层协议或主机也不会接受这么大的，故超长 IP 数据报在传输时会被分片。<br>
+【5】<code>0x7567</code> 16bit，<strong>标识</strong><br>
+唯一的标识主机发送的每一个数据报。通常每发送一个报文，它的值 +1。当 IP 报文分片时，该标识字段值被复制到所有数据分片的标识字段中，使得这些分片在达到最终目的地时可以依照标识字段的内容重新组成原先的数据。<br>
+【6】<code>0x0000</code> 3bit <strong>标志 </strong> + 13bit <strong> 片偏移</strong><br>
+3bit 标志对应 R、DF、MF。目前只有后两位有效，DF 位：为 1 表示不分片，为 0 表示分片。MF：为 1 表示“更多的片”，为 0 表示这是最后一片。<br>
+13bit 片位移：本分片在原先数据报文中相对首位的偏移位。<strong>（需要再乘以 8）</strong><br>
+【7】<code>0x3d</code> 8bit <strong>生存时间 TTL</strong><br>
+IP 报文所允许通过的路由器的最大数量。每经过一个路由器，TTL 减 1，当为 0 时，路由器将该数据报丢弃。TTL 字段是由发送端初始设置一个 8 bit 字段. 推荐的初始值由分配数字 RFC 指定。发送 ICMP 回显应答时经常把 TTL 设为最大值 255。TTL 可以防止数据报陷入路由循环。本报文该值为 61。<br>
+【8】<code>0x06</code> 8bit <strong>协议</strong><br>
+指出 IP 报文携带的数据使用的是哪种协议，以便目的主机的 IP 层能知道要将数据报上交到哪个进程。TCP 的协议号为 6，UDP 的协议号为 17。ICMP 的协议号为 1，IGMP 的协议号为 2。该 IP 报文携带的数据使用 TCP 协议，得到了验证。<br>
+【9】<code>0x6F3C</code> 16bit <strong>IP 首部校验和</strong><br>
+由发送端填充。以本报文为例，先说这个值是怎么计算出来的。</p>
+<div class="hljs"><pre><code class="hljs oth"># 将校验和字段 16bit 值抹去变为 &#96;0x0000&#96;，然后将首部 20 字节值相加
+0x4560 + 0x0042 + 0x7567 + 0x0000 + 0x3d06 + 0x0000 + 0xC0A8 + 0x011A + 0xC0A8 +0x0116 &#x3D; 0x27B95
 
 # 将上述结果的进位 2 与低 16bit 相加
-0x7B95 + 0x2 = 0x7B97
+0x7B95 + 0x2 &#x3D; 0x7B97
 
 # 0x7B97 按位取反
-~(0x7B97) = 0x8468
-</code></pre><p>结果 <code>0x8468</code> 即为该字段值！<br> 接收端验证的时候，进行以下计算</p><pre><code class="language-o't"># 20B 首部值相加
-0x27B95 + 0x8468 = 0x2FFFD
+~(0x7B97) &#x3D; 0x8468</code></pre></div>
+<p>结果 <code>0x8468</code> 即为该字段值！<br>
+接收端验证的时候，进行以下计算</p>
+<div class="hljs"><pre><code class="hljs o&#39;t"># 20B 首部值相加
+0x27B95 + 0x8468 &#x3D; 0x2FFFD
 
 # 将上述结果的进位 2 与低 16bit 相加
-0xFFFD + 0x2 = 0xFFFF
+0xFFFD + 0x2 &#x3D; 0xFFFF
 
 # 0xFFFF 按位取反
-~(0xFFFF) = 0  &lt;-- 正确
-</code></pre><p>【10】<code>0xC0A8011A</code> 32bit 源地址<br> 可以通过一下 python 程序将 hex 转换成我们熟悉的点分 IP 表示法</p><pre><code class="language-python">&gt;&gt;&gt; import socket
-&gt;&gt;&gt; import struct
-&gt;&gt;&gt; int_ip=int(&quot;0xC0A8011A&quot;,16)
-&gt;&gt;&gt; socket.inet_ntoa(struct.pack('I',socket.htonl(int_ip)))
-'192.168.1.26'
-</code></pre><p>本报文中的 src addr 为 <code>192.168.1.26</code>，恰好就是发起请求的 IP。<br> 【11】<code>0xC0A80116</code> 32bit 目的地址<br> 经过计算为 <code>192.168.1.22</code>，恰好就是启 redis 服务那台机器的 IP。</p><hr><p>由于该报文首部长度为 20B，因此没有 <strong>可变长部分</strong>。</p><h3 id="传输层解析">传输层解析</h3><p>本报文携带的数据使用的 TCP 协议，因此下面开始分析 TCP 协议。<br> 与上面的 IP 报文一样， TCP 报文头也才用采用 <code>固定长度 (20B) + 可变长度</code> 的形式。<br> 首先还是看 TCP 协议的格式，如下：<br> <img src="https://s1.ax1x.com/2018/10/28/icwba6.jpg" srcset="/img/loading.gif" width="800"><br> <strong>注：</strong> TCP 的头部必须是 4 字节的倍数, 而大多数选项不是 4 字节倍数, 不足的用 <code>NOP</code> 填充。<br> 【1】<code>0xeea8</code> 16bit，<strong>源端口</strong><br> 解析得到 61096，这与 tcpdump 读包显示的是一致的。16bit 决定了端口号的最大值为 65535.<br> 【2】<code>0x2710</code> 16bit，<strong>目的端口</strong><br> 解析得到 10000。<br> 【3】<code>0x273b1ff9</code> 32bit，<strong>序号</strong><br> 解析得到 1041414875，这与上面 tcpdump 显示的 <strong>seq</strong> 段是一致的。<br> 【4】<code>0x273b1ff9</code> 32bit，<strong>确认号</strong><br> 解析得到 658186233，这与上面 tcpdump 显示的 <strong>ack</strong> 段是一致的。<br> 【5】<code>0x8</code> 4bit，<strong>TCP 报文首部长度</strong><br> 也叫 offset，其实也就是数据从哪里开始。<code>8 * 4 = 32B</code>, 因此该 TCP 报文的可选部分长度为 <code>32 - 20 = 12B</code>，这个资源还是很紧张的！ 同 IP 头部类似，最大长度为 <code>60B</code>。<br> 【6】<code>0b000000</code> 6bit, <strong>保留位</strong><br> 保留为今后使用，但目前应置为 0。<br> 【7】<code>0b011000</code> 6bit，<strong>TCP 标志位</strong><br> 上图可以看到，从左到右依次是紧急 URG、确认 ACK、推送 PSH、复位 RST、同步 SYN 、终止 FIN。<br> 从抓包可以看出，该报文是带了 ack 的，所以 ACK 标志位置为 1。关于标志位的知识这里就不展开了。<br> 【8】<code>0x0073</code> 16bit，<strong>滑动窗口大小</strong><br> 解析得到十进制 115，跟 tcpdump 解析的 <strong>win</strong> 字段一致。<br> 【9】<code>0x64b0</code> 16bit，<strong>校验和</strong><br> 由发送端填充，接收端对 TCP 报文段执行 CRC 算法，以检验 TCP 报文段在传输过程中是否损坏，如果损坏这丢弃。<br> 检验范围包括首部和数据两部分，这也是 TCP 可靠传输的一个重要保障。<br> 【10】<code>0x0000</code> 16bit，<strong>紧急指针</strong><br> 仅在 URG = 1 时才有意义，它指出本报文段中的紧急数据的字节数。<br> 当 URG = 1 时，发送方 TCP 就把紧急数据插入到本报文段数据的最前面，而在紧急数据后面的数据仍是普通数据。</p><hr><p>下面是 TCP 可选项，其格式如下：<br> <img src="https://s1.ax1x.com/2018/10/28/icwqIK.jpg" srcset="/img/loading.gif" width="550"><br> 常见的可选项如下图：<br> <img src="https://s1.ax1x.com/2018/10/28/icwHVx.jpg" srcset="/img/loading.gif" width="650"><br> 【11】<code>0x01</code><br> NOP 填充，没有 Length 和 Value 字段， 用于将 TCP Header 的长度补齐至 32bit 的倍数。<br> 【12】<code>0x01</code><br> 同上。<br> 【13】<code>0x080a</code><br> 可选项类型为时间戳，len 为 10B，value 为<code>0x8db4 0xfde3 0xa368 0xb085</code>，加上 <code>0x080a</code>，恰好 10B!<br> 启用 Timestamp Option 后，该字段包含 2 个 32bit 的 Timestamp（TSval 和 TSecr）。<br> 【14】<code>0x8db4 0xfde3</code><br> 解析后得到 2377448931，恰好与 tcpdump 解析到的 TS 字段的 <strong>val</strong>一致！<br> 【15】<code>0xa368 0xb085</code><br> 解析后得到 2741547141，恰好与 tcpdump 解析到的 TS 字段的 <strong>ecr</strong>一致！</p><h3 id="数据部分解析">数据部分解析</h3><p>上面分析得知，该 IP 报文长度为 66B，IP 头长度为 20B，TCP 头部长度为 32B，因此得到数据的长度为 <code>66 - 20 - 32 = 14B</code>，这与 tcpdump 解析到的 <strong>len</strong> 字段一致！下面来分析这个具体的数据。<br> 这里涉及到 redis 协议，不知道的小伙伴可以查看这篇文档<a href="http://www.redis.cn/topics/protocol.html" target="_blank" rel="noopener">redis 协议说明</a>。<br> 在抓包时，用客户端向 redis 服务端发送了一个 <code>ping</code> 命令，转换成 redis 协议如下：</p><pre><code>*1\r\n
-$4\r\n
-ping\r\n
-</code></pre><p>下面看抓包数据解析，这需要对照 ascii 码表来看，在 linux 下可以用 <code>man 7 ascii</code> 这个命令来获得，或者在这里查看<a href="https://blog.csdn.net/innobase/article/details/51671996" target="_blank" rel="noopener">ascii 码表</a>。</p><pre><code>0x2a31         -&gt; *1
+~(0xFFFF) &#x3D; 0  &lt;-- 正确</code></pre></div>
+<p>【10】<code>0xC0A8011A</code> 32bit 源地址<br>
+可以通过一下 python 程序将 hex 转换成我们熟悉的点分 IP 表示法</p>
+<div class="hljs"><pre><code class="hljs python"><span class="hljs-meta">&gt;&gt;&gt; </span><span class="hljs-keyword">import</span> socket
+<span class="hljs-meta">&gt;&gt;&gt; </span><span class="hljs-keyword">import</span> struct
+<span class="hljs-meta">&gt;&gt;&gt; </span>int_ip=int(<span class="hljs-string">&quot;0xC0A8011A&quot;</span>,<span class="hljs-number">16</span>)
+<span class="hljs-meta">&gt;&gt;&gt; </span>socket.inet_ntoa(struct.pack(<span class="hljs-string">&#x27;I&#x27;</span>,socket.htonl(int_ip)))
+<span class="hljs-string">&#x27;192.168.1.26&#x27;</span></code></pre></div>
+<p>本报文中的 src addr 为 <code>192.168.1.26</code>，恰好就是发起请求的 IP。<br>
+【11】<code>0xC0A80116</code> 32bit 目的地址<br>
+经过计算为  <code>192.168.1.22</code>，恰好就是启 redis 服务那台机器的 IP。</p>
+<hr>
+<p>由于该报文首部长度为 20B，因此没有 <strong> 可变长部分</strong>。</p>
+<h3 id="传输层解析">传输层解析</h3>
+<p>本报文携带的数据使用的 TCP 协议，因此下面开始分析 TCP 协议。<br>
+与上面的 IP 报文一样， TCP 报文头也才用采用 <code> 固定长度 (20B) + 可变长度</code> 的形式。<br>
+首先还是看 TCP 协议的格式，如下：<br>
+<img src="https://s1.ax1x.com/2018/10/28/icwba6.jpg" srcset="/img/loading.gif" width="800"/><br>
+<strong>注：</strong> TCP 的头部必须是 4 字节的倍数, 而大多数选项不是 4 字节倍数, 不足的用 <code>NOP</code> 填充。<br>
+【1】<code>0xeea8</code> 16bit，<strong>源端口</strong><br>
+解析得到 61096，这与 tcpdump 读包显示的是一致的。16bit 决定了端口号的最大值为 65535.<br>
+【2】<code>0x2710</code> 16bit，<strong>目的端口</strong><br>
+解析得到 10000。<br>
+【3】<code>0x273b1ff9</code> 32bit，<strong>序号</strong><br>
+解析得到 1041414875，这与上面 tcpdump 显示的 <strong>seq</strong> 段是一致的。<br>
+【4】<code>0x273b1ff9</code> 32bit，<strong>确认号</strong><br>
+解析得到 658186233，这与上面 tcpdump 显示的 <strong>ack</strong> 段是一致的。<br>
+【5】<code>0x8</code> 4bit，<strong>TCP 报文首部长度</strong><br>
+也叫 offset，其实也就是数据从哪里开始。<code>8 * 4 = 32B</code>, 因此该 TCP 报文的可选部分长度为 <code>32 - 20 = 12B</code>，这个资源还是很紧张的！ 同 IP 头部类似，最大长度为 <code>60B</code>。<br>
+【6】<code>0b000000</code> 6bit, <strong>保留位</strong><br>
+保留为今后使用，但目前应置为 0。<br>
+【7】<code>0b011000</code> 6bit，<strong>TCP 标志位</strong><br>
+上图可以看到，从左到右依次是紧急 URG、确认 ACK、推送 PSH、复位 RST、同步 SYN 、终止 FIN。<br>
+从抓包可以看出，该报文是带了 ack 的，所以 ACK 标志位置为 1。关于标志位的知识这里就不展开了。<br>
+【8】<code>0x0073</code> 16bit，<strong>滑动窗口大小</strong><br>
+解析得到十进制 115，跟 tcpdump 解析的 <strong>win</strong> 字段一致。<br>
+【9】<code>0x64b0</code> 16bit，<strong>校验和</strong><br>
+由发送端填充，接收端对 TCP 报文段执行 CRC 算法，以检验 TCP 报文段在传输过程中是否损坏，如果损坏这丢弃。<br>
+检验范围包括首部和数据两部分，这也是 TCP 可靠传输的一个重要保障。<br>
+【10】<code>0x0000</code> 16bit，<strong>紧急指针</strong><br>
+仅在 URG = 1 时才有意义，它指出本报文段中的紧急数据的字节数。<br>
+当 URG = 1 时，发送方 TCP 就把紧急数据插入到本报文段数据的最前面，而在紧急数据后面的数据仍是普通数据。</p>
+<hr>
+<p>下面是 TCP 可选项，其格式如下：<br>
+<img src="https://s1.ax1x.com/2018/10/28/icwqIK.jpg" srcset="/img/loading.gif" width="550"/><br>
+常见的可选项如下图：<br>
+<img src="https://s1.ax1x.com/2018/10/28/icwHVx.jpg" srcset="/img/loading.gif" width="650"/><br>
+【11】<code>0x01</code><br>
+NOP 填充，没有 Length 和 Value 字段， 用于将 TCP Header 的长度补齐至 32bit 的倍数。<br>
+【12】<code>0x01</code><br>
+同上。<br>
+【13】<code>0x080a</code><br>
+可选项类型为时间戳，len 为 10B，value 为<code>0x8db4 0xfde3 0xa368 0xb085</code>，加上 <code>0x080a</code>，恰好 10B!<br>
+启用 Timestamp  Option 后，该字段包含 2 个 32bit 的 Timestamp（TSval 和 TSecr）。<br>
+【14】<code>0x8db4 0xfde3</code><br>
+解析后得到 2377448931，恰好与 tcpdump 解析到的 TS 字段的 <strong>val</strong>一致！<br>
+【15】<code>0xa368 0xb085</code><br>
+解析后得到 2741547141，恰好与 tcpdump 解析到的 TS 字段的 <strong>ecr</strong>一致！</p>
+<h3 id="数据部分解析">数据部分解析</h3>
+<p>上面分析得知，该 IP 报文长度为 66B，IP 头长度为 20B，TCP 头部长度为 32B，因此得到数据的长度为 <code>66 - 20 - 32 = 14B</code>，这与 tcpdump 解析到的 <strong>len</strong> 字段一致！下面来分析这个具体的数据。<br>
+这里涉及到 redis 协议，不知道的小伙伴可以查看这篇文档<a target="_blank" rel="noopener" href="http://www.redis.cn/topics/protocol.html">redis 协议说明</a>。<br>
+在抓包时，用客户端向 redis 服务端发送了一个 <code>ping</code> 命令，转换成 redis 协议如下：</p>
+<div class="hljs"><pre><code class="hljs latex">*1<span class="hljs-tag">\<span class="hljs-name">r</span></span><span class="hljs-tag">\<span class="hljs-name">n</span></span>
+<span class="hljs-formula">$4<span class="hljs-tag">\<span class="hljs-name">r</span></span><span class="hljs-tag">\<span class="hljs-name">n</span></span></span>
+<span class="hljs-formula">ping<span class="hljs-tag">\<span class="hljs-name">r</span></span><span class="hljs-tag">\<span class="hljs-name">n</span></span></span></code></pre></div>
+<p>下面看抓包数据解析，这需要对照 ascii 码表来看，在 linux 下可以用 <code>man 7 ascii</code> 这个命令来获得，或者在这里查看<a target="_blank" rel="noopener" href="https://blog.csdn.net/innobase/article/details/51671996">ascii 码表</a>。</p>
+<div class="hljs"><pre><code class="hljs routeros">0x2a31         -&gt; <span class="hljs-number">*1</span>
 0x0d0a         -&gt; \r\n
-0x2434         -&gt; $4
+0x2434         -&gt; <span class="hljs-variable">$4</span>
 0x0d0a         -&gt; \r\n
 0x7069 0x6e67  -&gt; ping
-0x0d0a         -&gt; \r\n
-</code></pre><p>好了，这个 IP 包的解析就到此为止了，照着 TCP/IP 协议分析了一遍, 发现协议也就那么回事儿，没有想象的那么难，不要害怕协议！</p><hr><h3 id="tcpdump- 补充">tcpdump 补充</h3><p>既然详细说到 TCP/IP 协议，那补充一下 tcpdump filter 的几点用法。<br> filter 可以简单地分为三类：<code>type</code>, <code>dir</code> 和 <code>proto</code>。</p><p>type 区分报文的类型，主要由 host（主机）, net（网络，支持 CIDR） 和 port(支持范围，如 portrange 21-23) 组成。<br> dir 区分方向，主要由 src 和 dst 组成。<br> proto 区分协议支持 tcp、udp 、icmp 等。</p><p>下面说几个 filter 表达式。<br> <code>proto[x:y]</code> start at offset x into the proto header and read y <strong>bytes</strong><br> <code>[x]</code> abbreviation for <code>[x:1]</code><br> <strong>注意</strong>：单位是字节，不是位！</p><p>举几个栗子：<br> 【1】<strong>打印 80 端口，有数据的 tcp 包</strong></p><pre><code class="language-shell"> tcpdump 'tcp port 80 and (((ip[2:2] - ((ip[0]&amp;0xf)&lt;&lt;2)) - ((tcp[12]&amp;0xf0)&gt;&gt;2)) != 0)'
-</code></pre><p><code>ip[2:2]</code> 从 ip 报文的第 3 个字节开始读 2 个字节，这个恰好就是 ip 包的总长度，单位是字节<br> <code>ip[0]&amp;0xf</code> 取的是 ip 报文第 1 个字节的低 4 位，<code>&lt;&lt; 2</code>（乘以 4），为 ip 头部长度，单位是字节<br> <code>tcp[12]&amp;0xf0</code> 取的是 tcp 报文第 13 个字节的高 4 位，<code>&gt;&gt; 2</code> 其实等价于 <code>&gt;&gt; 4</code> 然后 <code>&lt;&lt; 2</code>，为 tcp 头部长度，单位是字节。<br> 所以 <code>((ip[2:2] - ((ip[0]&amp;0xf)&lt;&lt;2)) - ((tcp[12]&amp;0xf0)&gt;&gt;2))</code> 表示的数据长度。<br> 【2】<strong>打印 80 端口，长度超过 576 的 ip 包</strong></p><pre><code class="language-shell"> tcpdump 'port 80 and ip[2:2] &gt; 576'
-</code></pre><p>【3】<strong>打印特定 TCP Flag 的数据包</strong><br> TCP Flags 在 tcpdump 抓取的报文中的体现：<br> <code>[S]</code>：SYN（开始连接）<br> <code>[.]</code>: 没有 Flag<br> <code>[P]</code>: PSH（推送数据）<br> <code>[F]</code>: FIN （结束连接）<br> <code>[R]</code>: RST（重置连接）<br> <code>[S.]</code> SYN-ACK，就是 SYN 报文的应答报文。</p><pre><code class="language-shell">tcpdump 'tcp[13] &amp; 16!=0'
-# 等价于
-tcpdump 'tcp[tcpflags] == tcp-ack'
-</code></pre><p>打印出所有的 ACK 包。</p><pre><code class="language-shell">tcpdump 'tcp[13] &amp; 4!=0'
+0x0d0a         -&gt; \r\n</code></pre></div>
+<p>好了，这个 IP 包的解析就到此为止了，照着 TCP/IP 协议分析了一遍, 发现协议也就那么回事儿，没有想象的那么难，不要害怕协议！</p>
+<hr>
+<h3 id="tcpdump- 补充">tcpdump 补充</h3>
+<p>既然详细说到 TCP/IP 协议，那补充一下 tcpdump filter 的几点用法。<br>
+filter 可以简单地分为三类：<code>type</code>, <code>dir</code> 和 <code>proto</code>。</p>
+<p>type 区分报文的类型，主要由 host（主机）, net（网络，支持 CIDR） 和 port(支持范围，如 portrange 21-23) 组成。<br>
+dir 区分方向，主要由 src 和 dst 组成。<br>
+proto 区分协议支持 tcp、udp 、icmp 等。</p>
+<p>下面说几个 filter 表达式。<br>
+<code>proto[x:y]</code> start at offset x into the proto header and read y <strong>bytes</strong><br>
+<code>[x]</code> abbreviation for <code>[x:1]</code><br>
+<strong>注意</strong>：单位是字节，不是位！</p>
+<p>举几个栗子：<br>
+【1】<strong>打印 80 端口，有数据的 tcp 包</strong></p>
+<div class="hljs"><pre><code class="hljs shell">tcpdump &#x27;tcp port 80 and (((ip[2:2] - ((ip[0]&amp;0xf)&lt;&lt;2)) - ((tcp[12]&amp;0xf0)&gt;&gt;2)) != 0)&#x27;</code></pre></div>
+<p><code>ip[2:2]</code> 从 ip 报文的第 3 个字节开始读 2 个字节，这个恰好就是 ip 包的总长度，单位是字节<br>
+<code>ip[0]&amp;0xf</code> 取的是 ip 报文第 1 个字节的低 4 位，<code>&lt;&lt; 2</code>（乘以 4），为 ip 头部长度，单位是字节<br>
+<code>tcp[12]&amp;0xf0</code> 取的是 tcp 报文第 13 个字节的高 4 位，<code>&gt;&gt; 2</code> 其实等价于 <code>&gt;&gt; 4</code> 然后 <code>&lt;&lt; 2</code>，为 tcp 头部长度，单位是字节。<br>
+所以 <code>((ip[2:2] - ((ip[0]&amp;0xf)&lt;&lt;2)) - ((tcp[12]&amp;0xf0)&gt;&gt;2))</code> 表示的数据长度。<br>
+【2】<strong>打印 80 端口，长度超过 576 的 ip 包</strong></p>
+<div class="hljs"><pre><code class="hljs shell">tcpdump &#x27;port 80 and ip[2:2] &gt; 576&#x27;</code></pre></div>
+<p>【3】<strong>打印特定 TCP Flag 的数据包</strong><br>
+TCP Flags 在 tcpdump 抓取的报文中的体现：<br>
+<code>[S]</code>：SYN（开始连接）<br>
+<code>[.]</code>: 没有 Flag<br>
+<code>[P]</code>: PSH（推送数据）<br>
+<code>[F]</code>: FIN （结束连接）<br>
+<code>[R]</code>: RST（重置连接）<br>
+<code>[S.]</code> SYN-ACK，就是 SYN 报文的应答报文。</p>
+<div class="hljs"><pre><code class="hljs shell">tcpdump &#x27;tcp[13] &amp; 16!=0&#x27;
+<span class="hljs-meta">#</span><span class="bash"> 等价于</span>
+tcpdump &#x27;tcp[tcpflags] == tcp-ack&#x27;</code></pre></div>
+<p>打印出所有的 ACK 包。</p>
+<div class="hljs"><pre><code class="hljs shell">tcpdump &#x27;tcp[13] &amp; 4!=0&#x27;
 
-# 等价于
-tcpdump 'tcp[tcpflags] == tcp-rst'
-</code></pre><p>打印出所有的 RST 包，即包含 <code>[R]</code> 标志的包。</p><p>更多 tcpdump filter 可以查看 <a href="http://www.tcpdump.org/manpages/pcap-filter.7.html" target="_blank" rel="noopener">PCAP-FILTER</a> 或者 <code>man tcpdump</code>！</p><hr><h2 id="参考">参考</h2><ol><li><a href="https://blog.csdn.net/blakegao/article/details/19419237" target="_blank" rel="noopener">常用的 TCP Option</a></li><li><a href="https://blog.csdn.net/mary19920410/article/details/59035804" target="_blank" rel="noopener">IP 报文格式详解</a></li><li><a href="https://jerryc8080.gitbooks.io/understand-tcp-and-udp/chapter2.html" target="_blank" rel="noopener">TCP 报文结构</a></li></ol></div><hr><div><p><span><i class="iconfont icon-inbox"></i> <a class="hover-with-bg" href="/categories/linux/">linux</a> &nbsp;</span> &nbsp;&nbsp;<span><i class="iconfont icon-tag"></i> <a class="hover-with-bg" href="/tags/tcp-ip/">tcp/ip</a> <a class="hover-with-bg" href="/tags/tupdump/">tupdump</a></span></p><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p><div class="post-prevnext row"><div class="post-prev col-6"><a href="/211b84d9.html"><i class="fa fa-chevron-left"></i> <span class="hidden-mobile">irqbalance 详解之一</span> <span class="visible-mobile">上一篇</span></a></div><div class="post-next col-6"> <a href="/ef96f204.html"><span class="hidden-mobile">vscode 体验记</span> <span class="visible-mobile">下一篇</span><i class="fa fa-chevron-right"></i></a></div></div></div><div class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">!function(e,t){var r,n=e.getElementsByTagName(t)[0];"function"!=typeof LivereTower&&((r=e.createElement(t)).src="https://cdn-city.livere.com/js/embed.dist.js",r.defer=!0,n.parentNode.insertBefore(r,n))}(document,"script")</script><noscript> 为正常使用来必力评论功能请激活JavaScript</noscript></div></div></div></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc-start"></div><div id="toc"><p class="h5"><i class="far fa-list-alt"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div><div class="col-lg-7 mx-auto nopadding-md"><div class="container custom post-content mx-auto"> <img src="https://octodex.github.com/images/jetpacktocat.png" srcset="/img/loading.gif" class="rounded mx-auto d-block mt-5" style="width:150px;height:150px"></div></div></main><a class="z-depth-1" id="scroll-top-button" href="#" role="button"><i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4> <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"> <input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div> <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><b>Hexo</b></a><i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><b>Fluid</b></a></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js"></script><script>$(document).ready(function(){var s=$("#navbar").height(),c=$("#toc"),t=$("#board-ctn"),o=t.offset().top,i=2*o+t.height();$(window).scroll(function(){var t=$("#toc-start").offset().top-s,o=document.body.scrollTop+document.documentElement.scrollTop;t<=o&&o<=i?c.css({display:"block",position:"fixed",top:s}):o<=t?c.css({position:"",top:""}):i<o&&c.css("display","none")}),tocbot.init({tocSelector:"#tocbot",contentSelector:".post-content",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",scrollSmooth:!0,headingsOffset:-o}),0<$(".toc-list-item").length&&$("#toc > p").css("visibility","visible");var l=t.css("margin-right");$("#toc-ctn").css({right:l})})</script><script defer="defer" src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer="defer" src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script defer="defer">var _hmt=_hmt||[];!function(){var e=document.createElement("script");e.src="https://hm.baidu.com/hm.js?882b48640075e00a238ae94a7eec0d40";var t=document.getElementsByTagName("script")[0];t.parentNode.insertBefore(e,t)}()</script><script defer="defer">var _mtac={};!function(){var t=document.createElement("script");t.src="//pingjs.qq.com/h5/stats.js?v2.0.4",t.setAttribute("name","MTAH5"),t.setAttribute("sid","");var e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(t,e)}()</script><script src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js"></script><script>$(document).ready(function(){$("pre").addClass("prettyprint  "),prettyPrint()})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","从 tcpdump 抓包看 TCP/IP 协议&nbsp;"],cursorChar:"_",typeSpeed:80,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>
+<span class="hljs-meta">#</span><span class="bash"> 等价于</span>
+tcpdump &#x27;tcp[tcpflags] == tcp-rst&#x27;</code></pre></div>
+<p>打印出所有的 RST 包，即包含 <code>[R]</code> 标志的包。</p>
+<p>更多 tcpdump filter 可以查看 <a target="_blank" rel="noopener" href="http://www.tcpdump.org/manpages/pcap-filter.7.html">PCAP-FILTER</a> 或者 <code>man tcpdump</code>！</p>
+<hr>
+<h2 id="参考">参考</h2>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/blakegao/article/details/19419237">常用的 TCP Option</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/mary19920410/article/details/59035804">IP 报文格式详解</a></li>
+<li><a target="_blank" rel="noopener" href="https://jerryc8080.gitbooks.io/understand-tcp-and-udp/chapter2.html">TCP 报文结构</a></li>
+</ol>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/linux/">linux</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/tcp-ip/">tcp/ip</a>
+                    
+                      <a class="hover-with-bg" href="/tags/tupdump/">tupdump</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p>
+              
+              
+                <div class="post-prevnext row">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/211b84d9.html">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">irqbalance 详解之一</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/ef96f204.html">
+                        <span class="hidden-mobile">vscode 体验记</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments">
+                
+                
+  <div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw">
+    <script type="text/javascript">
+      function loadLivere() {
+        addScript('https://cdn-city.livere.com/js/embed.dist.js');
+      }
+      waitElementVisible('lv-container', loadLivere);
+    </script>
+    <noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript>
+  </div>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div id="tocbot"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+  </main>
+
+  
+    <a id="scroll-top-button" href="#" role="button">
+      <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+    <div>
+      <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a>
+      <i class="iconfont icon-love"></i>
+      <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener">
+        <span>Fluid</span></a>
+    </div>
+    
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- 不蒜子统计PV -->
+        <span id="busuanzi_container_site_pv" style="display: none">
+            总访问量 
+            <span id="busuanzi_value_site_pv"></span>
+             次
+          </span>
+      
+      
+        <!-- 不蒜子统计UV -->
+        <span id="busuanzi_container_site_uv" style="display: none">
+            总访客数 
+            <span id="busuanzi_value_site_uv"></span>
+             人
+          </span>
+      
+    
+  </div>
+
+
+    
+
+    
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="/js/debouncer.js" ></script>
+<script  src="/js/main.js" ></script>
+
+<!-- Plugins -->
+
+
+  
+    <script  src="/js/lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
+  <script  src="/js/clipboard-use.js" ></script>
+
+
+
+  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+
+  <script  src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var boardCtn = $('#board-ctn');
+      var boardTop = boardCtn.offset().top;
+
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '#post-body',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        collapseDepth: 2,
+        scrollSmooth: true,
+        headingsOffset: -boardTop
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc').css('visibility', 'visible');
+      }
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "从 tcpdump 抓包看 TCP/IP 协议&nbsp;",
+      ],
+      cursorChar: "_",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
     anchors.options = {
       placement: "right",
       visible: "hover",
+      
+      icon: "§"
       
     };
     var el = "h1,h2,h3,h4,h5,h6".split(",");
@@ -57,4 +688,54 @@ tcpdump 'tcp[tcpflags] == tcp-rst'
       res.push(".markdown-body > " + item)
     }
     anchors.add(res.join(", "))
-  </script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){getSearchFile(path),this.onclick=null}</script><script defer="defer" src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><script>$("#post img:not(.no-zoom img, img[no-zoom])").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      searchFunc(path, 'local-search-input', 'local-search-result');
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+  <script>
+    $('#post img:not(.no-zoom img, img[no-zoom]), img[zoom]').each(
+      function () {
+        var element = document.createElement('a');
+        $(element).attr('data-fancybox', 'images');
+        $(element).attr('href', $(this).attr('src'));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

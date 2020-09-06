@@ -1,58 +1,630 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#2f4154"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>爬虫问题总结 - Happen&#39;s Memo</title><link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/5.12.1/css/all.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/mdbootstrap/4.13.0/css/mdb.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/3.0.1/github-markdown.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1067060_qzomjdt8bmp.css"><link rel="stylesheet" href="/lib/prettify/tomorrow-night-eighties.min.css"><link rel="stylesheet" href="/css/main.css"><link defer="defer" rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><link rel="stylesheet" href="/css/custom.css"></head><body><header style="height:70vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"> <a class="navbar-brand" href="/">&nbsp;<strong>Happen's Memo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="fa fa-home" aria-hidden="true"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="fa fa-archive" aria-hidden="true"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="fa fa-map-signs" aria-hidden="true"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="fa fa-tags" aria-hidden="true"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="fa fa-child" aria-hidden="true"></i> 关于</a></li><li class="nav-item" id="search-btn"> <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i class="iconfont icon-search"></i>&nbsp;&nbsp;</a></li></ul></div></div></nav><div class="view intro-2" id="background" parallax="true" style="background:url(/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask rgba-black-light flex-center"><div class="container text-center white-text fadeInUp"><span class="h2" id="subtitle"></span><p class="mt-3 post-meta"><i class="fas fa-calendar-alt" aria-hidden="true"></i> 2016/05/29, 星期日, 14:32</p><p class="mt-1"><span class="post-meta"><i class="far fa-chart-bar"></i> 2.3k 字</span><span class="post-meta"><i class="far fa-clock"></i> 8 分钟</span><span id="busuanzi_container_page_pv" class="post-meta" style="display:none"><i class="far fa-eye" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span> 次</span></p></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5 z-depth-3" id="board"><div class="post-content mx-auto" id="post"><p class="note note-warning">本文最后更新于：2020/04/03, 星期五, 02:21</p><div class="markdown-body"><p>本文档对日常学习中用 python 做数据爬取时所遇到的一些问题做简要记录，以便日后查阅，部分问题可能因为认识不到位会存在一些误解，敬请告知，万分感谢，共同进步。</p><a id="more"></a><h2 id="估算网站规模">估算网站规模</h2><p>该小节主要针对于整站爬取的情况。<br> 爬取整站之前，肯定是要先对一个网站的规模进行估计。这是可以使用 google 搜索查看大概有多少个网址，这里使用到 google 搜索的一个小技巧。</p><pre><code class="language-othe">site:url 地址
-</code></pre><p>有的时候可查看网站的 sitemap.xml，但它有时候会过期或者滞后，不是很准确。</p><h2 id="识别网站所用技术">识别网站所用技术</h2><p>要爬的网站使用的技术会影响到我们所写的代码中的处理手段。<br> 推荐使用 <strong>builtwith</strong> 这个第三方包，可以使用 <strong>pip</strong> 来安装。<br> 简单使用如下：</p><pre><code class="language-python">In [1]: import builtwith
 
-In [2]: builtwith.parse('http://example.webscraping.com/')
-Out[2]:
-{u'javascript-frameworks': [u'jQuery', u'Modernizr', u'jQuery UI'],
- u'programming-languages': [u'Python'],
- u'web-frameworks': [u'Web2py', u'Twitter Bootstrap'],
- u'web-servers': [u'Nginx']}
-</code></pre><h2 id="伪装成浏览器">伪装成浏览器</h2><p>UA，即 User-Agent，是 Http 协议的一部分，属于头域的组成部分，发送 http 请求时，请求头中会有 <strong>User-Agent</strong>字段。服务器通过该字段来分辨发送请求的浏览器类型、版本、内核以及操作系统信息等。<br> 在浏览器 console 可用如下命令来获得该浏览器的 UA 标识 <code>navigator.userAgent</code></p><p>部分网站不想被爬虫爬取就会检查 http 请求头的该字段内容， 所以在用爬虫做抓取时，通常要在请求头加上该字段，以把自己伪装成浏览器。<strong>有时候通过手机浏览器访问得到的页面会更加简洁，更容易抓取，所以伪装成手机浏览器也是一种好方法。</strong><br> 网上有很多整理的不同浏览器的 UA ，比如 <a href="http://my.oschina.net/sub/blog/203139" target="_blank" rel="noopener">各种浏览器 UserAgent 一览表</a>。<br> <a href="http://litten.github.io/2014/09/26/history-of-browser-useragent/" target="_blank" rel="noopener">浏览器野史 UserAgent 列传（上）</a>和 <a href="http://litten.github.io/2014/10/05/history-of-browser-useragent2/" target="_blank" rel="noopener">浏览器野史 UserAgent 列传（下）</a>，这两篇文章细说了 UA 的来龙去脉，去感受下当时波澜壮阔的“浏览器之战”。</p><h2 id="防盗链">防盗链</h2><p>部分服务器会检查 http 请求头的 <strong>Referer</strong> 字段来判断你是否是从指定页面跳转而来的，以达到防盗链的作用。因此在伪装请求头部的时候，该字段也是不容忽视的。</p><h2 id="url- 编码">url 编码</h2><p>我们发现，URL 中有时候存在中文，这是就需要对 url 进行编码。<br> 可以先将中文转换成 utf-8 编码，然后使用 urllib2.quote 方法对参数进行 url 编码后传递。</p><pre><code class="language-python">import urllib
-param = u'你好'
-param = param.encode('utf-8')
-param = urllib.quote(param)
-</code></pre><p>对于 url 来说，之所以要进行编码，是因为 url 中有些字符会引起歧义。<br> 同理使用 unquote 可以解码。</p><h2 id="动态加载问题">动态加载问题</h2><p>经常会遇到这样情况：将网页拖到底部会自动往下加载新的数据，或者有 <strong>加载更多</strong> 这样的按钮，这里说的就是 AJAX 了。</p><blockquote><p>AJAX 是 Asynchronous JavaScript and XML（异步的 JavaScript 和 XML）的缩写。它通过使用原有的 web 标准组件，实现了在不重新加载整个页面的情况下，与服务器进行数据交互。例如在新浪微博中，你可以展开一条微博的评论，而不需要重新加载，或者打开一个新的页面。但是这些内容并不是一开始就在页面中的（这样页面就太大了），而是在你点击的时候被加载进来的。这就导致了你抓取这个页面的时候，并不能获得这些评论信息（因为你没有『展开』）。</p><p>AJAX 一般是通过 XMLHttpRequest 对象接口发送请求的，XMLHttpRequest 一般被缩写为 XHR。</p></blockquote><h3 id="通过审查元素找请求的 -js- 地址">通过审查元素找请求的 js 地址</h3><p>这些 js 的名字通常看起来与其他的不太一样。<br> 拿 <a href="http://www.thepaper.cn/" target="_blank" rel="noopener">澎湃网</a> 举个栗子，这才是发送请求获得文章的真正地址，</p><center><img src="https://s1.ax1x.com/2018/10/28/icw4xJ.jpg" srcset="/img/loading.gif" width="800"></center> AJAX 的一种 ** 常见用法 ** 是使用 AJAX 加载 JSON 数据，然后在浏览器端渲染。 这种情况很好处理，因为 python 自带的处理 json 的库，举个栗子： [豌豆荚安卓游戏排行榜](http://www.wandoujia.com/top/game)，每次点击更多会加载新的数据。在审查元素里，可以看到每次点击 ** 查看更多 **，都会返回一个包含应用数据详细信息的数据。<center><img src="https://s1.ax1x.com/2018/10/28/icwjRe.jpg" srcset="/img/loading.gif" width="800"></center> 查看请求 json 数据的地址 http://apps.wandoujia.com/api/v1/apps?type=weeklytopgame&max=12&start=60 max 参数的值表示这一次请求返回多少个 app 信息， start 参数的值表示从第几个 app 开始，start 从 0 开始。<p>另外，在构建请求头时，应该加上这个参数 <strong>‘X-Requested-With’: ‘XMLHttpRequest’</strong>, 当使用 XHR 发送 AJAX 请求时 Header 会带上这个字段，常被用于判断是不是 AJAX 请求。</p><h3 id="Selenium-PhantomJS">Selenium+PhantomJS</h3><blockquote><p>Selenium 是一个强大的网络数据采集工具，最初是为网站自动测试而开发的。它可以让浏览器自动加载页面，获取所需要的数据，甚至页面截屏，或者判断网站上某些动作事都发生。</p></blockquote><p>对应的 python 库，可以用 pip 安装。<br> PhantomJS 是一个 headless browser，它会把网站加载到内存并执行页面上的 JavaScript，但是不会向用户展示网页的图形界面。<strong>它不是 python 库，需要单独下载</strong> (喏，你要的 <a href="http://phantomjs.org/" target="_blank" rel="noopener">官网</a>)。<br> 写一个简单的栗子：</p><pre><code class="language-python">from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 
-driver = webdriver.PhantomJS(executable_path='&lt;Path to PhantomJs&gt;')
-driver.get(&quot;http://www.python.org&quot;)
-assert &quot;Python&quot; in driver.title
-elem = driver.find_element_by_name(&quot;q&quot;)
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=&#34;auto&#34;>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png">
+  <link rel="icon" type="image/png" href="/images/dolphin.png">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="description" content="">
+  <meta name="author" content="Happen">
+  <meta name="keywords" content="">
+  <title>爬虫问题总结 - HappenのMemo</title>
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
+
+
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css" />
+  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
+
+  
+    
+    
+      
+      <link  rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/atom-one-dark.min.css" />
+    
+  
+
+  
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+<!-- 自定义样式保持在最底部 -->
+
+
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+<meta name="generator" content="Hexo 5.1.1"></head>
+
+
+<body>
+  <header style="height: 70vh;">
+    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand"
+       href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/links/">
+                <i class="iconfont icon-link-fill"></i>
+                友链
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;</a>
+          </li>
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" href="javascript:">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+    <div class="banner intro-2" id="background" parallax=true
+         style="background: url('/images/about-banner.jpg') no-repeat center center;
+           background-size: cover;">
+      <div class="full-bg-img">
+        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+          <div class="container page-header text-center fade-in-up">
+            <span class="h2" id="subtitle">
+              
+            </span>
+
+            
+              <div class="mt-3">
+  
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-author" aria-hidden="true"></i>
+      Happen
+    </span>
+  
+  
+    <span class="post-meta">
+      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+      <time datetime="2016-05-29 14:32" pubdate>
+        2016年5月29日 下午
+      </time>
+    </span>
+  
+</div>
+
+<div class="mt-1">
+  
+    
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-chart"></i>
+      2.3k 字
+    </span>
+  
+
+  
+    
+    <span class="post-meta mr-2">
+      <i class="iconfont icon-clock-fill"></i>
+      
+      
+      27
+       分钟
+    </span>
+  
+
+  
+  
+</div>
+
+            
+          </div>
+
+          
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="d-none d-lg-block col-lg-2"></div>
+    <div class="col-lg-8 nopadding-md">
+      <div class="container nopadding-md" id="board-ctn">
+        <div class="py-5" id="board">
+          <article class="post-content mx-auto" id="post">
+            <!-- SEO header -->
+            <h1 style="display: none">爬虫问题总结</h1>
+            
+              <p class="note note-info">
+                
+                  本文最后更新于：2016年5月29日 下午
+                
+              </p>
+            
+            <div class="markdown-body" id="post-body">
+              <p>本文档对日常学习中用 python 做数据爬取时所遇到的一些问题做简要记录，以便日后查阅，部分问题可能因为认识不到位会存在一些误解，敬请告知，万分感谢，共同进步。</p>
+<a id="more"></a>
+<h2 id="估算网站规模">估算网站规模</h2>
+<p>该小节主要针对于整站爬取的情况。<br>
+爬取整站之前，肯定是要先对一个网站的规模进行估计。这是可以使用 google 搜索查看大概有多少个网址，这里使用到 google 搜索的一个小技巧。</p>
+<div class="hljs"><pre><code class="hljs othe">site:url 地址</code></pre></div>
+<p>有的时候可查看网站的 sitemap.xml，但它有时候会过期或者滞后，不是很准确。</p>
+<h2 id="识别网站所用技术">识别网站所用技术</h2>
+<p>要爬的网站使用的技术会影响到我们所写的代码中的处理手段。<br>
+推荐使用 <strong>builtwith</strong> 这个第三方包，可以使用 <strong>pip</strong> 来安装。<br>
+简单使用如下：</p>
+<div class="hljs"><pre><code class="hljs python">In [<span class="hljs-number">1</span>]: <span class="hljs-keyword">import</span> builtwith
+
+In [<span class="hljs-number">2</span>]: builtwith.parse(<span class="hljs-string">&#x27;http://example.webscraping.com/&#x27;</span>)
+Out[<span class="hljs-number">2</span>]:
+&#123;<span class="hljs-string">u&#x27;javascript-frameworks&#x27;</span>: [<span class="hljs-string">u&#x27;jQuery&#x27;</span>, <span class="hljs-string">u&#x27;Modernizr&#x27;</span>, <span class="hljs-string">u&#x27;jQuery UI&#x27;</span>],
+ <span class="hljs-string">u&#x27;programming-languages&#x27;</span>: [<span class="hljs-string">u&#x27;Python&#x27;</span>],
+ <span class="hljs-string">u&#x27;web-frameworks&#x27;</span>: [<span class="hljs-string">u&#x27;Web2py&#x27;</span>, <span class="hljs-string">u&#x27;Twitter Bootstrap&#x27;</span>],
+ <span class="hljs-string">u&#x27;web-servers&#x27;</span>: [<span class="hljs-string">u&#x27;Nginx&#x27;</span>]&#125;</code></pre></div>
+<h2 id="伪装成浏览器">伪装成浏览器</h2>
+<p>UA，即 User-Agent，是 Http 协议的一部分，属于头域的组成部分，发送 http 请求时，请求头中会有 <strong>User-Agent</strong>字段。服务器通过该字段来分辨发送请求的浏览器类型、版本、内核以及操作系统信息等。<br>
+在浏览器 console 可用如下命令来获得该浏览器的 UA 标识 <code>navigator.userAgent</code></p>
+<p>部分网站不想被爬虫爬取就会检查 http 请求头的该字段内容， 所以在用爬虫做抓取时，通常要在请求头加上该字段，以把自己伪装成浏览器。<strong>有时候通过手机浏览器访问得到的页面会更加简洁，更容易抓取，所以伪装成手机浏览器也是一种好方法。</strong><br>
+网上有很多整理的不同浏览器的 UA ，比如 <a target="_blank" rel="noopener" href="http://my.oschina.net/sub/blog/203139"> 各种浏览器 UserAgent 一览表</a>。<br>
+<a target="_blank" rel="noopener" href="http://litten.github.io/2014/09/26/history-of-browser-useragent/">浏览器野史 UserAgent 列传（上）</a>和 <a target="_blank" rel="noopener" href="http://litten.github.io/2014/10/05/history-of-browser-useragent2/">浏览器野史 UserAgent 列传（下）</a>，这两篇文章细说了 UA 的来龙去脉，去感受下当时波澜壮阔的“浏览器之战”。</p>
+<h2 id="防盗链">防盗链</h2>
+<p>部分服务器会检查 http 请求头的 <strong>Referer</strong> 字段来判断你是否是从指定页面跳转而来的，以达到防盗链的作用。因此在伪装请求头部的时候，该字段也是不容忽视的。</p>
+<h2 id="url- 编码">url 编码</h2>
+<p>我们发现，URL 中有时候存在中文，这是就需要对 url 进行编码。<br>
+可以先将中文转换成 utf-8 编码，然后使用 urllib2.quote 方法对参数进行 url 编码后传递。</p>
+<div class="hljs"><pre><code class="hljs python"><span class="hljs-keyword">import</span> urllib
+param = <span class="hljs-string">u&#x27; 你好 &#x27;</span>
+param = param.encode(<span class="hljs-string">&#x27;utf-8&#x27;</span>)
+param = urllib.quote(param)</code></pre></div>
+<p>对于 url 来说，之所以要进行编码，是因为 url 中有些字符会引起歧义。<br>
+同理使用 unquote 可以解码。</p>
+<h2 id="动态加载问题">动态加载问题</h2>
+<p>经常会遇到这样情况：将网页拖到底部会自动往下加载新的数据，或者有 <strong> 加载更多 </strong> 这样的按钮，这里说的就是 AJAX 了。</p>
+<blockquote>
+<p>AJAX 是 Asynchronous JavaScript and XML（异步的 JavaScript 和 XML）的缩写。它通过使用原有的 web 标准组件，实现了在不重新加载整个页面的情况下，与服务器进行数据交互。例如在新浪微博中，你可以展开一条微博的评论，而不需要重新加载，或者打开一个新的页面。但是这些内容并不是一开始就在页面中的（这样页面就太大了），而是在你点击的时候被加载进来的。这就导致了你抓取这个页面的时候，并不能获得这些评论信息（因为你没有『展开』）。</p>
+<p>AJAX 一般是通过 XMLHttpRequest 对象接口发送请求的，XMLHttpRequest 一般被缩写为 XHR。</p>
+</blockquote>
+<h3 id="通过审查元素找请求的 -js- 地址">通过审查元素找请求的 js 地址</h3>
+<p>这些 js 的名字通常看起来与其他的不太一样。<br>
+拿 <a target="_blank" rel="noopener" href="http://www.thepaper.cn/"> 澎湃网 </a> 举个栗子，这才是发送请求获得文章的真正地址，</p>
+<center><img src="https://s1.ax1x.com/2018/10/28/icw4xJ.jpg" srcset="/img/loading.gif" width="800" /></center>
+AJAX 的一种 ** 常见用法 ** 是使用 AJAX 加载 JSON 数据，然后在浏览器端渲染。
+这种情况很好处理，因为 python 自带的处理 json 的库，举个栗子：
+[豌豆荚安卓游戏排行榜](http://www.wandoujia.com/top/game)，每次点击更多会加载新的数据。在审查元素里，可以看到每次点击 ** 查看更多 **，都会返回一个包含应用数据详细信息的数据。
+<center><img src="https://s1.ax1x.com/2018/10/28/icwjRe.jpg" srcset="/img/loading.gif" width="800" /></center>
+查看请求 json 数据的地址
+ http://apps.wandoujia.com/api/v1/apps?type=weeklytopgame&max=12&start=60
+max 参数的值表示这一次请求返回多少个 app 信息， start 参数的值表示从第几个 app 开始，start 从 0 开始。
+<p>另外，在构建请求头时，应该加上这个参数 <strong>‘X-Requested-With’: ‘XMLHttpRequest’</strong>, 当使用 XHR 发送 AJAX 请求时 Header 会带上这个字段，常被用于判断是不是 AJAX 请求。</p>
+<h3 id="Selenium-PhantomJS">Selenium+PhantomJS</h3>
+<blockquote>
+<p>Selenium 是一个强大的网络数据采集工具，最初是为网站自动测试而开发的。它可以让浏览器自动加载页面，获取所需要的数据，甚至页面截屏，或者判断网站上某些动作事都发生。</p>
+</blockquote>
+<p>对应的 python 库，可以用 pip 安装。<br>
+PhantomJS 是一个 headless browser，它会把网站加载到内存并执行页面上的 JavaScript，但是不会向用户展示网页的图形界面。<strong>它不是 python 库，需要单独下载 </strong>(喏，你要的<a target="_blank" rel="noopener" href="http://phantomjs.org/"> 官网</a>)。<br>
+写一个简单的栗子：</p>
+<div class="hljs"><pre><code class="hljs python"><span class="hljs-keyword">from</span> selenium <span class="hljs-keyword">import</span> webdriver
+<span class="hljs-keyword">from</span> selenium.webdriver.common.keys <span class="hljs-keyword">import</span> Keys
+
+driver = webdriver.PhantomJS(executable_path=<span class="hljs-string">&#x27;&lt;Path to PhantomJs&gt;&#x27;</span>)
+driver.get(<span class="hljs-string">&quot;http://www.python.org&quot;</span>)
+<span class="hljs-keyword">assert</span> <span class="hljs-string">&quot;Python&quot;</span> <span class="hljs-keyword">in</span> driver.title
+elem = driver.find_element_by_name(<span class="hljs-string">&quot;q&quot;</span>)
 elem.clear()
-elem.send_keys(&quot;pycon&quot;)
+elem.send_keys(<span class="hljs-string">&quot;pycon&quot;</span>)
 elem.send_keys(Keys.RETURN)
-assert &quot;No results found.&quot; not in driver.page_source
-driver.close()
-</code></pre><p><strong>Path to PhantomJs</strong> 处 需要指定位置，如果该路径已经加入到了环境变量中，那么可以不加这个参数。<br> 这里只是个简单的介绍，后续会对 Selenium 的 python 版 API 的使用做单独介绍。</p><h2 id="代理问题">代理问题</h2><p>部分网站对 ip 进行了限制，导致我们无法爬到想要的数据，这个时候可以用代理来做。<br> 使用 <strong>requests</strong> 这个第三方库，可以轻松地设置代理。<br> 再举个栗子：</p><pre><code class="language-python">import requests
+<span class="hljs-keyword">assert</span> <span class="hljs-string">&quot;No results found.&quot;</span> <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> driver.page_source
+driver.close()</code></pre></div>
+<p><strong>Path to PhantomJs</strong> 处 需要指定位置，如果该路径已经加入到了环境变量中，那么可以不加这个参数。<br>
+这里只是个简单的介绍，后续会对 Selenium 的 python 版 API 的使用做单独介绍。</p>
+<h2 id="代理问题">代理问题</h2>
+<p>部分网站对 ip 进行了限制，导致我们无法爬到想要的数据，这个时候可以用代理来做。<br>
+使用 <strong>requests</strong> 这个第三方库，可以轻松地设置代理。<br>
+再举个栗子：</p>
+<div class="hljs"><pre><code class="hljs python"><span class="hljs-keyword">import</span> requests
 
-proxies = {
-  'http': 'http://10.10.1.10:3128',
-  'https': 'http://10.10.1.10:1080',
-}
-requests.get('http://example.org', proxies=proxies)
-</code></pre><h2 id="发送 -http- 请求">发送 http 请求</h2><p>虽然自带的 urllib 和 urllib2 库可以满足需求，但是不推荐使用。为什么？因为它们的操作太繁琐，尤其在处理一些复杂情况时，这不符合 python 的设计哲学，所以放手抛弃它们吧。<br> 推荐使用 <a href="http://docs.python-requests.org/en/latest/" target="_blank" rel="noopener"><strong>requests</strong></a>这个第三方库，正如它标榜的那样–<strong>Requests: HTTP for Humans</strong>，同时也支持 py3。<br> 使用 requests 库发送请求是如此的优雅，</p><pre><code class="language-python">import requests
-r = requests.get('https://api.github.com/events')
-print r.text
-</code></pre><p>具体使用方法可以看官方 API。</p><h2 id="解析页面">解析页面</h2><p>既然获取到了请求页面的源码，那么接下来要做的就是解析工作，一般来说，有下面三个库用得是最多的：<strong>lxml 库， bs4 库，以及正则</strong>。<br> <strong>lxml</strong> 解析速度要比 <strong>bs4</strong> 快，据说快好几倍，正则是个终结技，只是写起来有点麻烦。另外， bs4 不支持 <strong>xpath</strong>，而 lxml 支持，总之，视自己的情况选择了。<br> 前几天还接触过一个库，名字叫 <strong>pyquery</strong>，它是 jQuery 的 python 实现，可以用于解析 html 网页内容，熟悉 jQuery 语法童鞋的福音。</p><h3 id="另 -bs4- 库解析遇到的一个问题">另:bs4 库解析遇到的一个问题</h3><p>前几天遇到一个问题，问题是这样的，html 页面的数据经过 Beautiful Soup 库的解析后，部分 html 源码丢失，找不到想要的数据了，问题代码如下：</p><pre><code class="language-python">#! /usr/bin/env python
-# -*- coding:utf-8 -*-
+proxies = &#123;
+  <span class="hljs-string">&#x27;http&#x27;</span>: <span class="hljs-string">&#x27;http://10.10.1.10:3128&#x27;</span>,
+  <span class="hljs-string">&#x27;https&#x27;</span>: <span class="hljs-string">&#x27;http://10.10.1.10:1080&#x27;</span>,
+&#125;
+requests.get(<span class="hljs-string">&#x27;http://example.org&#x27;</span>, proxies=proxies)</code></pre></div>
+<h2 id="发送 -http- 请求">发送 http 请求</h2>
+<p>虽然自带的 urllib 和 urllib2 库可以满足需求，但是不推荐使用。为什么？因为它们的操作太繁琐，尤其在处理一些复杂情况时，这不符合 python 的设计哲学，所以放手抛弃它们吧。<br>
+推荐使用 <a target="_blank" rel="noopener" href="http://docs.python-requests.org/en/latest/"><strong>requests</strong></a>这个第三方库，正如它标榜的那样–<strong>Requests: HTTP for Humans</strong>，同时也支持 py3。<br>
+使用 requests 库发送请求是如此的优雅，</p>
+<div class="hljs"><pre><code class="hljs python"><span class="hljs-keyword">import</span> requests
+r = requests.get(<span class="hljs-string">&#x27;https://api.github.com/events&#x27;</span>)
+<span class="hljs-keyword">print</span> r.text</code></pre></div>
+<p>具体使用方法可以看官方 API。</p>
+<h2 id="解析页面">解析页面</h2>
+<p>既然获取到了请求页面的源码，那么接下来要做的就是解析工作，一般来说，有下面三个库用得是最多的：<strong>lxml 库， bs4 库，以及正则</strong>。<br>
+<strong>lxml</strong> 解析速度要比 <strong>bs4</strong> 快，据说快好几倍，正则是个终结技，只是写起来有点麻烦。另外， bs4 不支持 <strong>xpath</strong>，而 lxml 支持，总之，视自己的情况选择了。<br>
+前几天还接触过一个库，名字叫 <strong>pyquery</strong>，它是 jQuery 的 python 实现，可以用于解析 html 网页内容，熟悉 jQuery 语法童鞋的福音。</p>
+<h3 id="另 -bs4- 库解析遇到的一个问题">另:bs4 库解析遇到的一个问题</h3>
+<p>前几天遇到一个问题，问题是这样的，html 页面的数据经过 Beautiful Soup 库的解析后，部分 html 源码丢失，找不到想要的数据了，问题代码如下：</p>
+<div class="hljs"><pre><code class="hljs python"><span class="hljs-comment">#! /usr/bin/env python</span>
+<span class="hljs-comment"># -*- coding:utf-8 -*-</span>
 
-import requests
-from bs4 import BeautifulSoup
+<span class="hljs-keyword">import</span> requests
+<span class="hljs-keyword">from</span> bs4 <span class="hljs-keyword">import</span> BeautifulSoup
 
-url = 'http://product.pconline.com.cn/mobile/'
+url = <span class="hljs-string">&#x27;http://product.pconline.com.cn/mobile/&#x27;</span>
 res = requests.get(url)
 html = res.text
-# print html
-soup = BeautifulSoup(html, 'lxml')
-site = soup.findAll('img', class_='pic')
-print site
-</code></pre><p>输出结果为空，没有想要的数据。查看官方文档，bs 库支持的解析库有 lxml, html5lib 和 html.parser。用的最多的是 lxml，因为它的解析速度快，并且容错能力强，默认也是使用该解析器。<br> 出现解析后源码丢失的可能原因有 2 个：</p><ul><li>BeautifulSoup 有时候会遇到非法的，不支持的 html 源码而导致无法解析或无法正常解析 html；</li><li>处理的文档太大，而处理的解析器缓存不够造成的信息丢失。<br> 这里换一个解析器，换成 <strong>html.parser</strong> 就可以了。</li></ul><h2 id="编码问题">编码问题</h2><p>将编码设置为 <strong>utf-8</strong></p><pre><code class="language-python">import sys
+<span class="hljs-comment"># print html</span>
+soup = BeautifulSoup(html, <span class="hljs-string">&#x27;lxml&#x27;</span>)
+site = soup.findAll(<span class="hljs-string">&#x27;img&#x27;</span>, class_=<span class="hljs-string">&#x27;pic&#x27;</span>)
+<span class="hljs-keyword">print</span> site</code></pre></div>
+<p>输出结果为空，没有想要的数据。查看官方文档，bs 库支持的解析库有 lxml, html5lib 和 html.parser。用的最多的是 lxml，因为它的解析速度快，并且容错能力强，默认也是使用该解析器。<br>
+出现解析后源码丢失的可能原因有 2 个：</p>
+<ul>
+<li>BeautifulSoup 有时候会遇到非法的，不支持的 html 源码而导致无法解析或无法正常解析 html；</li>
+<li>处理的文档太大，而处理的解析器缓存不够造成的信息丢失。<br>
+这里换一个解析器，换成 <strong>html.parser</strong> 就可以了。</li>
+</ul>
+<h2 id="编码问题">编码问题</h2>
+<p>将编码设置为 <strong>utf-8</strong></p>
+<div class="hljs"><pre><code class="hljs python"><span class="hljs-keyword">import</span> sys
 reload(sys)
-sys.setdefaultencoding('utf-8')
-</code></pre><p>总之，py2 中的编码问题很烦人，只要解码与编码不一致就会出现乱码。对 unicode 可以 编码，其他编码 decode 成 unicode。<br> 要注意 **‘hello’** 和 <strong>u’hello’</strong> 的区别。</p><h2 id="多线程爬取">多线程爬取</h2><h2 id="验证码处理">验证码处理</h2><h2 id="模拟登录">模拟登录</h2><p><span style="font-size:18px"><strong>To be continued…</strong></span></p></div><hr><div><p><span><i class="iconfont icon-inbox"></i> <a class="hover-with-bg" href="/categories/python/">python</a> &nbsp;</span> &nbsp;&nbsp;<span><i class="iconfont icon-tag"></i> <a class="hover-with-bg" href="/tags/%E7%88%AC%E8%99%AB/">爬虫</a></span></p><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a href="https://zh.wikipedia.org/wiki/Wikipedia:CC_BY-SA_3.0%E5%8D%8F%E8%AE%AE%E6%96%87%E6%9C%AC" target="_blank" rel="nofollow noopener noopener">CC BY-SA 3.0协议</a> 。转载请注明出处！</p><div class="post-prevnext row"><div class="post-prev col-6"><a href="/38f80316.html"><i class="fa fa-chevron-left"></i> <span class="hidden-mobile">java 第三方包学习之 lombok</span> <span class="visible-mobile">上一篇</span></a></div><div class="post-next col-6"> <a href="/f49a9b8a.html"><span class="hidden-mobile">sublime text3 配置 [python 篇]</span> <span class="visible-mobile">下一篇</span><i class="fa fa-chevron-right"></i></a></div></div></div><div class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">!function(e,t){var r,n=e.getElementsByTagName(t)[0];"function"!=typeof LivereTower&&((r=e.createElement(t)).src="https://cdn-city.livere.com/js/embed.dist.js",r.defer=!0,n.parentNode.insertBefore(r,n))}(document,"script")</script><noscript> 为正常使用来必力评论功能请激活JavaScript</noscript></div></div></div></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc-start"></div><div id="toc"><p class="h5"><i class="far fa-list-alt"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div><div class="col-lg-7 mx-auto nopadding-md"><div class="container custom post-content mx-auto"> <img src="https://octodex.github.com/images/jetpacktocat.png" srcset="/img/loading.gif" class="rounded mx-auto d-block mt-5" style="width:150px;height:150px"></div></div></main><a class="z-depth-1" id="scroll-top-button" href="#" role="button"><i class="fa fa-chevron-up scroll-top-arrow" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4> <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"> <input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div> <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><b>Hexo</b></a><i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><b>Fluid</b></a></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/popper.js/1.16.1/umd/popper.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="https://cdn.staticfile.org/mdbootstrap/4.13.0/js/mdb.min.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script src="https://cdn.staticfile.org/tocbot/4.10.0/tocbot.min.js"></script><script>$(document).ready(function(){var s=$("#navbar").height(),c=$("#toc"),t=$("#board-ctn"),o=t.offset().top,i=2*o+t.height();$(window).scroll(function(){var t=$("#toc-start").offset().top-s,o=document.body.scrollTop+document.documentElement.scrollTop;t<=o&&o<=i?c.css({display:"block",position:"fixed",top:s}):o<=t?c.css({position:"",top:""}):i<o&&c.css("display","none")}),tocbot.init({tocSelector:"#tocbot",contentSelector:".post-content",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",scrollSmooth:!0,headingsOffset:-o}),0<$(".toc-list-item").length&&$("#toc > p").css("visibility","visible");var l=t.css("margin-right");$("#toc-ctn").css({right:l})})</script><script defer="defer" src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer="defer" src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script defer="defer">var _hmt=_hmt||[];!function(){var e=document.createElement("script");e.src="https://hm.baidu.com/hm.js?882b48640075e00a238ae94a7eec0d40";var t=document.getElementsByTagName("script")[0];t.parentNode.insertBefore(e,t)}()</script><script defer="defer">var _mtac={};!function(){var t=document.createElement("script");t.src="//pingjs.qq.com/h5/stats.js?v2.0.4",t.setAttribute("name","MTAH5"),t.setAttribute("sid","");var e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(t,e)}()</script><script src="https://cdn.staticfile.org/prettify/188.0.0/prettify.min.js"></script><script>$(document).ready(function(){$("pre").addClass("prettyprint  "),prettyPrint()})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","爬虫问题总结&nbsp;"],cursorChar:"_",typeSpeed:80,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>
+sys.setdefaultencoding(<span class="hljs-string">&#x27;utf-8&#x27;</span>)</code></pre></div>
+<p>总之，py2 中的编码问题很烦人，只要解码与编码不一致就会出现乱码。对 unicode 可以 编码，其他编码 decode 成 unicode。<br>
+要注意 **‘hello’** 和 <strong>u’hello’</strong> 的区别。</p>
+<h2 id="多线程爬取">多线程爬取</h2>
+<h2 id="验证码处理">验证码处理</h2>
+<h2 id="模拟登录">模拟登录</h2>
+<p><span style="font-size:18px;"><strong>To be continued…</strong></span></p>
+
+            </div>
+            <hr>
+            <div>
+              <div class="post-metas mb-3">
+                
+                  <div class="post-meta mr-3">
+                    <i class="iconfont icon-category"></i>
+                    
+                      <a class="hover-with-bg" href="/categories/python/">python</a>
+                    
+                  </div>
+                
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E7%88%AC%E8%99%AB/">爬虫</a>
+                    
+                  </div>
+                
+              </div>
+              
+                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p>
+              
+              
+                <div class="post-prevnext row">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/38f80316.html">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">java 第三方包学习之 lombok</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/f49a9b8a.html">
+                        <span class="hidden-mobile">sublime text3 配置 [python 篇]</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+              <!-- Comments -->
+              <article class="comments" id="comments">
+                
+                
+  <div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw">
+    <script type="text/javascript">
+      function loadLivere() {
+        addScript('https://cdn-city.livere.com/js/embed.dist.js');
+      }
+      waitElementVisible('lv-container', loadLivere);
+    </script>
+    <noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript>
+  </div>
+
+
+              </article>
+            
+          </article>
+        </div>
+      </div>
+    </div>
+    
+      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
+        <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div id="tocbot"></div>
+</div>
+
+      </div>
+    
+  </div>
+</div>
+
+<!-- Custom -->
+
+
+    
+  </main>
+
+  
+    <a id="scroll-top-button" href="#" role="button">
+      <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+    </a>
+  
+
+  
+    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v"
+                 for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+  
+
+  
+
+  
+
+  <footer class="mt-5">
+  <div class="text-center py-3">
+    <div>
+      <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a>
+      <i class="iconfont icon-love"></i>
+      <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener">
+        <span>Fluid</span></a>
+    </div>
+    
+  <div class="statistics">
+    
+    
+
+    
+      
+        <!-- 不蒜子统计PV -->
+        <span id="busuanzi_container_site_pv" style="display: none">
+            总访问量 
+            <span id="busuanzi_value_site_pv"></span>
+             次
+          </span>
+      
+      
+        <!-- 不蒜子统计UV -->
+        <span id="busuanzi_container_site_uv" style="display: none">
+            总访客数 
+            <span id="busuanzi_value_site_uv"></span>
+             人
+          </span>
+      
+    
+  </div>
+
+
+    
+
+    
+  </div>
+</footer>
+
+<!-- SCRIPTS -->
+<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
+<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
+<script  src="/js/debouncer.js" ></script>
+<script  src="/js/main.js" ></script>
+
+<!-- Plugins -->
+
+
+  
+    <script  src="/js/lazyload.js" ></script>
+  
+
+
+
+  
+
+
+
+  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
+  <script  src="/js/clipboard-use.js" ></script>
+
+
+
+  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+
+  <script  src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js" ></script>
+  <script>
+    $(document).ready(function () {
+      var boardCtn = $('#board-ctn');
+      var boardTop = boardCtn.offset().top;
+
+      tocbot.init({
+        tocSelector: '#tocbot',
+        contentSelector: '#post-body',
+        headingSelector: 'h1,h2,h3,h4,h5,h6',
+        linkClass: 'tocbot-link',
+        activeLinkClass: 'tocbot-active-link',
+        listClass: 'tocbot-list',
+        isCollapsedClass: 'tocbot-is-collapsed',
+        collapsibleClass: 'tocbot-is-collapsible',
+        collapseDepth: 2,
+        scrollSmooth: true,
+        headingsOffset: -boardTop
+      });
+      if ($('.toc-list-item').length > 0) {
+        $('#toc').css('visibility', 'visible');
+      }
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
+  <script>
+    var typed = new Typed('#subtitle', {
+      strings: [
+        '  ',
+        "爬虫问题总结&nbsp;",
+      ],
+      cursorChar: "_",
+      typeSpeed: 70,
+      loop: false,
+    });
+    typed.stop();
+    $(document).ready(function () {
+      $(".typed-cursor").addClass("h2");
+      typed.start();
+    });
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
+  <script>
     anchors.options = {
       placement: "right",
       visible: "hover",
+      
+      icon: "§"
       
     };
     var el = "h1,h2,h3,h4,h5,h6".split(",");
@@ -61,4 +633,54 @@ sys.setdefaultencoding('utf-8')
       res.push(".markdown-body > " + item)
     }
     anchors.add(res.join(", "))
-  </script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){getSearchFile(path),this.onclick=null}</script><script defer="defer" src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><script>$("#post img:not(.no-zoom img, img[no-zoom])").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>
+  </script>
+
+
+
+  <script  src="/js/local-search.js" ></script>
+  <script>
+    var path = "/local-search.xml";
+    var inputArea = document.querySelector("#local-search-input");
+    inputArea.onclick = function () {
+      searchFunc(path, 'local-search-input', 'local-search-result');
+      this.onclick = null
+    }
+  </script>
+
+
+
+  <script  src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
+  <link  rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+  <script>
+    $('#post img:not(.no-zoom img, img[no-zoom]), img[zoom]').each(
+      function () {
+        var element = document.createElement('a');
+        $(element).attr('data-fancybox', 'images');
+        $(element).attr('href', $(this).attr('src'));
+        $(this).wrap(element);
+      }
+    );
+  </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
