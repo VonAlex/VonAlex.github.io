@@ -247,22 +247,13 @@
             <div class="markdown-body" id="post-body">
               <p>本篇文章主要记录用 hexo 搭建博客，并部署在 github 上的大概过程。</p>
 <a id="more"></a>
-<h2 id="搭建博客并部署">搭建博客并部署</h2>
-<h3 id="安装 -node-js">安装 node.js</h3>
-<p><a target="_blank" rel="noopener" href="https://nodejs.org/en/">安装 node.js</a><br>
-默认 npm 源可能比较慢，建议换一下，参考这个 <a target="_blank" rel="noopener" href="https://npm.taobao.org/">淘宝 NPM 镜像</a>。</p>
-<h3 id="安装 -git">安装 git</h3>
-<p><a target="_blank" rel="noopener" href="https://git-scm.com/download/">安装 git</a><br>
-进行简要的配置，详细信息参照 <a target="_blank" rel="noopener" href="http://www.liaoxuefeng.com/wiki/0013739516305929606dd18361248578c67b8067c8c017b000"> 廖雪峰 git 教程</a></p>
-<h3 id="创建 -github-repo，并关联本地库">创建 github repo，并关联本地库</h3>
-<p>repo 名为 <code>github 账号名.github.io</code>，如 <code>AlexVon.github.io</code></p>
-<h3 id="安装 -hexo">安装 hexo</h3>
-<p>使用 npm 安装 hexo</p>
+<h2 id="搭建博客并部署"><a href="# 搭建博客并部署" class="headerlink" title="搭建博客并部署"></a>搭建博客并部署 </h2><h3 id="安装 -node-js"><a href="# 安装 -node-js" class="headerlink" title="安装 node.js"></a> 安装 node.js</h3><p><a target="_blank" rel="noopener" href="https://nodejs.org/en/">安装 node.js</a><br>默认 npm 源可能比较慢，建议换一下，参考这个 <a target="_blank" rel="noopener" href="https://npm.taobao.org/">淘宝 NPM 镜像</a>。</p>
+<h3 id="安装 -git"><a href="# 安装 -git" class="headerlink" title="安装 git"></a>安装 git</h3><p><a target="_blank" rel="noopener" href="https://git-scm.com/download/">安装 git</a><br>进行简要的配置，详细信息参照 <a target="_blank" rel="noopener" href="http://www.liaoxuefeng.com/wiki/0013739516305929606dd18361248578c67b8067c8c017b000"> 廖雪峰 git 教程</a></p>
+<h3 id="创建 -github-repo，并关联本地库"><a href="# 创建 -github-repo，并关联本地库" class="headerlink" title="创建 github repo，并关联本地库"></a>创建 github repo，并关联本地库</h3><p>repo 名为 <code>github 账号名.github.io</code>，如 <code>AlexVon.github.io</code></p>
+<h3 id="安装 -hexo"><a href="# 安装 -hexo" class="headerlink" title="安装 hexo"></a>安装 hexo</h3><p>使用 npm 安装 hexo</p>
 <div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta">#</span><span class="bash"> 如果没有按照上面换淘宝的 npm 的话，使用 npm 命令，而不是 cnpm</span>
 cnpm install hexo --save</code></pre></div>
-<h3 id="初始化 -hexo- 文件夹">初始化 hexo 文件夹</h3>
-<p>在 git 本地库中</p>
-<div class="hljs"><pre><code class="hljs othe">hexo init
+<h3 id="初始化 -hexo- 文件夹"><a href="# 初始化 -hexo- 文件夹" class="headerlink" title="初始化 hexo 文件夹"></a>初始化 hexo 文件夹 </h3><p> 在 git 本地库中<br><div class="hljs"><pre><code class="hljs othe">hexo init
 npm install
 #新建完成后，指定文件夹的目录如下
 .
@@ -273,107 +264,70 @@ npm install
    ├── public      # hexo g 后产生的文件夹，后面部署时上传的也是这个文件夹
 ├── source
 |      └── _posts # 发布的文章
-└── themes  #主题文件</code></pre></div>
-<h3 id="安装 -hexo 插件">安装 hexo 插件</h3>
-<div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta">#</span><span class="bash"> 在部署的时候使用</span>
+└── themes  #主题文件</code></pre></div></p>
+<h3 id="安装 -hexo 插件"><a href="# 安装 -hexo 插件" class="headerlink" title="安装 hexo 插件"></a>安装 hexo 插件</h3><div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta">#</span><span class="bash"> 在部署的时候使用</span>
 npm install hexo-deployer-git --save</code></pre></div>
-<h3 id="查看效果">查看效果</h3>
-<div class="hljs"><pre><code class="hljs shell">hexo g # 生成 public 静态文件
+<h3 id="查看效果"><a href="# 查看效果" class="headerlink" title="查看效果"></a>查看效果</h3><div class="hljs"><pre><code class="hljs shell">hexo g # 生成 public 静态文件
 hexo s # 开启服务器</code></pre></div>
 <p>如果没有错误，可以在本地打开浏览器，打开网址 <em><a target="_blank" rel="noopener" href="http://localhost:4000/">http://localhost:4000/</a></em></p>
-<h3 id="部署到 github">部署到 github</h3>
-<p>在根目录下使用 <code>hexo d</code> 命令进行部署，不过在第一次部署之前，需要在<br>
-<span id="inline-blue">站点配置文件</span> 配置 <code>deploy</code> 项：</p>
+<h3 id="部署到 github"><a href="# 部署到 github" class="headerlink" title="部署到 github"></a>部署到 github</h3><p>在根目录下使用 <code>hexo d</code> 命令进行部署，不过在第一次部署之前，需要在 <br><span id="inline-blue"> 站点配置文件</span> 配置 <code>deploy</code> 项：</p>
 <div class="hljs"><pre><code class="hljs yml"><span class="hljs-attr">deploy:</span>
   <span class="hljs-attr">type:</span> <span class="hljs-string">git</span>
   <span class="hljs-attr">repo:</span> <span class="hljs-string">&lt;repository</span> <span class="hljs-string">url&gt;</span>
   <span class="hljs-attr">branch:</span> [<span class="hljs-string">branch</span>]
   <span class="hljs-attr">message:</span> [<span class="hljs-string">message</span>]</code></pre></div>
-<p>若没有发生错误，就可以正常访问 <a target="_blank" rel="noopener" href="http://vonalex.github.io/">http://vonalex.github.io/</a> 了。<br>
-部署后，会在根目录多出一个名为 <code>.deploy_git</code> 的文件夹。</p>
+<p>若没有发生错误，就可以正常访问 <a target="_blank" rel="noopener" href="http://vonalex.github.io/">http://vonalex.github.io/</a> 了。<br>部署后，会在根目录多出一个名为 <code>.deploy_git</code> 的文件夹。</p>
 <p>每次都用 <code>hexo cl</code>/<code>hexo g</code>/<code>hexo d</code> 等命令会比较繁琐，可以在博客根目录下找到 <code>package.json</code> 文件，添加以下代码后，只需要运行 <code>npm run deploy</code>即可！</p>
 <div class="hljs"><pre><code class="hljs json">&quot;scripts&quot;: &#123;
   &quot;deploy&quot;: &quot;hexo clean &amp;&amp; hexo g &amp;&amp; hexo d&quot;,
   &quot;test&quot;: &quot;hexo clean &amp;&amp; hexo g  &amp;&amp; hexo s&quot;,
   &quot;dev&quot;: &quot;hexo clean &amp;&amp; hexo g&quot;
 &#125;</code></pre></div>
-<h2 id="主题配置">主题配置</h2>
-<p>本教程采用的是 <strong>next</strong> 主题，这个主题的优化配置比较好找。</p>
-<h3 id="下载主题">下载主题</h3>
-<div class="hljs"><pre><code class="hljs shell">git clone https://github.com/iissnan/hexo-theme-next themes/next</code></pre></div>
+<h2 id="主题配置"><a href="# 主题配置" class="headerlink" title="主题配置"></a>主题配置 </h2><p> 本教程采用的是 <strong>next</strong> 主题，这个主题的优化配置比较好找。</p>
+<h3 id="下载主题"><a href="# 下载主题" class="headerlink" title="下载主题"></a>下载主题</h3><div class="hljs"><pre><code class="hljs shell">git clone https://github.com/iissnan/hexo-theme-next themes/next</code></pre></div>
 <p>这时在 <code>themes</code> 文件夹下就多出了一个 <code>next</code> 的主题文件夹。</p>
-<h3 id="配置">配置</h3>
-<h4 id="添加分类页面">添加分类页面</h4>
-<div class="hljs"><pre><code class="hljs shell">hexo new page categories</code></pre></div>
-<p>这时候，根目录下 <code>source</code> 文件夹下多出来一个 <code>categories</code> 文件夹，修改该文件下的<code>index.md</code> 文件如下：</p>
-<div class="hljs"><pre><code class="hljs oth">---
+<h3 id="配置"><a href="# 配置" class="headerlink" title="配置"></a>配置 </h3><h4 id="添加分类页面"><a href="# 添加分类页面" class="headerlink" title="添加分类页面"></a> 添加分类页面</h4><div class="hljs"><pre><code class="hljs shell">hexo new page categories</code></pre></div>
+<p>这时候，根目录下 <code>source</code> 文件夹下多出来一个 <code>categories</code> 文件夹，修改该文件下的<code>index.md</code> 文件如下：<br><div class="hljs"><pre><code class="hljs oth">---
 title: categories
 date: 2016-04-02 21:38:55
 type: &quot;categories&quot;
----</code></pre></div>
-<h4 id="添加标签页面">添加标签页面</h4>
-<div class="hljs"><pre><code class="hljs shell">hexo new page tags</code></pre></div>
-<p>修改 <code>source\tags\index.md</code> 文件如下：</p>
-<div class="hljs"><pre><code class="hljs oth">---
+---</code></pre></div></p>
+<h4 id="添加标签页面"><a href="# 添加标签页面" class="headerlink" title="添加标签页面"></a>添加标签页面</h4><div class="hljs"><pre><code class="hljs shell">hexo new page tags</code></pre></div>
+<p>修改 <code>source\tags\index.md</code> 文件如下：<br><div class="hljs"><pre><code class="hljs oth">---
 title: tags
 date: 2016-04-02 21:40:22
 type: &quot;tags&quot;
----</code></pre></div>
-<p>同理可以使用 <code>hexo new page 页面名</code> 来添加其他的页面，然后在主题配置文件中加上图标对应关系，若使用的是中文主题，那还要在主题文件夹下的 <code>language</code> 文件下的中文文件中进行设置，不然会出现英文。<br>
-menu 的 <code> 根目录 /</code>是 <code>source</code> 文件夹。</p>
-<h3 id="导航栏新加页面">导航栏新加页面</h3>
-<p>大体方法跟上面添加 tags 类似，这里举一个具体的栗子，因为有一些在线文档需要经常查看，所以我要增加一个在线文档的页面：<br>
-【1】 <code>hexo new page docs</code>，docs 为新页面名，这时会出现 <code>source/docs/index.md</code> 这个文件。因为这个页面不需要评论，所以添加一行代码 <code>comments: false</code>。<br>
-【2】 <span id="inline-purple"> 主题配置文件 </span>，在 menu 这个项目中添加 <code>docs: /docs</code>，就是让导航栏能够找到这个页面。然后为新加的页面增加一个想要的图标，大概这样 <code>docs: /docs || envira</code>。<br>
-【3】 <strong>themes/next/languages/zh-Hans.yml</strong> 中找到 menu 这个项，配置要让新的页面显示什么中文名字，如 <code> docs: 在线文档</code></p>
-<h4 id="添加 -fork-me-on-github">添加 fork me on github</h4>
-<p><a target="_blank" rel="noopener" href="https://github.com/blog/273-github-ribbons">github 官方教程 </a>，把代码插入到任意一个全局的模板文件中就行，比如<code>_layout.swig</code> 的末尾。</p>
-<h4 id="添加音乐链接">添加音乐链接</h4>
-<p>在网易云音乐网页版上找到自己喜欢的音乐或者歌单，点开到播放界面，生成外链播放器，可以将生成的插件代码放入 html 文件中或 md 文件中。<br>
-<img src="https://s1.ax1x.com/2018/10/28/icworR.md.jpg" srcset="/img/loading.gif" alt="icworR.jpg" border="0" /></p>
-<h3 id="其他">其他</h3>
-<h4 id="图标问题">图标问题</h4>
-<p>next 主题的图标采用的是 <a target="_blank" rel="noopener" href="http://www.fontawesome.com.cn/faicons/">fontawesome</a> 免费图标，比如在页面中加入这条语句就可以引用 github-alt 这个图标。<br>
-<code>&lt;i class=&quot;fa fa-github-alt&quot;&gt;&lt;/i&gt;</code>，效果如下 <i class="fa fa-github-alt"></i><br>
-还可以用 <code>&lt;i class=&quot;fa fa-github-alt fa-2x&quot;&gt;&lt;/i&gt;</code> 来增大图标，效果如下 <i class="fa fa-github-alt fa-2x"></i>，以此类推！</p>
-<h4 id="修改内容区域的宽度">修改内容区域的宽度</h4>
-<p>NexT 对于内容的宽度的设定如下：</p>
+---</code></pre></div><br>同理可以使用 <code>hexo new page 页面名 </code> 来添加其他的页面，然后在主题配置文件中加上图标对应关系，若使用的是中文主题，那还要在主题文件夹下的 <code>language</code> 文件下的中文文件中进行设置，不然会出现英文。<br>menu 的<code> 根目录 /</code>是 <code>source</code> 文件夹。</p>
+<h3 id="导航栏新加页面"><a href="# 导航栏新加页面" class="headerlink" title="导航栏新加页面"></a>导航栏新加页面 </h3><p> 大体方法跟上面添加 tags 类似，这里举一个具体的栗子，因为有一些在线文档需要经常查看，所以我要增加一个在线文档的页面：<br>【1】 <code>hexo new page docs</code>，docs 为新页面名，这时会出现 <code>source/docs/index.md</code> 这个文件。因为这个页面不需要评论，所以添加一行代码 <code>comments: false</code>。<br>【2】 <span id="inline-purple"> 主题配置文件 </span>，在 menu 这个项目中添加 <code>docs: /docs</code>，就是让导航栏能够找到这个页面。然后为新加的页面增加一个想要的图标，大概这样 <code>docs: /docs || envira</code>。<br>【3】 <strong>themes/next/languages/zh-Hans.yml</strong> 中找到 menu 这个项，配置要让新的页面显示什么中文名字，如 <code>docs: 在线文档</code></p>
+<h4 id="添加 -fork-me-on-github"><a href="# 添加 -fork-me-on-github" class="headerlink" title="添加 fork me on github"></a>添加 fork me on github</h4><p> <a target="_blank" rel="noopener" href="https://github.com/blog/273-github-ribbons">github 官方教程 </a>，把代码插入到任意一个全局的模板文件中就行，比如<code>_layout.swig</code> 的末尾。</p>
+<h4 id="添加音乐链接"><a href="# 添加音乐链接" class="headerlink" title="添加音乐链接"></a>添加音乐链接 </h4><p> 在网易云音乐网页版上找到自己喜欢的音乐或者歌单，点开到播放界面，生成外链播放器，可以将生成的插件代码放入 html 文件中或 md 文件中。<br><img src="https://s1.ax1x.com/2018/10/28/icworR.md.jpg" srcset="/img/loading.gif" alt="icworR.jpg" border="0" /></p>
+<h3 id="其他"><a href="# 其他" class="headerlink" title="其他"></a>其他 </h3><h4 id="图标问题"><a href="# 图标问题" class="headerlink" title="图标问题"></a> 图标问题 </h4><p>next 主题的图标采用的是<a target="_blank" rel="noopener" href="http://www.fontawesome.com.cn/faicons/">fontawesome</a> 免费图标，比如在页面中加入这条语句就可以引用 github-alt 这个图标。<br><code>&lt;i class=&quot;fa fa-github-alt&quot;&gt;&lt;/i&gt;</code>，效果如下 <i class="fa fa-github-alt">&lt;/i&gt;<br>还可以用 `<i class="fa fa-github-alt fa-2x"></i>` 来增大图标，效果如下 <i class="fa fa-github-alt fa-2x"></i>，以此类推！</p>
+<h4 id="修改内容区域的宽度"><a href="# 修改内容区域的宽度" class="headerlink" title="修改内容区域的宽度"></a>修改内容区域的宽度</h4><p>NexT 对于内容的宽度的设定如下：</p>
 <ul>
 <li>700px，当屏幕宽度 &lt; 1600px</li>
 <li>900px，当屏幕宽度 &gt;= 1600px</li>
 <li>移动设备下，宽度自适应</li>
 </ul>
-<p>果你需要修改内容的宽度，同样需要编辑样式文件，在 Mist 和 Muse 风格可以用下面的方法：<br>
-编辑主题的 <code>source/css/_variables/custom.styl</code> 文件，新增变量：</p>
-<div class="hljs"><pre><code class="hljs css">// 修改成你期望的宽度
+<p>果你需要修改内容的宽度，同样需要编辑样式文件，在 Mist 和 Muse 风格可以用下面的方法：<br>编辑主题的 <code>source/css/_variables/custom.styl</code> 文件，新增变量：<br><div class="hljs"><pre><code class="hljs css">// 修改成你期望的宽度
 $content-desktop = 700px
 
 // 当视窗超过 1600px 后的宽度
-$content-desktop-large = 900px</code></pre></div>
-<p>当你使用 Pisces 风格时可以用下面的方法：</p>
-<div class="hljs"><pre><code class="hljs css"><span class="hljs-selector-tag">header</span>&#123; <span class="hljs-attribute">width</span>: <span class="hljs-number">90%</span>; &#125;
+$content-desktop-large = 900px</code></pre></div><br>当你使用 Pisces 风格时可以用下面的方法：<br><div class="hljs"><pre><code class="hljs css"><span class="hljs-selector-tag">header</span>&#123; <span class="hljs-attribute">width</span>: <span class="hljs-number">90%</span>; &#125;
 <span class="hljs-selector-class">.container</span> <span class="hljs-selector-class">.main-inner</span> &#123; <span class="hljs-attribute">width</span>: <span class="hljs-number">90%</span>; &#125;
-<span class="hljs-selector-class">.content-wrap</span> &#123; <span class="hljs-attribute">width</span>: <span class="hljs-built_in">calc</span>(<span class="hljs-number">100%</span> - <span class="hljs-number">260px</span>); &#125;</code></pre></div>
-<h4 id="代码主题">代码主题</h4>
-<p>我比较喜欢的是 MacPanel 代码样式，像本博客中的这样。<br>
-关于如何设置，可以参考这篇博客<a target="_blank" rel="noopener" href="https://blog.shadowy.me/2018/03/16/hexo-next-macpanel-improved/">Hexo 博客 NexT 主题代码高亮 MacPanel 特效配置</a></p>
-<h4 id="md 文件中插图问题">md 文件中插图问题</h4>
-<h5 id="插图方法">插图方法</h5>
-<ol>
+<span class="hljs-selector-class">.content-wrap</span> &#123; <span class="hljs-attribute">width</span>: <span class="hljs-built_in">calc</span>(<span class="hljs-number">100%</span> - <span class="hljs-number">260px</span>); &#125;</code></pre></div></p>
+<h4 id="代码主题"><a href="# 代码主题" class="headerlink" title="代码主题"></a>代码主题 </h4><p> 我比较喜欢的是 MacPanel 代码样式，像本博客中的这样。<br>关于如何设置，可以参考这篇博客<a target="_blank" rel="noopener" href="https://blog.shadowy.me/2018/03/16/hexo-next-macpanel-improved/">Hexo 博客 NexT 主题代码高亮 MacPanel 特效配置</a></p>
+<h4 id="md 文件中插图问题"><a href="#md 文件中插图问题" class="headerlink" title="md 文件中插图问题"></a>md 文件中插图问题 </h4><h5 id="插图方法"><a href="# 插图方法" class="headerlink" title="插图方法"></a> 插图方法</h5><ol>
 <li>可以用 md 中的语法<code>![]()</code>，图片大小不可控。</li>
 <li>使用 <code>&lt;img&gt;</code> 标签，因为 html 的标签可以无缝使用。</li>
 </ol>
-<h5 id="图片位置">图片位置</h5>
-<ol>
+<h5 id="图片位置"><a href="# 图片位置" class="headerlink" title="图片位置"></a>图片位置</h5><ol>
 <li>可以单独建立一个文件夹，专门存放图片。比如 hexo 下，可以在 <code>source</code> 文件夹下新建 <code>images</code> 文件夹，用于存放图片。一旦你决定长期写下去，这样并不好！</li>
 <li>使用图床，有一些免费图床, 可以搜索到，还可以使用七牛、又拍等的云存储服务。我使用的是这款 <a target="_blank" rel="noopener" href="https://imgchr.com/"> 路过图床</a></li>
 </ol>
-<h4 id="设置网站图标">设置网站图标</h4>
-<p>默认的网站图标是一个 N 的字样，下载喜欢的 png 图片，放在 <code>themes/next/source/images/</code> 文件夹下，在 <span id="inline-purple">主题配置文件 </span> 的<code>favicon</code>项进行配置，如：</p>
+<h4 id="设置网站图标"><a href="# 设置网站图标" class="headerlink" title="设置网站图标"></a>设置网站图标 </h4><p> 默认的网站图标是一个 N 的字样，下载喜欢的 png 图片，放在 <code>themes/next/source/images/</code> 文件夹下，在 <span id="inline-purple">主题配置文件 </span> 的<code>favicon</code>项进行配置，如：</p>
 <div class="hljs"><pre><code class="hljs dts"><span class="hljs-symbol">favicon:</span>
 <span class="hljs-symbol">  medium:</span> <span class="hljs-meta-keyword">/images/</span>dolphin.png</code></pre></div>
-<h4 id="URL 持久化">URL 持久化</h4>
-<p>hexo 默认生成的文章地址路径是 <code> 网站名称 / 年 / 月 / 日 / 文章名称</code>. 这种链接对搜索爬虫是很不友好的, 所以这里修改一下。</p>
+<h4 id="URL 持久化"><a href="#URL 持久化" class="headerlink" title="URL 持久化"></a>URL 持久化 </h4><p>hexo 默认生成的文章地址路径是<code> 网站名称 / 年 / 月 / 日 / 文章名称</code>. 这种链接对搜索爬虫是很不友好的, 所以这里修改一下。</p>
 <div class="hljs"><pre><code class="hljs sql"><span class="hljs-comment"># 安装插件</span>
 $ npm <span class="hljs-keyword">install</span> hexo-abbrlink <span class="hljs-comment">--save</span></code></pre></div>
 <p>在 <span id="inline-blue"> 站点配置文件 </span> 中添加如下配置：</p>
@@ -383,9 +337,8 @@ $ npm <span class="hljs-keyword">install</span> hexo-abbrlink <span class="hljs-
 <span class="hljs-symbol">  alg:</span> crc32  <span class="hljs-meta"># 算法：crc16(default) and crc32</span>
 <span class="hljs-symbol">  rep:</span> hex    <span class="hljs-meta"># 进制：dec(default) and hex</span></code></pre></div>
 <p>html 前缀为：对标题 + 时间进行 md5 然后再转 base64</p>
-<p>上面很多配置在新本中已经内置，因此有的可能已经过期！详情想参考 http://theme-next.iissnan.com/</p>
-<h3 id="参考链接">参考链接</h3>
-<ol>
+<p>上面很多配置在新本中已经内置，因此有的可能已经过期！详情想参考<a target="_blank" rel="noopener" href="http://theme-next.iissnan.com/">http://theme-next.iissnan.com/</a></p>
+<h3 id="参考链接"><a href="# 参考链接" class="headerlink" title="参考链接"></a>参考链接</h3><ol>
 <li><a target="_blank" rel="noopener" href="http://codingbubble.github.io/2015/05/08/custom-your-Hexo/">个性化你的 Hexo- 笔记</a></li>
 <li><a target="_blank" rel="noopener" href="http://blog.csdn.net/anonymalias/article/details/50528946">通过 Hexo 在 GitHub 搭站全记录</a></li>
 <li><a target="_blank" rel="noopener" href="http://theme-next.iissnan.com/">next 官方使用文档</a></li>
@@ -394,7 +347,7 @@ $ npm <span class="hljs-keyword">install</span> hexo-abbrlink <span class="hljs-
 <li><a target="_blank" rel="noopener" href="http://jijiaxin89.com/2015/08/21/%E7%8E%A9%E8%BD%AChexo%E5%8D%9A%E5%AE%A2%E4%B9%8Bnext/">玩转 Hexo 博客之 Next</a></li>
 <li><a target="_blank" rel="noopener" href="http://www.mmuuii360.com/duoshuo-css.html">多说评论框 css 样式表自定义</a></li>
 <li><a target="_blank" rel="noopener" href="http://zhiho.github.io/2015/09/29/hexo-next/">Hexo 搭建 GitHub 博客（三）- NexT 主题配置使用</a></li>
-<li><a target="_blank" rel="noopener" href="http://ppting.me/2015/01/25/sitemap/">hexo 优化–向 Google 提交 sitemap</a></li>
+<li><a target="_blank" rel="noopener" href="http://ppting.me/2015/01/25/sitemap/">hexo 优化—向 Google 提交 sitemap</a></li>
 <li><a target="_blank" rel="noopener" href="http://ibruce.info/2013/11/22/hexo-your-blog/">hexo 你的博客</a></li>
 <li><a target="_blank" rel="noopener" href="http://shenzekun.cn/hexo%E7%9A%84next%E4%B8%BB%E9%A2%98%E4%B8%AA%E6%80%A7%E5%8C%96%E9%85%8D%E7%BD%AE%E6%95%99%E7%A8%8B.html">hexo 的 next 主题个性化教程: 打造炫酷网站</a></li>
 <li><a target="_blank" rel="noopener" href="https://reuixiy.github.io/technology/computer/computer-aided-art/2017/06/09/hexo-next-optimization.html#%E9%99%84%E4%B8%8A%E6%88%91%E7%9A%84-custom-styl">打造个性超赞博客 Hexo+NexT+GithubPages 的超深度优化</a></li>
@@ -403,9 +356,7 @@ $ npm <span class="hljs-keyword">install</span> hexo-abbrlink <span class="hljs-
 <li><a target="_blank" rel="noopener" href="https://blog.csdn.net/human8848/article/details/51479920">解决 Local gulp not found in</a></li>
 </ol>
 <hr>
-<h3 id="i-class-fa-fa-exclamation-triangle-i- 附录"><i class="fa fa-exclamation-triangle"></i>附录</h3>
-<h4 id="常用的 -hexo- 命令">常用的 hexo 命令</h4>
-<p>** 注意：** 这些命令要在根目录下使用</p>
+<h3 id="附录"><a href="# 附录" class="headerlink" title="附录"></a><i class="fa fa-exclamation-triangle"></i>附录 </h3><h4 id="常用的 -hexo- 命令"><a href="# 常用的 -hexo- 命令" class="headerlink" title="常用的 hexo 命令"></a> 常用的 hexo 命令 </h4><p><strong> 注意：</strong>这些命令要在根目录下使用</p>
 <div class="hljs"><pre><code class="hljs routeros">npm install hexo -g #安装
 npm update hexo -g #升级
 hexo init # 初始化
@@ -420,8 +371,7 @@ hexo deploy -g # 生成并部署
 hexo<span class="hljs-built_in"> server </span>-g # 生成并预览
 hexo<span class="hljs-built_in"> server </span>-p 5000 #更改端口
 hexo<span class="hljs-built_in"> server </span>-i 192.168.1.1 #自定义 IP</code></pre></div>
-<h4 id="安装的插件">安装的插件</h4>
-<div class="hljs"><pre><code class="hljs awk">hexo-wordcount  <span class="hljs-regexp">//</span>统计字数
+<h4 id="安装的插件"><a href="# 安装的插件" class="headerlink" title="安装的插件"></a>安装的插件 </h4><div class="hljs"><pre><code class="hljs awk">hexo-wordcount  <span class="hljs-regexp">//</span> 统计字数
 hexo-deployer-git <span class="hljs-regexp">//</span>部署使用
 hexo-abbrlink <span class="hljs-regexp">//</span>持久化连接
 hexo-generator-baidu-sitemap <span class="hljs-regexp">//</span>百度 sitemap

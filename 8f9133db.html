@@ -262,8 +262,7 @@
 
 <span class="hljs-comment">// 最老数据首字节位置，全局范围内（而非积压队列内）的偏移量(从这里读 backlog 数据)</span>
 <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> repl_backlog_off;</code></pre></div>
-<h3 id="创建 -backlog">创建 backlog</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">syncCommand</span><span class="hljs-params">(client *c)</span> </span>&#123;
+<h3 id="创建 -backlog"><a href="# 创建 -backlog" class="headerlink" title="创建 backlog"></a>创建 backlog</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">syncCommand</span><span class="hljs-params">(client *c)</span> </span>&#123;
   	<span class="hljs-comment">// ...</span>
   	<span class="hljs-keyword">if</span> (listLength(server.slaves) == <span class="hljs-number">1</span> &amp;&amp; server.repl_backlog == <span class="hljs-literal">NULL</span>)
         createReplicationBacklog();
@@ -284,8 +283,7 @@
     <span class="hljs-comment">// 但事实上，第一个字节的逻辑位置是 master_repl_offset 的下一个字节</span>
     server.repl_backlog_off = server.master_repl_offset+<span class="hljs-number">1</span>;
 &#125;</code></pre></div>
-<h3 id="写数据到 -backlog">写数据到 backlog</h3>
-<p>将数据放入 repl backlog 是通过 <strong>feedReplicationBacklog</strong> 函数实现的。</p>
+<h3 id="写数据到 -backlog"><a href="# 写数据到 -backlog" class="headerlink" title="写数据到 backlog"></a>写数据到 backlog</h3><p>将数据放入 repl backlog 是通过 <strong>feedReplicationBacklog</strong> 函数实现的。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">feedReplicationBacklog</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *ptr, <span class="hljs-keyword">size_t</span> len)</span> </span>&#123;
     <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *p = ptr;
 
@@ -322,23 +320,10 @@
 &#125;</code></pre></div>
 <p>以上函数中许多关键变量的更新逻辑比较抽象，下面画个图以辅助理解。<img src="https://s2.ax1x.com/2019/09/08/n8Qbyd.jpg" srcset="/img/loading.gif" alt="n8Qbyd.jpg"></p>
 <p>master_repl_offset 为全局复制偏移量，它的初始值是随机的，假设等于 2。</p>
-<p>在一个空的 repl_backlog 中插入 <strong>abcdef</strong> 时，各变量做如下更新：<br>
-master_repl_offset = 2 + 6 = 8<br>
-repl_backlog_idx = 0 + 6 = 6 ≠ 10<br>
-repl_backlog_histlen = 0 + 6 = 6 &lt; 10<br>
-repl_backlog_off = 8 - 6 + 1 = 3 （<strong>最老数据 a 在全局范围内的 offset 为 3</strong>）</p>
-<p>接着，插入数据 <strong>ghijkl</strong>，从上图可以看出， repl_backlog  满了，因此前面有 2 个数据被覆盖了。各变量做如下更新：<br>
-master_repl_offset = 8 + 6 = 14<br>
-repl_backlog_idx = 6 + 4 = 10 → 0 + 2 = 2 (分两步)<br>
-repl_backlog_histlen = 6 + 4 = 10 → 10 + 2 = 12 &gt; 10 → 10<br>
-repl_backlog_off = 14 - 10 + 1 = 5 （<strong>最老的数据 c 在全局范围内的偏离量为 5</strong>）</p>
-<p>接着，插入数据 <strong>mno</strong>，各变量做如下更新,<br>
-master_repl_offset = 14 + 3 = 17<br>
-repl_backlog_idx = 2 + 3 = 5<br>
-repl_backlog_histlen = 10 + 3 = 13 &gt; 10 → 10<br>
-repl_backlog_off = 17 - 10 + 1 = 8 （<strong>最老的数据 f 在全局范围内的偏离量为 8</strong>）</p>
-<h3 id="从 -backlog- 读数据">从 backlog 读数据</h3>
-<p>当 slave 连上 master 后，会通过 PSYNC 命令将自己的复制偏移量发送给 master，格式为 <code>PSYNC &lt;psync_runid&gt; &lt;psync_offset&gt;</code>。当首次建立连接时，psync_runid 值为 <strong>?</strong>，psync_offset 值为 <strong>-1</strong>。这部分的实现逻辑在 <code>slaveTryPartialResynchronization</code> 函数，下一篇博客会有详解。</p>
+<p>在一个空的 repl_backlog 中插入 <strong>abcdef</strong> 时，各变量做如下更新：<br>master_repl_offset = 2 + 6 = 8<br>repl_backlog_idx = 0 + 6 = 6 ≠ 10<br>repl_backlog_histlen = 0 + 6 = 6 &lt; 10<br>repl_backlog_off = 8 - 6 + 1 = 3 （<strong>最老数据 a 在全局范围内的 offset 为 3</strong>）</p>
+<p>接着，插入数据 <strong>ghijkl</strong>，从上图可以看出， repl_backlog  满了，因此前面有 2 个数据被覆盖了。各变量做如下更新：<br>master_repl_offset = 8 + 6 = 14<br>repl_backlog_idx = 6 + 4 = 10 → 0 + 2 = 2 (分两步)<br>repl_backlog_histlen = 6 + 4 = 10 → 10 + 2 = 12 &gt; 10 → 10<br>repl_backlog_off = 14 - 10 + 1 = 5 （<strong>最老的数据 c 在全局范围内的偏离量为 5</strong>）</p>
+<p>接着，插入数据 <strong>mno</strong>，各变量做如下更新,<br>master_repl_offset = 14 + 3 = 17<br>repl_backlog_idx = 2 + 3 = 5<br>repl_backlog_histlen = 10 + 3 = 13 &gt; 10 → 10<br>repl_backlog_off = 17 - 10 + 1 = 8 （<strong>最老的数据 f 在全局范围内的偏离量为 8</strong>）</p>
+<h3 id="从 -backlog- 读数据"><a href="# 从 -backlog- 读数据" class="headerlink" title="从 backlog 读数据"></a>从 backlog 读数据 </h3><p> 当 slave 连上 master 后，会通过 PSYNC 命令将自己的复制偏移量发送给 master，格式为 <code>PSYNC &lt;psync_runid&gt; &lt;psync_offset&gt;</code>。当首次建立连接时，psync_runid 值为 <strong>?</strong>，psync_offset 值为 <strong>-1</strong>。这部分的实现逻辑在 <code>slaveTryPartialResynchronization</code> 函数，下一篇博客会有详解。</p>
 <p>master 根据收到的 psync_offset 值来判断是进行 <strong> 部分重同步 </strong> 还是 <strong> 完全重同步</strong>，以下只看部分重同步的逻辑，完整逻辑在后面的博客中分析。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">masterTryPartialResynchronization</span><span class="hljs-params">(client *c)</span> </span>&#123;
 truetrue<span class="hljs-comment">// ...</span>
@@ -382,15 +367,10 @@ truetrue<span class="hljs-comment">// ...</span>
     &#125;
     <span class="hljs-keyword">return</span> server.repl_backlog_histlen - skip;
 &#125;</code></pre></div>
-<p>不好理解的是从 backlog 中的哪里开始发送数据给 slave，上面代码中有两处计算逻辑，我认为主要是第一处，可以分情况进行拆解。<br>
-1）当 backlog 中有效数据充满了整个 backlog 时，即 backlog 被完全利用，计算退化成<br>
-<code>j = server.repl_backlog_idx % server.repl_backlog_size</code>，由于 repl_backlog_idx 不可能大于 server.repl_backlog_size，所以计算结果就等于 <strong>server.repl_backlog_idx</strong>，它是读写数据的分割点。<br>
-2）当 backlog 中尚有未使用的空间时，repl_backlog_idx 等于 server.repl_backlog_histlen，计算退化成 <code>server.repl_backlog_size % server.repl_backlog_size = 0</code>。<br>
-我觉得这部分逻辑完全可以简化点，不然还真不好理解。然后，后面就是加上 skip offset 的计算。</p>
+<p>不好理解的是从 backlog 中的哪里开始发送数据给 slave，上面代码中有两处计算逻辑，我认为主要是第一处，可以分情况进行拆解。<br>1）当 backlog 中有效数据充满了整个 backlog 时，即 backlog 被完全利用，计算退化成 <br><code>j = server.repl_backlog_idx % server.repl_backlog_size</code>，由于 repl_backlog_idx 不可能大于 server.repl_backlog_size，所以计算结果就等于 <strong>server.repl_backlog_idx</strong>，它是读写数据的分割点。<br>2）当 backlog 中尚有未使用的空间时，repl_backlog_idx 等于 server.repl_backlog_histlen，计算退化成 <code>server.repl_backlog_size % server.repl_backlog_size = 0</code>。<br> 我觉得这部分逻辑完全可以简化点，不然还真不好理解。然后，后面就是加上 skip offset 的计算。</p>
 <p>另外，发送数据时需要注意，上面所说的第 1）种情况下，idx 在 backlog 中间，分两次发送，即</p>
 <p><img src="https://s2.ax1x.com/2019/09/08/n8wK1I.jpg" srcset="/img/loading.gif" alt="n8wK1I.jpg"></p>
-<p>这时，会在 master 上看到日志如下日志，<br>
-<strong>Partial resynchronization request from xxx accepted. Sending xxx bytes of backlog starting from offset xxx.</strong></p>
+<p>这时，会在 master 上看到日志如下日志，<br><strong>Partial resynchronization request from xxx accepted. Sending xxx bytes of backlog starting from offset xxx.</strong></p>
 
             </div>
             <hr>

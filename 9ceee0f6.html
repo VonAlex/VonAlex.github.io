@@ -248,8 +248,7 @@
               <p>很多人提到 Redis 时都会讲这是一个 <strong> 单线程 </strong> 的内存数据库，其实不然。虽然 Redis 把处理网络收发和执行命令这些操作都放在了主工作线程，但是除此之外还有许多 bio 后台线程也在兢兢业业的工作着，比如用来处理关闭文件和刷盘这些比较重的 IO 操作。bio，即 Background I/O。</p>
 <p>Redis 源码中关于 bio 的部分，主要在 <code>bio.h</code> 和 <code>bio.c</code> 这两个文件中。</p>
 <!--more---->
-<h3 id="任务类型">任务类型</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Background job opcodes */</span>
+<h3 id="任务类型"><a href="# 任务类型" class="headerlink" title="任务类型"></a>任务类型</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Background job opcodes */</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> BIO_CLOSE_FILE    0 <span class="hljs-comment">/* Deferred close(2) syscall. */</span></span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> BIO_AOF_FSYNC     1 <span class="hljs-comment">/* Deferred AOF fsync. */</span></span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> BIO_NUM_OPS       2</span></code></pre></div>
@@ -272,15 +271,13 @@
 &#125;;</code></pre></div>
 <p>其他有用的宏定义</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> REDIS_THREAD_STACK_SIZE (1024*1024*4)</span></code></pre></div>
-<h3 id="API- 详解">API 详解</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">bioInit</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span></span>;
+<h3 id="API- 详解"><a href="#API- 详解" class="headerlink" title="API 详解"></a>API 详解</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">bioInit</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span></span>;
 <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">bioCreateBackgroundJob</span><span class="hljs-params">(<span class="hljs-keyword">int</span> type, <span class="hljs-keyword">void</span> *arg1, <span class="hljs-keyword">void</span> *arg2, <span class="hljs-keyword">void</span> *arg3)</span></span>;
 <span class="hljs-function"><span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> <span class="hljs-title">bioPendingJobsOfType</span><span class="hljs-params">(<span class="hljs-keyword">int</span> type)</span></span>;
 <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">bioKillThreads</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span></span>;
 <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">bioWaitPendingJobsLE</span><span class="hljs-params">(<span class="hljs-keyword">int</span> type, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> num)</span></span>; <span class="hljs-comment">// 本版本未实现</span>
 <span class="hljs-function"><span class="hljs-keyword">time_t</span> <span class="hljs-title">bioOlderJobOfType</span><span class="hljs-params">(<span class="hljs-keyword">int</span> type)</span></span>; <span class="hljs-comment">// 本版本未实现</span></code></pre></div>
-<h4 id="bioInit- 初始化">bioInit 初始化</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">bioInit</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+<h4 id="bioInit- 初始化"><a href="#bioInit- 初始化" class="headerlink" title="bioInit 初始化"></a>bioInit 初始化</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">bioInit</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-keyword">pthread_attr_t</span> attr;
     <span class="hljs-keyword">pthread_t</span> thread;
     <span class="hljs-keyword">size_t</span> stacksize;
@@ -312,8 +309,7 @@
     &#125;
 &#125;</code></pre></div>
 <p>上面创建线程时，回调函数 <code>bioProcessBackgroundJobs</code>传入一个参数来代表 job 类型，这样方便找到相应的线程处理不同的任务，像上面说的那样 ， 0  表示文件关闭任务， 1 表示 aof 任务。</p>
-<h4 id="bioProcessBackgroundJobs- 任务处理">bioProcessBackgroundJobs 任务处理</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> *<span class="hljs-title">bioProcessBackgroundJobs</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *arg)</span> </span>&#123;
+<h4 id="bioProcessBackgroundJobs- 任务处理"><a href="#bioProcessBackgroundJobs- 任务处理" class="headerlink" title="bioProcessBackgroundJobs 任务处理"></a>bioProcessBackgroundJobs 任务处理</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> *<span class="hljs-title">bioProcessBackgroundJobs</span><span class="hljs-params">(<span class="hljs-keyword">void</span> *arg)</span> </span>&#123;
     <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">bio_job</span> *<span class="hljs-title">job</span>;</span>
     <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> type = (<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span>) arg;<span class="hljs-comment">// 传入参数为 job type</span>
     <span class="hljs-keyword">sigset_t</span> sigset;
@@ -373,8 +369,7 @@
 </code></pre></div>
 <p>以上是 bio 处理 job 的过程，这个就是一个死循环，不断地取到 job 进行处理。</p>
 <p>这个过程需要参考着以下新加某种类型的一个 job 来看。</p>
-<h4 id="bioCreateBackgroundJob- 创建 -job">bioCreateBackgroundJob 创建 job</h4>
-<p>下面的函数将创建一个特定类型的 job， 并放入相应的 job list 中。</p>
+<h4 id="bioCreateBackgroundJob- 创建 -job"><a href="#bioCreateBackgroundJob- 创建 -job" class="headerlink" title="bioCreateBackgroundJob 创建 job"></a>bioCreateBackgroundJob 创建 job</h4><p>下面的函数将创建一个特定类型的 job， 并放入相应的 job list 中。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">bioCreateBackgroundJob</span><span class="hljs-params">(<span class="hljs-keyword">int</span> type, <span class="hljs-keyword">void</span> *arg1, <span class="hljs-keyword">void</span> *arg2, <span class="hljs-keyword">void</span> *arg3)</span> </span>&#123;
     <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">bio_job</span> *<span class="hljs-title">job</span> = <span class="hljs-title">zmalloc</span>(<span class="hljs-title">sizeof</span>(*<span class="hljs-title">job</span>));</span>
     job-&gt;time = time(<span class="hljs-literal">NULL</span>);
@@ -399,20 +394,17 @@
 &#125;
 </code></pre></div>
 <p>可以发现这个用例中，创建 job 的第一个参数都是一个 fd，其他参数都置空了。</p>
-<h3 id="一个完整的 -bio- 任务处理过程">一个完整的 bio 任务处理过程</h3>
-<p>首先服务器启动时，调用 <code>bioInit</code> 函数，进行不同类型 job 线程、锁、条件变量等的初始化，每种类型 job 有自己的处理线程，初始化时会注册回调函数 <code>bioProcessBackgroundJobs</code> 处理各种 job。</p>
+<h3 id="一个完整的 -bio- 任务处理过程"><a href="# 一个完整的 -bio- 任务处理过程" class="headerlink" title="一个完整的 bio 任务处理过程"></a>一个完整的 bio 任务处理过程 </h3><p> 首先服务器启动时，调用 <code>bioInit</code> 函数，进行不同类型 job 线程、锁、条件变量等的初始化，每种类型 job 有自己的处理线程，初始化时会注册回调函数 <code>bioProcessBackgroundJobs</code> 处理各种 job。</p>
 <p>还没有 job 时，各个 job 处理流程在经过 <code>pthread_mutex_lock(&amp;bio_mutex[type])</code> 的加锁后，在 job 处理循环中 <code>pthread_cond_wait(&amp;bio_condvar[type],&amp;bio_mutex[type])</code> 处阻塞住，随之 <strong> 释放锁 </strong> <code>bio_mutex[type]</code>,  <code>pthread_cond_wait</code> 在阻塞时，会释放锁，所以在<strong> 使用前需要先加锁</strong>。</p>
 <p>这时在主线程中创建某个类型的 job，创建过程中，先加锁 <code>pthread_mutex_lock(&amp;bio_mutex[type])</code>, 然后往某种类型的 job list 中 新加一个 job。接着主线程通知 bio 去处理这个 job，<code>pthread_cond_signal(&amp;bio_condvar[type])</code>。</p>
 <p>该类型 job 的后台处理线程从阻塞中被唤醒，它会去加锁，但是由于在主线程中 <code>bio_mutex[type]</code> 这把锁还没有得到释放，因此会继续阻塞。</p>
-<p>接着，主线程释放了锁 <code> pthread_mutex_unlock(&amp;bio_mutex[type])</code>，bio 线程进行加锁，这个由 <code>pthread_cond_wait</code>  完成的。然后 <code>continue</code> 进入下次循环，在取到 job 后 <code>job = ln-&gt;value</code> 进行解锁。执行了 job 之后，在进入下一次循环之前 <strong> 再次加锁</strong>。</p>
-<h3 id="补充">补充</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">pthread_cond_wait</span><span class="hljs-params">(<span class="hljs-keyword">pthread_cond_t</span> *<span class="hljs-keyword">restrict</span> cond, <span class="hljs-keyword">pthread_mutex_t</span> *<span class="hljs-keyword">restrict</span> mutex)</span></span>;</code></pre></div>
+<p>接着，主线程释放了锁 <code>pthread_mutex_unlock(&amp;bio_mutex[type])</code>，bio 线程进行加锁，这个由 <code>pthread_cond_wait</code>  完成的。然后 <code>continue</code> 进入下次循环，在取到 job 后 <code>job = ln-&gt;value</code> 进行解锁。执行了 job 之后，在进入下一次循环之前 <strong> 再次加锁</strong>。</p>
+<h3 id="补充"><a href="# 补充" class="headerlink" title="补充"></a>补充</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">pthread_cond_wait</span><span class="hljs-params">(<span class="hljs-keyword">pthread_cond_t</span> *<span class="hljs-keyword">restrict</span> cond, <span class="hljs-keyword">pthread_mutex_t</span> *<span class="hljs-keyword">restrict</span> mutex)</span></span>;</code></pre></div>
 <p>这个函数的理解很重要。</p>
 <p>在条件不满足的时候, 调用该函数进入等待。 当条件满足的时候, 该函数会停止等待, 继续执行。</p>
 <p>该函数的第二个参数是 <code>pthread_mutex_t</code> 类型，这是因为在条件判断的时候, 需要 <strong> 先进行加锁来防止出现错误 </strong>，在执行该函数前需要主动对这个变量执行加锁操作，进入这个函数以后， <strong> 其内部会对 mutex 进行解锁操作</strong>，而函数执行完以后(也就是停止阻塞以后)，又会重新加锁。</p>
 <p>该函数也有带有超时时间的版本。</p>
-<h3 id="总结">总结</h3>
-<p>从上面可以看到，redis bio 其实是一个 C 语言多线程编程很好的例子，值得学习。</p>
+<h3 id="总结"><a href="# 总结" class="headerlink" title="总结"></a>总结 </h3><p> 从上面可以看到，redis bio 其实是一个 C 语言多线程编程很好的例子，值得学习。</p>
 
             </div>
             <hr>

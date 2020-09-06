@@ -245,20 +245,17 @@
               </p>
             
             <div class="markdown-body" id="post-body">
-              <h2 id="Scrapy- 是什么">Scrapy 是什么</h2>
-<blockquote>
-<p>Scrapy 是一个为了爬取网站数据，提取结构性数据而编写的应用框架。 可以应用在包括数据挖掘，信息处理或存储历史数据等一系列的程序中。<br>
-其最初是为了页面抓取 (更确切来说, 网络抓取)所设计的， 也可以应用在获取 API 所返回的数据(例如 Amazon Associates Web Services) 或者通用的网络爬虫。Scrapy 用途广泛，可以用于数据挖掘、监测和自动化测试。<br>
-现在最新版本为 1.0，同时支持 2.7.x 和 3.x。</p>
+              <h2 id="Scrapy- 是什么"><a href="#Scrapy- 是什么" class="headerlink" title="Scrapy 是什么"></a>Scrapy 是什么</h2><blockquote>
+<p>Scrapy 是一个为了爬取网站数据，提取结构性数据而编写的应用框架。 可以应用在包括数据挖掘，信息处理或存储历史数据等一系列的程序中。<br>其最初是为了页面抓取 (更确切来说, 网络抓取)所设计的， 也可以应用在获取 API 所返回的数据 (例如 Amazon Associates Web Services) 或者通用的网络爬虫。Scrapy 用途广泛，可以用于数据挖掘、监测和自动化测试。<br> 现在最新版本为 1.0，同时支持 2.7.x 和 3.x。</p>
 </blockquote>
 <a id="more"></a>
 <ul>
 <li><a target="_blank" rel="noopener" href="http://scrapy.org/">官方网站</a></li>
 <li><a target="_blank" rel="noopener" href="http://scrapy-chs.readthedocs.org/zh_CN/1.0/intro/tutorial.html">中文版 document</a></li>
 </ul>
-<h2 id="Scrapy- 架构">Scrapy 架构</h2>
-<p>Scrapy 使用了 Twisted 异步网络库来处理网络通讯, 整体架构大致如下：</p>
+<h2 id="Scrapy- 架构"><a href="#Scrapy- 架构" class="headerlink" title="Scrapy 架构"></a>Scrapy 架构</h2><p>Scrapy 使用了 Twisted 异步网络库来处理网络通讯, 整体架构大致如下：</p>
 <center><img src="https://s1.ax1x.com/2018/10/28/icwTq1.jpg" srcset="/img/loading.gif" width="700" /></center>
+
 <p>Scrapy 主要包括了以下组件：</p>
 <ul>
 <li>Scrapy Engine：用来处理整个系统的数据流处理，触发事务。</li>
@@ -271,14 +268,10 @@
 <li>Scheduler 中间件：介于 Scrapy 引擎和调度之间的中间件，从 Scrapy 引擎发送到调度的请求和响应。</li>
 </ul>
 <p>使用 Scrapy 可以很方便的完成网上数据的采集工作，它为我们完成了大量的工作，而不需要自己费大力气去开发。</p>
-<h2 id="下载安装">下载安装</h2>
-<div class="hljs"><pre><code class="hljs python">pip install scrapy</code></pre></div>
-<h2 id="Hello-World">Hello World</h2>
-<h3 id="创建工程">创建工程</h3>
-<p>在 cmd 下切换到想创建 scrapy 项目的地方，然后使用命名</p>
+<h2 id="下载安装"><a href="# 下载安装" class="headerlink" title="下载安装"></a>下载安装</h2><div class="hljs"><pre><code class="hljs python">pip install scrapy</code></pre></div>
+<h2 id="Hello-World"><a href="#Hello-World" class="headerlink" title="Hello World"></a>Hello World</h2><h3 id="创建工程"><a href="# 创建工程" class="headerlink" title="创建工程"></a>创建工程 </h3><p> 在 cmd 下切换到想创建 scrapy 项目的地方，然后使用命名</p>
 <div class="hljs"><pre><code class="hljs python">scrapy startproject tutorial</code></pre></div>
-<p><strong>注</strong>：tutorial 为工程名<br>
-然后就会发现在当前位置会多出一个文件夹，名字是 tutorial。它的目录结构是这样的：</p>
+<p><strong>注 </strong>：tutorial 为工程名<br> 然后就会发现在当前位置会多出一个文件夹，名字是 tutorial。它的目录结构是这样的：</p>
 <div class="hljs"><pre><code class="hljs python">tutorial/
     scrapy.cfg
     tutorial/
@@ -288,26 +281,16 @@
         items.py
         pipelines.py
         settings.py</code></pre></div>
-<p><strong>注</strong>：<br>
-scrapy.cfg 是该项目的全局配置文件<br>
-tutorial/: 该项目的 python 模块。<br>
-tutorial/items.py: 项目中的 item 文件.<br>
-tutorial/pipelines.py: 项目中的 pipelines 文件.<br>
-tutorial/settings.py: 项目的设置文件.<br>
-tutorial/spiders/: 放置 spider 代码的目录.</p>
-<h3 id="定义 -Item">定义 Item</h3>
-<p>Item 是保存爬取到的数据的容器；其使用方法和 python 字典类似。虽然您也可以在 Scrapy 中直接使用 dict，但是 Item 提供了额外保护机制来避免拼写错误导致的未定义字段错误。<br>
-这里这样写</p>
+<p><strong>注</strong>：<br>scrapy.cfg 是该项目的全局配置文件<br>tutorial/: 该项目的 python 模块。<br>tutorial/items.py: 项目中的 item 文件.<br>tutorial/pipelines.py: 项目中的 pipelines 文件.<br>tutorial/settings.py: 项目的设置文件.<br>tutorial/spiders/: 放置 spider 代码的目录.</p>
+<h3 id="定义 -Item"><a href="# 定义 -Item" class="headerlink" title="定义 Item"></a>定义 Item</h3><p>Item 是保存爬取到的数据的容器；其使用方法和 python 字典类似。虽然您也可以在 Scrapy 中直接使用 dict，但是 Item 提供了额外保护机制来避免拼写错误导致的未定义字段错误。<br>这里这样写</p>
 <div class="hljs"><pre><code class="hljs python"><span class="hljs-comment"># -*- coding: utf-8 -*-</span>
 <span class="hljs-keyword">import</span> scrapy
 <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">DmozItem</span>(<span class="hljs-params">scrapy.Item</span>):</span>
     title = scrapy.Field()
     link = scrapy.Field()
     desc = scrapy.Field()</code></pre></div>
-<p>DmozItem 为该 Item 的名字， 该类是一个 scrapy.Item 类。<br>
-我这里想获取到的信息是 title、link 和 desc 这三个字段，它们都是 scrapy.Field 类型的。</p>
-<h3 id="编写爬虫">编写爬虫</h3>
-<p>在 <code>tutorial/spiders/</code>下创建一个 py 文件 <code>dmoz_spider.py</code>，它是这样定义的：</p>
+<p>DmozItem 为该 Item 的名字， 该类是一个 scrapy.Item 类。<br>我这里想获取到的信息是 title、link 和 desc 这三个字段，它们都是 scrapy.Field 类型的。</p>
+<h3 id="编写爬虫"><a href="# 编写爬虫" class="headerlink" title="编写爬虫"></a>编写爬虫 </h3><p> 在 <code>tutorial/spiders/</code>下创建一个 py 文件 <code>dmoz_spider.py</code>，它是这样定义的：</p>
 <div class="hljs"><pre><code class="hljs python">
 <span class="hljs-keyword">import</span> scrapy
 <span class="hljs-keyword">from</span> tutorial.items <span class="hljs-keyword">import</span> DmozItem
@@ -328,19 +311,14 @@ tutorial/spiders/: 放置 spider 代码的目录.</p>
             item[<span class="hljs-string">&#x27;link&#x27;</span>] = sel.xpath(<span class="hljs-string">&#x27;a/@href&#x27;</span>).extract()
             item[<span class="hljs-string">&#x27;desc&#x27;</span>] = sel.xpath(<span class="hljs-string">&#x27;text()&#x27;</span>).extract()
             <span class="hljs-keyword">yield</span> item</code></pre></div>
-<p>爬虫类必须继承自<code> scrapy.Spider</code> 类， 且定义一些属性:</p>
-<p><strong>name</strong>: 用于区别 Spider。 该名字必须是唯一的，不可以为不同的 Spider 设定相同的名字。<br>
-<strong>start_urls</strong>: 包含了 Spider 在启动时进行爬取的 url 列表。 因此，第一个被获取到的页面将是其中之一， 后续的 URL 则从初始的 URL 获取到的数据中提取。<br>
-<code>parse()</code> 是 spider 的一个方法。 被调用时，每个初始 URL 完成下载后生成的 Response 对象将会作为唯一的参数传递给该函数。 该方法负责解析返回的数据 (response data)，提取数据(生成 item) 以及生成需要进一步处理的 URL 的 Request 对象。scrapy 为 Spider 的 start_urls 属性中的每个 URL 创建了 scrapy.Request 对象，并将 parse 方法作为回调函数 (callback) 赋值给了 Request。Request 对象经过调度，执行生成 scrapy.http.Response 对象并送回给 spider parse() 方法, 一般返回 Item 实例。</p>
-<h3 id="爬取">爬取</h3>
-<p>进入该工程目录，本例中就是 tutorial/, 在命令行执行</p>
+<p>爬虫类必须继承自<code>scrapy.Spider</code> 类， 且定义一些属性:</p>
+<p><strong>name</strong>: 用于区别 Spider。 该名字必须是唯一的，不可以为不同的 Spider 设定相同的名字。<br><strong>start_urls</strong>: 包含了 Spider 在启动时进行爬取的 url 列表。 因此，第一个被获取到的页面将是其中之一， 后续的 URL 则从初始的 URL 获取到的数据中提取。<br><code>parse()</code> 是 spider 的一个方法。 被调用时，每个初始 URL 完成下载后生成的 Response 对象将会作为唯一的参数传递给该函数。 该方法负责解析返回的数据 (response data)，提取数据(生成 item) 以及生成需要进一步处理的 URL 的 Request 对象。scrapy 为 Spider 的 start_urls 属性中的每个 URL 创建了 scrapy.Request 对象，并将 parse 方法作为回调函数 (callback) 赋值给了 Request。Request 对象经过调度，执行生成 scrapy.http.Response 对象并送回给 spider parse() 方法, 一般返回 Item 实例。</p>
+<h3 id="爬取"><a href="# 爬取" class="headerlink" title="爬取"></a>爬取 </h3><p> 进入该工程目录，本例中就是 tutorial/, 在命令行执行</p>
 <div class="hljs"><pre><code class="hljs python">scrapy crawl dmoz</code></pre></div>
-<h3 id="保存">保存</h3>
-<p>可以使用如下命令</p>
+<h3 id="保存"><a href="# 保存" class="headerlink" title="保存"></a>保存 </h3><p> 可以使用如下命令</p>
 <div class="hljs"><pre><code class="hljs python">scrapy crawl dmoz -o items.json</code></pre></div>
 <p>该命令是说将结果保存在 items.json 文件中。</p>
-<h2 id="常用的命令行工具">常用的命令行工具</h2>
-<div class="hljs"><pre><code class="hljs other"># 创建项目
+<h2 id="常用的命令行工具"><a href="# 常用的命令行工具" class="headerlink" title="常用的命令行工具"></a>常用的命令行工具</h2><div class="hljs"><pre><code class="hljs other"># 创建项目
 scrapy startproject myproject
 # 帮助信息
 scrapy &lt;command&gt; -h

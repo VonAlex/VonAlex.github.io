@@ -245,46 +245,29 @@
               </p>
             
             <div class="markdown-body" id="post-body">
-              <p>对象存在于程序运行时的内存中，当程序不再运行时或断电关机时，这些对象便不再存在。我现在想把对象保存下来，方便以后使用，这就是持久化技术。</p>
-<a id="more"></a>
-<p>利用 python 标准库中的的 pickle 模块可以将对象转换为一种可以传输或存储的格式。</p>
+              <p>对象存在于程序运行时的内存中，当程序不再运行时或断电关机时，这些对象便不再存在。我现在想把对象保存下来，方便以后使用，这就是持久化技术。<br><a id="more"></a><br>利用 python 标准库中的的 pickle 模块可以将对象转换为一种可以传输或存储的格式。</p>
 <blockquote>
 <p>如果希望透明地存储 python 对象，而不丢失其身份和类型等信息，则需要某种形式的对象序列化：它是一个将任意复杂的对象转成对象的文本或二进制表示的过程。</p>
 </blockquote>
-<h2 id="主要方法">主要方法</h2>
-<p>pickle 模块中有两个主要函数，它们是 <code>dump()</code> 和<code>load()</code>。</p>
-<h3 id="dump- 方法">dump()方法</h3>
-<p>该方法的作用是实现 python 对象的序列化，将 obj 保存到 file 中。<br>
-具体语法如下：</p>
+<h2 id="主要方法"><a href="# 主要方法" class="headerlink" title="主要方法"></a>主要方法 </h2><p>pickle 模块中有两个主要函数，它们是<code>dump()</code> 和<code>load()</code>。</p>
+<h3 id="dump- 方法"><a href="#dump- 方法" class="headerlink" title="dump()方法"></a>dump()方法 </h3><p> 该方法的作用是实现 python 对象的序列化，将 obj 保存到 file 中。<br>具体语法如下：</p>
 <div class="hljs"><pre><code class="hljs python">pickle.dump(obj, file[, protocol])</code></pre></div>
-<p><strong>obj</strong>：要持久化保存的对象；<br>
-<strong>file</strong>： 将对象序列化后保存到的类文件对象。<br>
-它必须有一个可以接受单字符串作为入参的 write() 方法。这个对象可以是一个以写模式打开的文件对象或者一个 StringIO 对象，或者其他任意满足条件的接口；<br>
-<strong>protocol</strong>: 可选的参数，默认为 0。0 表示所序列化的对象使用可打印的 ASCII 码表示；1 或 True 表示使用老式的二进制协议；2 表示使用 python2.3 版本引入的新二进制协议，比以前的高效；负值表示将使用可用的最高协议版本。<br>
-如果 <strong>protocol&gt;=1</strong>，那么文件对象需要以二进制形式打开。</p>
-<h3 id="dumps">dumps()</h3>
-<p>具体语法为：</p>
+<p><strong>obj</strong>：要持久化保存的对象；<br><strong>file</strong>： 将对象序列化后保存到的类文件对象。<br>它必须有一个可以接受单字符串作为入参的 write() 方法。这个对象可以是一个以写模式打开的文件对象或者一个 StringIO 对象，或者其他任意满足条件的接口；<br><strong>protocol</strong>: 可选的参数，默认为 0。0 表示所序列化的对象使用可打印的 ASCII 码表示；1 或 True 表示使用老式的二进制协议；2 表示使用 python2.3 版本引入的新二进制协议，比以前的高效；负值表示将使用可用的最高协议版本。<br>如果 <strong>protocol&gt;=1</strong>，那么文件对象需要以二进制形式打开。</p>
+<h3 id="dumps"><a href="#dumps" class="headerlink" title="dumps()"></a>dumps()</h3><p>具体语法为：</p>
 <div class="hljs"><pre><code class="hljs python">pickle.dumps(obj[, protocol])</code></pre></div>
 <p>返回一个字符串，而不是存入文件中。</p>
-<h3 id="load">load()</h3>
-<p>该方法用于反序列化，即将序列化的对象重新恢复成 python 对象。<br>
-具体语法如下：</p>
+<h3 id="load"><a href="#load" class="headerlink" title="load()"></a>load()</h3><p>该方法用于反序列化，即将序列化的对象重新恢复成 python 对象。<br>具体语法如下：</p>
 <div class="hljs"><pre><code class="hljs python">pickle.load(file)</code></pre></div>
-<p>这个 file 必须是一个拥有一个能接收单整数为参数的 <code>read()</code> 方法以及一个不接收任何参数的 <code>readline() </code>方法，并且这两个方法的返回值都应该是字符串。这可以是一个打开为读的文件对象、StringIO 对象或其他任何满足条件的对象。</p>
-<h3 id="loads">loads()</h3>
-<div class="hljs"><pre><code class="hljs python">pickle.loads(string)</code></pre></div>
+<p>这个 file 必须是一个拥有一个能接收单整数为参数的 <code>read()</code> 方法以及一个不接收任何参数的 <code>readline()</code>方法，并且这两个方法的返回值都应该是字符串。这可以是一个打开为读的文件对象、StringIO 对象或其他任何满足条件的对象。</p>
+<h3 id="loads"><a href="#loads" class="headerlink" title="loads()"></a>loads()</h3><div class="hljs"><pre><code class="hljs python">pickle.loads(string)</code></pre></div>
 <p>从字符串中恢复对象。</p>
-<h3 id="Pickler">Pickler()</h3>
-<div class="hljs"><pre><code class="hljs python"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">pickle</span>.<span class="hljs-title">Pickler</span>(<span class="hljs-params">file[, protocol]</span>)</span></code></pre></div>
+<h3 id="Pickler"><a href="#Pickler" class="headerlink" title="Pickler()"></a>Pickler()</h3><div class="hljs"><pre><code class="hljs python"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">pickle</span>.<span class="hljs-title">Pickler</span>(<span class="hljs-params">file[, protocol]</span>)</span></code></pre></div>
 <p>可以使用该对象调用 dunmp 和 load 等方法。</p>
-<h3 id="clear-memo">clear_memo()</h3>
-<p>对于相同的对象，如果不使用 clear_memo()方法，那么 python 只会 pickle 一次</p>
-<h2 id="cPickle- 模块">cPickle 模块</h2>
-<blockquote>
+<h3 id="clear-memo"><a href="#clear-memo" class="headerlink" title="clear_memo()"></a>clear_memo()</h3><p>对于相同的对象，如果不使用 clear_memo()方法，那么 python 只会 pickle 一次</p>
+<h2 id="cPickle- 模块"><a href="#cPickle- 模块" class="headerlink" title="cPickle 模块"></a>cPickle 模块</h2><blockquote>
 <p>cPickle 是 pickle 的优化版， cPickle 是 C 编写的因此它可以比 pickle 快 1000 倍。但是它不支持使用子类化的 Pickler()和 Unpickler()类，因为在 cPickle 中，这些都是不是类的功能。大多数应用程序不需要此功能，并可以受益于 cPickle 的改进性能。除此之外，这两个模块的接口是几乎完全相同。</p>
 </blockquote>
-<h2 id="用例">用例</h2>
-<div class="hljs"><pre><code class="hljs python">In [<span class="hljs-number">2</span>]: <span class="hljs-keyword">try</span>:
+<h2 id="用例"><a href="# 用例" class="headerlink" title="用例"></a>用例</h2><div class="hljs"><pre><code class="hljs python">In [<span class="hljs-number">2</span>]: <span class="hljs-keyword">try</span>:
    ...:     <span class="hljs-keyword">import</span> cPickle <span class="hljs-keyword">as</span> pickle
    ...: <span class="hljs-keyword">except</span>:
    ...:     <span class="hljs-keyword">import</span> pickle

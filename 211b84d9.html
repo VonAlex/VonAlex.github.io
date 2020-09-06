@@ -255,27 +255,17 @@
 irqbalance: option requires an argument -- &#x27;h&#x27;
 irqbalance [--oneshot |<span class="hljs-string"> -o] [--debug </span>|<span class="hljs-string"> -d] [--foreground </span>|<span class="hljs-string"> -f] [--hintpolicy= </span>|<span class="hljs-string"> -h [exact</span>|<span class="hljs-string">subset</span>|<span class="hljs-string">ignore]] [--banscript= </span>|<span class="hljs-string"> -b &lt;script&gt;]</span>
 <span class="hljs-string">	[--powerthresh= </span>|<span class="hljs-string"> -p &lt;off&gt; </span>|<span class="hljs-string"> &lt;n&gt;] [--banirq= </span>|<span class="hljs-string"> -i &lt;n&gt;] [--policyscript= </span>|<span class="hljs-string"> -l &lt;script&gt;] [--pid= </span>|<span class="hljs-string"> -s &lt;file&gt;] [--deepestcache= </span>|<span class="hljs-string"> -c &lt;n&gt;]</span></code></pre></div>
-<h2 id="code￼1"><div class="hljs"><pre><code class="hljs routeros"><span class="hljs-comment"># 查看当前运行情况</span>
+<h2 id=""><a href="#"class="headerlink"title=""></a><div class="hljs"><pre><code class="hljs routeros"><span class="hljs-comment"># 查看当前运行情况</span>
 service irqbalance status
 
 <span class="hljs-comment"># 终止服务</span>
-service irqbalance stop</code></pre></div></h2>
-<p>首先有一些前置知识需要说明，这涉及到 irqbalance cputree 的分层。</p>
-<h3 id="前置知识">前置知识</h3>
-<h4 id="中断">中断</h4>
-<p>每个硬件设备都需要和 CPU 有某种形式的通信以便 CPU 及时知道发生了什么，这样 CPU 可能就会放下手中的事情去处理应急事件，硬件设备主动打扰 CPU 的现象就可称为硬件中断。就像正在一心一意的写代码时，突然钉钉“噔噔”地响起来，这时我们就知道有事情需要处理，这里的“噔噔”声就可以理解成一次中断。<br>
-CPU 和硬件沟通的方式中，还有一种叫做轮询（polling），就是让 CPU 定时对硬件状态进行查询然后做相应处理，这比较浪费 CPU，属于一种硬件被动的方式。相比下来，硬件主动的方式（中断）更有效一些。<br>
-那每个硬件设备都有中断，很简单啊，给它们分个唯一的号码，也就是 irq 号，在 <code>/proc/interrupts</code> 文件中的第一列可以看到所有的 irq。<br>
-只有 kernel 2.4 以后的版本才支持的把不同的硬件中断请求（IRQs）分配到特定的 CPU 上的绑定技术被称为 SMP IRQ Affinity，这个后面还会详细说。</p>
-<h4 id="NUMA 架构">NUMA 架构</h4>
-<p>简要介绍一下 NUMA 架构。<br>
-NUMA 架构出现前，CPU 频率一路欢脱越来越高，直至碰到物理极限的天花板，后转向核数越来越多的方向发展。</p>
+service irqbalance stop</code></pre></div></h2><p>首先有一些前置知识需要说明，这涉及到 irqbalance cputree 的分层。</p>
+<h3 id="前置知识"><a href="# 前置知识" class="headerlink" title="前置知识"></a>前置知识 </h3><h4 id="中断"><a href="# 中断" class="headerlink" title="中断"></a> 中断 </h4><p> 每个硬件设备都需要和 CPU 有某种形式的通信以便 CPU 及时知道发生了什么，这样 CPU 可能就会放下手中的事情去处理应急事件，硬件设备主动打扰 CPU 的现象就可称为硬件中断。就像正在一心一意的写代码时，突然钉钉“噔噔”地响起来，这时我们就知道有事情需要处理，这里的“噔噔”声就可以理解成一次中断。<br>CPU 和硬件沟通的方式中，还有一种叫做轮询（polling），就是让 CPU 定时对硬件状态进行查询然后做相应处理，这比较浪费 CPU，属于一种硬件被动的方式。相比下来，硬件主动的方式（中断）更有效一些。<br>那每个硬件设备都有中断，很简单啊，给它们分个唯一的号码，也就是 irq 号，在 <code>/proc/interrupts</code> 文件中的第一列可以看到所有的 irq。<br>只有 kernel 2.4 以后的版本才支持的把不同的硬件中断请求（IRQs）分配到特定的 CPU 上的绑定技术被称为 SMP IRQ Affinity，这个后面还会详细说。</p>
+<h4 id="NUMA 架构"><a href="#NUMA 架构" class="headerlink" title="NUMA 架构"></a>NUMA 架构 </h4><p> 简要介绍一下 NUMA 架构。<br>NUMA 架构出现前，CPU 频率一路欢脱越来越高，直至碰到物理极限的天花板，后转向核数越来越多的方向发展。</p>
 <blockquote>
-<p>如果每个 core 的工作性质都是 share-nothing（类似于 map-reduce 的 node 节点的作业属性），那么也许就不会有 NUMA。由于所有 CPU Core 都是通过共享一个北桥来读取内存，随着核数如何的发展，<strong>北桥</strong> 在响应时间上的性能瓶颈越来越明显。于是，聪明的硬件设计师们，先到了把内存控制器（原本北桥中读取内存的部分）也做个拆分，平分到了每个 die 上。于是 NUMA 就出现了！<br>
-NUMA 架构中，内存访问有远近之分，只有当 CPU 访问自身直接 attach 内存对应的物理地址时，才会有较短的响应时间（Local Access）。而如果需要访问其他 CPU attach 的内存的数据时，就需要通过 inter-connect 通道访问，响应时间就相比之前变慢了（Remote Access），NUMA（Non-Uniform Memory Access）就此得名。    — 引自 <a target="_blank" rel="noopener" href="http://cenalulu.github.io/linux/numa/">http://cenalulu.github.io/linux/numa/</a></p>
+<p>如果每个 core 的工作性质都是 share-nothing（类似于 map-reduce 的 node 节点的作业属性），那么也许就不会有 NUMA。由于所有 CPU Core 都是通过共享一个北桥来读取内存，随着核数如何的发展，<strong>北桥</strong> 在响应时间上的性能瓶颈越来越明显。于是，聪明的硬件设计师们，先到了把内存控制器（原本北桥中读取内存的部分）也做个拆分，平分到了每个 die 上。于是 NUMA 就出现了！<br>NUMA 架构中，内存访问有远近之分，只有当 CPU 访问自身直接 attach 内存对应的物理地址时，才会有较短的响应时间（Local Access）。而如果需要访问其他 CPU attach 的内存的数据时，就需要通过 inter-connect 通道访问，响应时间就相比之前变慢了（Remote Access），NUMA（Non-Uniform Memory Access）就此得名。    —- 引自 <a target="_blank" rel="noopener" href="http://cenalulu.github.io/linux/numa/">http://cenalulu.github.io/linux/numa/</a></p>
 </blockquote>
-<p>图画下来大概是下面这个样子：<br>
-<img src="https://s1.ax1x.com/2018/10/28/icwcV0.jpg" srcset="/img/loading.gif" width="600" /></p>
+<p>图画下来大概是下面这个样子：<br><img src="https://s1.ax1x.com/2018/10/28/icwcV0.jpg" srcset="/img/loading.gif" width="600" /></p>
 <p><code>numactl --hardware</code> 命令可以查看的那个机器的 numa 拓扑，比如这台机器：</p>
 <div class="hljs"><pre><code class="hljs angelscript">[<span class="hljs-symbol">root@</span>d2b9eb755bb1 ~]# numactl --hardware
 available: <span class="hljs-number">2</span> nodes (<span class="hljs-number">0</span><span class="hljs-number">-1</span>)
@@ -317,11 +307,7 @@ node1	<span class="hljs-number">12</span>-<span class="hljs-number">23</span>,<s
 <span class="hljs-attr">L3 cache:</span>              <span class="hljs-string">30720K</span>
 <span class="hljs-string">NUMA</span> <span class="hljs-string">node0</span> <span class="hljs-string">CPU(s):</span>     <span class="hljs-number">0</span><span class="hljs-number">-11</span><span class="hljs-string">,24-35</span>
 <span class="hljs-string">NUMA</span> <span class="hljs-string">node1</span> <span class="hljs-string">CPU(s):</span>     <span class="hljs-number">12</span><span class="hljs-number">-23</span><span class="hljs-string">,36-47</span></code></pre></div>
-<h4 id="CPU- 相关">CPU 相关</h4>
-<p>cpu cache 结构图如下：<br>
-<img src="https://s1.ax1x.com/2018/10/28/icww8g.jpg" srcset="/img/loading.gif" width="650" /><br>
-从硬件的角度，上图的 L1 和 L2 Cache 都被两个 HT 共享，且在同一个物理 Core。而 L3 Cache 则在物理 CPU 里，被多个 Core 来共享。 而从 OS 内核角度，每个 HT 都是一个逻辑 CPU。<br>
-以 <strong>cpu0</strong> 为例，如下：</p>
+<h4 id="CPU- 相关"><a href="#CPU- 相关" class="headerlink" title="CPU 相关"></a>CPU 相关 </h4><p>cpu cache 结构图如下：<br><img src="https://s1.ax1x.com/2018/10/28/icww8g.jpg" srcset="/img/loading.gif" width="650" /><br> 从硬件的角度，上图的 L1 和 L2 Cache 都被两个 HT 共享，且在同一个物理 Core。而 L3 Cache 则在物理 CPU 里，被多个 Core 来共享。 而从 OS 内核角度，每个 HT 都是一个逻辑 CPU。<br>以 <strong>cpu0</strong> 为例，如下：</p>
 <div class="hljs"><pre><code class="hljs gradle">[root@d2b9eb755bb1 ~]# tree -L <span class="hljs-number">1</span> <span class="hljs-regexp">/sys/</span>devices<span class="hljs-regexp">/system/</span>cpu<span class="hljs-regexp">/cpu0/</span>cache/
 <span class="hljs-regexp">/sys/</span>devices<span class="hljs-regexp">/system/</span>cpu<span class="hljs-regexp">/cpu0/</span>cache/
 ├── index0   -&gt; L1 data 缓存
@@ -329,10 +315,7 @@ node1	<span class="hljs-number">12</span>-<span class="hljs-number">23</span>,<s
 ├── index2   -&gt; L2 缓存
 └── index3   -&gt; L3 缓存</code></pre></div>
 <p>点到为止，想了解更多可以翻翻以前的课本。更多 cpu 信息可以从 <code>/proc/cpuinfo</code> 文件中获取到。</p>
-<h4 id="irq- 亲缘绑定">irq 亲缘绑定</h4>
-<p>下面基于实践简单说下这个事情。<br>
-<code>/proc/interrupts</code> 文件中可以看到各个 cpu 上的中断情况。<br>
-<code>/proc/irq/#/smp_affinity_list</code> 可以查看指定中断当前绑定的 CPU，当然也 可以看 <code>smp_affinity</code> 这个文件，它是一个 16 进制 bitmask，以逗号分隔，比如 <code>0000,00000020</code>表示该 irq 分给了 CPU5。</p>
+<h4 id="irq- 亲缘绑定"><a href="#irq- 亲缘绑定" class="headerlink" title="irq 亲缘绑定"></a>irq 亲缘绑定 </h4><p> 下面基于实践简单说下这个事情。<br><code>/proc/interrupts</code> 文件中可以看到各个 cpu 上的中断情况。<br><code>/proc/irq/#/smp_affinity_list</code> 可以查看指定中断当前绑定的 CPU，当然也 可以看 <code>smp_affinity</code> 这个文件，它是一个 16 进制 bitmask，以逗号分隔，比如 <code>0000,00000020</code>表示该 irq 分给了 CPU5。</p>
 <p>所以，通过如下脚本获得 <strong> 各网卡中断 </strong> 的当前 cpu 的整体情况（平时只对网卡中断感兴趣）：</p>
 <div class="hljs"><pre><code class="hljs gradle">cat <span class="hljs-regexp">/proc/i</span>nterrupts | <span class="hljs-keyword">grep</span> eth0- | cut -d: -f1 | <span class="hljs-keyword">while</span> <span class="hljs-keyword">read</span> i; <span class="hljs-keyword">do</span> echo -ne irq<span class="hljs-string">&quot;:$i\t bind_cpu: &quot;</span>; cat <span class="hljs-regexp">/proc/i</span>rq<span class="hljs-regexp">/$i/</span>smp_affinity_list; done | <span class="hljs-keyword">sort</span> -n -t<span class="hljs-string">&#x27; &#x27;</span> -k3</code></pre></div>
 <p>效果大约是这样的：</p>
@@ -384,11 +367,8 @@ irq:<span class="hljs-number">145</span>	 bind_cpu: <span class="hljs-number">35
 irq:<span class="hljs-number">146</span>	 bind_cpu: <span class="hljs-number">35</span>
 irq:<span class="hljs-number">147</span>	 bind_cpu: <span class="hljs-number">35</span>
 irq:<span class="hljs-number">153</span>	 bind_cpu: <span class="hljs-number">35</span></code></pre></div>
-<p>可以看到，我这台机器有一半 cpu 是空闲的，已经绑定的 cpu 绑定的 irq 也不太均衡。<br>
-假如要更改的话，可以有如下类似的操作 <code>echo 3 &gt; /proc/irq/24/smp_affinity</code>。<br>
-这个也是后面 irqbalance 用来调整中断的方法。</p>
-<h3 id="irqbalance- 代码分析">irqbalance 代码分析</h3>
-<p>下面以 v1.07 为例来进行分析。</p>
+<p>可以看到，我这台机器有一半 cpu 是空闲的，已经绑定的 cpu 绑定的 irq 也不太均衡。<br>假如要更改的话，可以有如下类似的操作 <code>echo 3 &gt; /proc/irq/24/smp_affinity</code>。<br>这个也是后面 irqbalance 用来调整中断的方法。</p>
+<h3 id="irqbalance- 代码分析"><a href="#irqbalance- 代码分析" class="headerlink" title="irqbalance 代码分析"></a>irqbalance 代码分析 </h3><p> 下面以 v1.07 为例来进行分析。</p>
 <p>irqbalance 中把中断分成了 8 种 class, 4 种 type。</p>
 <div class="hljs"><pre><code class="hljs cpp"><span class="hljs-comment">/*</span>
 <span class="hljs-comment"> * IRQ Classes</span>
@@ -433,17 +413,11 @@ irq:<span class="hljs-number">153</span>	 bind_cpu: <span class="hljs-number">35
 <span class="hljs-built_in">	IRQ_OTHER,</span>
 <span class="hljs-built_in">	IRQ_OTHER,</span>
 &#125;<span class="hljs-comment">;</span></code></pre></div>
-<p><code>MAX_CLASS = 0x12</code> 即 18。<br>
-不同 class 的中断平衡的时候作用域不同，有的在 PACKAGE，有的在 CACHE，有的在 CORE。这个关系对应依靠以下数组进行转换:</p>
+<p><code>MAX_CLASS = 0x12</code> 即 18。<br>不同 class 的中断平衡的时候作用域不同，有的在 PACKAGE，有的在 CACHE，有的在 CORE。这个关系对应依靠以下数组进行转换:</p>
 <div class="hljs"><pre><code class="hljs mipsasm">int map_class_to_level[<span class="hljs-number">8</span>] =
 &#123; <span class="hljs-keyword">BALANCE_PACKAGE, </span><span class="hljs-keyword">BALANCE_CACHE, </span><span class="hljs-keyword">BALANCE_CORE, </span><span class="hljs-keyword">BALANCE_CORE, </span><span class="hljs-keyword">BALANCE_CORE, </span><span class="hljs-keyword">BALANCE_CORE, </span><span class="hljs-keyword">BALANCE_CORE, </span><span class="hljs-keyword">BALANCE_CORE </span>&#125;;</code></pre></div>
 <p>irqbalance 会根据 cpu 的结构由上到下建立了一个树形结构，最顶层是 numa_nodes，向下以此为 CPU packages、Cache domains 以及 CPU cores，自顶向下。</p>
-<p>irqbalance 的主函数很简单，10s 一个周期，做以下事情：<br>
-【1】清除上次统计结果<br>
-【2】分析中断情况<br>
-【3】分析中断的负载情况<br>
-【4】计算如何平衡中断<br>
-【5】实施上面指定的方案</p>
+<p>irqbalance 的主函数很简单，10s 一个周期，做以下事情：<br>【1】清除上次统计结果<br>【2】分析中断情况<br>【3】分析中断的负载情况<br>【4】计算如何平衡中断<br>【5】实施上面指定的方案</p>
 <div class="hljs"><pre><code class="hljs reasonml"><span class="hljs-comment">// irqbalance.c</span>
 <span class="hljs-built_in">int</span> main(<span class="hljs-built_in">int</span> argc, <span class="hljs-built_in">char</span>** argv) &#123;
     <span class="hljs-comment">// ...</span>
@@ -461,11 +435,10 @@ truetrue<span class="hljs-comment">// ...</span>
     &#125;
     <span class="hljs-comment">// ...</span>
 &#125;</code></pre></div>
-<p>中断最终是运行在某一个 cpu 上的，所以有的中断虽然分配在 cache、package 层次上，但是最终还是在 cpu 上运行，所有每个 cpu 执行中断数大概等于所有父节点的中断数一级一级平均下来。然后用该 cpu 的负载除以该 cpu 平均处理的中断数，得到单位中断所占用的负载，那么每个中断的负载就等于该中断在单位时间内新增的个数乘以单位中断所占用的负载。那问题来了，如何计算负载的呢？<br>
-答案是通过<code>/proc/stat</code> 文件的 <strong>irq + softirq</strong> 获得的，以 cpu0 为例，一个可能的数据如下：</p>
+<p>中断最终是运行在某一个 cpu 上的，所以有的中断虽然分配在 cache、package 层次上，但是最终还是在 cpu 上运行，所有每个 cpu 执行中断数大概等于所有父节点的中断数一级一级平均下来。然后用该 cpu 的负载除以该 cpu 平均处理的中断数，得到单位中断所占用的负载，那么每个中断的负载就等于该中断在单位时间内新增的个数乘以单位中断所占用的负载。那问题来了，如何计算负载的呢？<br>答案是通过<code>/proc/stat</code> 文件的 <strong>irq + softirq</strong> 获得的，以 cpu0 为例，一个可能的数据如下：</p>
 <div class="hljs"><pre><code class="hljs angelscript">cpu0 <span class="hljs-number">200118431</span> <span class="hljs-number">1258</span> <span class="hljs-number">112897097</span> <span class="hljs-number">1062445972</span> <span class="hljs-number">321829</span> <span class="hljs-number">0</span> <span class="hljs-number">1048436</span> <span class="hljs-number">0</span> <span class="hljs-number">0</span> <span class="hljs-number">0</span></code></pre></div>
-<p>以上的数组表示从系统启动开始累计到当前时刻的 <strong>jiffies</strong>数(jiffies 是内核中的一个全局变量，用来记录自系统启动一来产生的节拍数，在 linux 中，一个节拍大致可理解为操作系统进程调度的最小时间片，不同 linux 内核可能值有不同，通常在 1ms 到 10ms 之间)。<br>
-以上各字段的含义如下表：</p>
+<p>以上的数组表示从系统启动开始累计到当前时刻的 <strong>jiffies</strong>数 (jiffies 是内核中的一个全局变量，用来记录自系统启动一来产生的节拍数，在 linux 中，一个节拍大致可理解为操作系统进程调度的最小时间片，不同 linux 内核可能值有不同，通常在 1ms 到 10ms 之间)。<br> 以上各字段的含义如下表：</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -527,11 +500,8 @@ truetrue<span class="hljs-comment">// ...</span>
 </tr>
 </tbody>
 </table>
-<p>具体可以看 <a target="_blank" rel="noopener" href="http://man7.org/linux/man-pages/man5/proc.5.html">/proc 目录详解</a>。<br>
-所以，<code>cpu-&gt;last_load = (irq_load + softirq_load)</code>。<br>
-每个 CORE 的负载是附在上面的中断的负载的总和，<br>
-每个 DOMAIN 是包含的 CORE 的总和，<br>
-每个 PACKAGE 包含的 DOMAIN 的总和，就像树层次一样的计算。</p>
+</div>
+<p>具体可以看 <a target="_blank" rel="noopener" href="http://man7.org/linux/man-pages/man5/proc.5.html">/proc 目录详解 </a>。<br> 所以，<code>cpu-&gt;last_load = (irq_load + softirq_load)</code>。<br>每个 CORE 的负载是附在上面的中断的负载的总和，<br>每个 DOMAIN 是包含的 CORE 的总和，<br>每个 PACKAGE 包含的 DOMAIN 的总和，就像树层次一样的计算。</p>
 <p>关于如何平衡上面得到的 load 值呢？下一篇再做讲解。</p>
 <p><strong>To be continued…</strong></p>
 

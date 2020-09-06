@@ -196,7 +196,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      552 字
+      550 字
     </span>
   
 
@@ -245,11 +245,8 @@
               </p>
             
             <div class="markdown-body" id="post-body">
-              <p>对 golang 包导入以及包管理方面的学习中遇到的问题做记录。</p>
-<a id="more"></a>
-<h2 id="import">import</h2>
-<p>Go 使用包（package）作为基本单元来组织源代码，所有语法可见性均定义在 package 这个级别。同一 package 下面，可以有非常多的不同文件，只要每个文件属于相同的 package name。<br>
-每个源码文件的第一行必定要通过如下语法定义属于哪个 package，</p>
+              <p>对 golang 包导入以及包管理方面的学习中遇到的问题做记录。<br><a id="more"></a></p>
+<h2 id="import"><a href="#import" class="headerlink" title="import"></a>import</h2><p>Go 使用包（package）作为基本单元来组织源代码，所有语法可见性均定义在 package 这个级别。同一 package 下面，可以有非常多的不同文件，只要每个文件属于相同的 package name。<br>每个源码文件的第一行必定要通过如下语法定义属于哪个 package，</p>
 <div class="hljs"><pre><code class="hljs ada"><span class="hljs-keyword">package</span> <span class="hljs-title">xxx</span></code></pre></div>
 <p>然后就是导入本源码文件所使用的标准包或第三方包，即</p>
 <div class="hljs"><pre><code class="hljs swift"><span class="hljs-keyword">import</span> (<span class="hljs-string">&quot;a/b/c&quot;</span>
@@ -263,8 +260,7 @@
 <blockquote>
 <p>一个非 main 包在编译后会生成一个.a 文件（在临时目录下生成，除非使用 go install 安装到 <code>$GOROOT</code> 或 <code>$GOPATH</code>下，否则你看不到 <strong>.a</strong>），用于后续可执行程序链接使用。</p>
 </blockquote>
-<h2 id="vendor">vendor</h2>
-<p>Go 在 1.5 的版本加入的 vendor 的支持来做包管理。1.5 版本要设置 <code>GO15VENDOREXPERIMENT=&quot;1&quot;</code> 来支持这个特性，1.6 版本将其作为默认参数配置。下面对于包含 vendor 目录的包导入路径规则大致如下。</p>
+<h2 id="vendor"><a href="#vendor" class="headerlink" title="vendor"></a>vendor</h2><p>Go 在 1.5 的版本加入的 vendor 的支持来做包管理。1.5 版本要设置 <code>GO15VENDOREXPERIMENT=&quot;1&quot;</code> 来支持这个特性，1.6 版本将其作为默认参数配置。下面对于包含 vendor 目录的包导入路径规则大致如下。</p>
 <div class="hljs"><pre><code class="hljs go">├── d
     ├── mypkg
     |     └── main.<span class="hljs-keyword">go</span>
@@ -272,9 +268,7 @@
           └── q
               ├── q.<span class="hljs-keyword">go</span></code></pre></div>
 <p>当上述目录结构，在 <code>main.go</code> 中 <code>import q</code>时，后首先从 <strong>vendor</strong> 目录下查找，若找不到，会从 <strong>$GOPATH</strong> 目录下查找，再找不到的话，编译器就报错了。</p>
-<h2 id="参考">参考</h2>
-<p>【1】<a target="_blank" rel="noopener" href="http://tonybai.com/2015/07/31/understand-go15-vendor/">理解 Go 1.5 vendor</a><br>
-【2】<a target="_blank" rel="noopener" href="http://tonybai.com/2015/03/09/understanding-import-packages/">理解 Golang 包导入</a></p>
+<h2 id="参考"><a href="# 参考" class="headerlink" title="参考"></a>参考 </h2><p>【1】<a target="_blank" rel="noopener" href="http://tonybai.com/2015/07/31/understand-go15-vendor/"> 理解 Go 1.5 vendor</a><br>【2】<a target="_blank" rel="noopener" href="http://tonybai.com/2015/03/09/understanding-import-packages/">理解 Golang 包导入</a></p>
 
             </div>
             <hr>

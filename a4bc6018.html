@@ -247,27 +247,15 @@
             <div class="markdown-body" id="post-body">
               <p>在分布式系统中，为了解决单点问题，通常会把数据集复制多个副本部署到其他机器，以满足故障恢复和负载均衡等需求。redis 为我们提供的复制功能，实现了相同数据的多个副本，这也是其实现 HA 的基础。</p>
 <!--more---->
-<p>参与 redis 复制功能的节点被分成两个角色，主节点（<strong>master</strong>）和从节点（<strong>slave</strong>），复制的数据流是单向的，即 <strong>master → slave</strong>。<br>
-默认情况下，每个 redis 实例都是 master，mater 与 slave 的关系为 <strong>1:n</strong>（也可以没有 slave），但一个 slave 只能有一个 master。</p>
-<p>redis 的复制功能涉及同步（<strong>sync</strong>）和命令传播（<strong>command propagate</strong>）两个阶段。<br>
-<strong>同步 </strong> 阶段用于将 slave 的数据库状态更新至 master 当前所处的数据库状态，即追数据阶段；<br>
-<strong>命令传播 </strong> 阶段则用于当 master 数据库状态改变，导致主从节点数据库状态不一致时，使之重新回到一致状态。</p>
-<h3 id="同步阶段">同步阶段</h3>
-<p>在 <strong>2.8</strong> 版本以前，slave 对 master 的同步，是通过 slave 向 master 发送 <strong>SYNC</strong> 命令完成的。</p>
-<p>1）slave 向 master 发送 <strong>SYNC</strong>；<br>
-2）master 收到 SYNC 后，执行 <strong>BGSAVE</strong> 命令，生成包含当前数据库状态的 RDB 文件，同时自身使用一个 buffer 记录从现在开始执行的所有改变其数据库状态的命令，RDB 生成完毕后将其发送给 slave；<br>
-3）slave 收到 RDB 文件后，载入数据，将自己的数据库状态更新至 master 执行 BGSAYE 时的状态；<br>
-4）master 将 buffer 累积的命令发给 slave；<br>
-5）slave 解析 master 发来的命令并执行，将数据追至与 master 当前所处的状态一致。</p>
+<p>参与 redis 复制功能的节点被分成两个角色，主节点（<strong>master</strong>）和从节点（<strong>slave</strong>），复制的数据流是单向的，即 <strong>master → slave</strong>。<br>默认情况下，每个 redis 实例都是 master，mater 与 slave 的关系为 <strong>1:n</strong>（也可以没有 slave），但一个 slave 只能有一个 master。</p>
+<p>redis 的复制功能涉及同步（<strong>sync</strong>）和命令传播（<strong>command propagate</strong>）两个阶段。<br><strong>同步 </strong> 阶段用于将 slave 的数据库状态更新至 master 当前所处的数据库状态，即追数据阶段；<br><strong>命令传播 </strong> 阶段则用于当 master 数据库状态改变，导致主从节点数据库状态不一致时，使之重新回到一致状态。</p>
+<h3 id="同步阶段"><a href="# 同步阶段" class="headerlink" title="同步阶段"></a>同步阶段 </h3><p> 在 <strong>2.8</strong> 版本以前，slave 对 master 的同步，是通过 slave 向 master 发送 <strong>SYNC</strong> 命令完成的。</p>
+<p>1）slave 向 master 发送 <strong>SYNC</strong>；<br>2）master 收到 SYNC 后，执行 <strong>BGSAVE</strong> 命令，生成包含当前数据库状态的 RDB 文件，同时自身使用一个 buffer 记录从现在开始执行的所有改变其数据库状态的命令，RDB 生成完毕后将其发送给 slave；<br>3）slave 收到 RDB 文件后，载入数据，将自己的数据库状态更新至 master 执行 BGSAYE 时的状态；<br>4）master 将 buffer 累积的命令发给 slave；<br>5）slave 解析 master 发来的命令并执行，将数据追至与 master 当前所处的状态一致。</p>
 <p>如果以上任一一步因为网络或者其他原因而 <strong> 中断</strong>，当 slave 再次连上 master 时，master 仍然需要重新做一个 BGSAVE，而这个命令是通过 <code>fork</code> 子进程来做的，频繁执行会影响性能，且复制效率低下。</p>
-<p>为解决以上问题，redis 从 <strong>2.8</strong> 版本开始，引入新的同步命令 <strong>PSYNC</strong> 以支持断点续传。<br>
-要支持断点续传，就需要记录上次同步的位置，借助了以下三个变量：</p>
-<p>1）master/slave 的复制偏移量(replication offset)；<br>
-2）master 的复制积压缓冲区(replication backlog)；<br>
-3）服务器的运行 ID(run ID)。</p>
+<p>为解决以上问题，redis 从 <strong>2.8</strong> 版本开始，引入新的同步命令 <strong>PSYNC</strong> 以支持断点续传。<br>要支持断点续传，就需要记录上次同步的位置，借助了以下三个变量：</p>
+<p>1）master/slave 的复制偏移量(replication offset)；<br>2）master 的复制积压缓冲区(replication backlog)；<br>3）服务器的运行 ID(run ID)。</p>
 <p>具体细节可以参考《<strong>redis 设计与实现</strong>》这本书的第 15 章。</p>
-<h3 id="命令传播阶段">命令传播阶段</h3>
-<p>在 <code>redisServer</code> 结构体中有一个 <code>dirty</code> 变量记录了自上一次成功执行 save 或者 bgsave 之后，数据库状态改变的次数。通过比较执行命令前后 的 <code>dirty</code> 值，就可以知道当前命令执行后数据库状态是否发生了改变，只有改变了才需要做 <strong>command propagate</strong>。</p>
+<h3 id="命令传播阶段"><a href="# 命令传播阶段" class="headerlink" title="命令传播阶段"></a>命令传播阶段 </h3><p> 在 <code>redisServer</code> 结构体中有一个 <code>dirty</code> 变量记录了自上一次成功执行 save 或者 bgsave 之后，数据库状态改变的次数。通过比较执行命令前后 的 <code>dirty</code> 值，就可以知道当前命令执行后数据库状态是否发生了改变，只有改变了才需要做 <strong>command propagate</strong>。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">call</span><span class="hljs-params">(client *c, <span class="hljs-keyword">int</span> flags)</span> </span>&#123;
 truetrue...
     dirty = server.dirty;

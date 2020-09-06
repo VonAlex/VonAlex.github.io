@@ -196,7 +196,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      759 字
+      756 字
     </span>
   
 
@@ -247,9 +247,8 @@
             <div class="markdown-body" id="post-body">
               <p>Golang 官方并没有推荐最佳的包管理方案。到了 1.5 版本时代，官方引入包管理的设计，加了 vendor 目录来支持本地包管理依赖。官方 wiki 推荐了多种支持这种特性的包管理工具，如：Godep、gv、gvt、glide、govendor 等。</p>
 <a id="more"></a>
-<p> 下面简要介绍一个我在项目中用到的 – <strong>govendor</strong>。<br>
-该工具将项目依赖的外部包拷贝到项目下的 vendor 目录下，并通过 vendor.json 文件来记录依赖包的版本，方便用户使用相对稳定的依赖。<br>
-对于 govendor 来说，依赖包主要有以下多种类型:</p>
+<p> 下面简要介绍一个我在项目中用到的 — <strong>govendor</strong>。<br> 该工具将项目依赖的外部包拷贝到项目下的 vendor 目录下，并通过 vendor.json 文件来记录依赖包的版本，方便用户使用相对稳定的依赖。<br> 对于 govendor 来说，依赖包主要有以下多种类型:</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -306,8 +305,8 @@
 </tr>
 </tbody>
 </table>
-<h2 id="Installation">Installation</h2>
-<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">go</span> get -u github.com/kardianos/govendor</code></pre></div>
+</div>
+<h2 id="Installation"><a href="#Installation" class="headerlink" title="Installation"></a>Installation</h2><div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">go</span> get -u github.com/kardianos/govendor</code></pre></div>
 <p> 命令行执行 <code>govendor</code>，若出现以下信息，则说明安装成功。</p>
 <div class="hljs"><pre><code class="hljs go">➜  ~ govendor
 govendor (v1<span class="hljs-number">.0</span><span class="hljs-number">.8</span>): record dependencies and <span class="hljs-built_in">copy</span> into vendor folder
@@ -316,8 +315,7 @@ govendor (v1<span class="hljs-number">.0</span><span class="hljs-number">.8</spa
 <span class="hljs-string">...</span>
 <span class="hljs-string">...</span></code></pre></div>
 <p><strong>Warning：</strong> 需要把 <code>$GOPATH/bin/</code> 加到 <code>PATH</code> 中。</p>
-<h2 id="Quickstart">Quickstart</h2>
-<div class="hljs"><pre><code class="hljs go"># Setup your project.
+<h2 id="Quickstart"><a href="#Quickstart" class="headerlink" title="Quickstart"></a>Quickstart</h2><div class="hljs"><pre><code class="hljs go"># Setup your project.
 cd <span class="hljs-string">&quot;my project in GOPATH&quot;</span>
 # 初始化 vendor 目录, project 下出现 vendor 目录
 govendor init
@@ -357,8 +355,7 @@ govendor install +local
 
 # Test your repository only
 govendor test +local</code></pre></div>
-<h2 id="Sub-commands">Sub-commands</h2>
-<div class="hljs"><pre><code class="hljs go">init     创建 vendor 文件夹和 vendor.json 文件
+<h2 id="Sub-commands"><a href="#Sub-commands" class="headerlink" title="Sub-commands"></a>Sub-commands</h2><div class="hljs"><pre><code class="hljs go">init     创建 vendor 文件夹和 vendor.json 文件
 list     列出已经存在的依赖包
 add      从 $GOPATH 中添加依赖包，会加到 vendor.json
 update   从 $GOPATH 升级依赖包
@@ -381,9 +378,7 @@ shell    Run a <span class="hljs-string">&quot;shell&quot;</span> to <span class
 <li>The project must be within a <code>$GOPATH/src</code>.</li>
 <li>If using go1.5, ensure you set <code>GO15VENDOREXPERIMENT=1</code>.</li>
 </ul>
-<h2 id="参考"> 参考 </h2>
-<p><a target="_blank" rel="noopener" href="https://github.com/kardianos/govendor">govendor github</a><br>
-<a target="_blank" rel="noopener" href="http://blog.csdn.net/yeasy/article/details/65935864">go 依赖管理利器 – govendor</a></p>
+<h2 id="参考"><a href="# 参考" class="headerlink" title="参考"></a> 参考 </h2><p><a target="_blank" rel="noopener" href="https://github.com/kardianos/govendor">govendor github</a><br><a target="_blank" rel="noopener" href="http://blog.csdn.net/yeasy/article/details/65935864">go 依赖管理利器 — govendor</a></p>
 
             </div>
             <hr>

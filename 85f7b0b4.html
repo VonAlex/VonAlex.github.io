@@ -245,12 +245,8 @@
               </p>
             
             <div class="markdown-body" id="post-body">
-              <p>每个 CS 模式程序，尤其是高并发的网络服务端程序都有自己的网络异步事件处理库，Redis 不例外。Redis 基于 <a target="_blank" rel="noopener" href="https://my.oschina.net/mjRao/blog/666033">Reactor 模型 </a> 封装了自己的事件驱动模型库。你可能会跟我有一样的疑问，为什么作者不使用已有的成熟的相关库，比如 Libevent 或 Libev？作者是<a target="_blank" rel="noopener" href="https://groups.google.com/forum/#!topic/redis-db/tSgU6e8VuNA"> 这样 </a> 跟别人讨论的，感兴趣的可以了解下。<br>
-下面从源码入手介绍下 Redis 中封装的 ae 库。</p>
-<!--more---->
-<h3 id="Redis- 中的 -I-O- 多路复用">Redis 中的 I/O 多路复用</h3>
-<p>Redis 的 I/O 多路复用函数库对常见的 select/epoll/evport/kqueue 等进行了封装，提高了易用性。每一个 I/O 多路复用函数库在 Redis 源码中都单独成一个个文件，因此你可以找到 ae_epoll.c 等文件，它们对外提供统一的 API，这样做有一个好处是，底层库可以互换。<br>
-Redis 在底层用哪个 I/O 多路复用函数库是在编译时决定的，源码中定义了如下的规则，</p>
+              <p>每个 CS 模式程序，尤其是高并发的网络服务端程序都有自己的网络异步事件处理库，Redis 不例外。Redis 基于 <a target="_blank" rel="noopener" href="https://my.oschina.net/mjRao/blog/666033">Reactor 模型 </a> 封装了自己的事件驱动模型库。你可能会跟我有一样的疑问，为什么作者不使用已有的成熟的相关库，比如 Libevent 或 Libev？作者是<a target="_blank" rel="noopener" href="https://groups.google.com/forum/#!topic/redis-db/tSgU6e8VuNA"> 这样 </a> 跟别人讨论的，感兴趣的可以了解下。<br>下面从源码入手介绍下 Redis 中封装的 ae 库。<br><!--more----></p>
+<h3 id="Redis- 中的 -I-O- 多路复用"><a href="#Redis- 中的 -I-O- 多路复用" class="headerlink" title="Redis 中的 I/O 多路复用"></a>Redis 中的 I/O 多路复用</h3><p>Redis 的 I/O 多路复用函数库对常见的 select/epoll/evport/kqueue 等进行了封装，提高了易用性。每一个 I/O 多路复用函数库在 Redis 源码中都单独成一个个文件，因此你可以找到 ae_epoll.c 等文件，它们对外提供统一的 API，这样做有一个好处是，底层库可以互换。<br>Redis 在底层用哪个 I/O 多路复用函数库是在编译时决定的，源码中定义了如下的规则，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">ifdef</span> HAVE_EVPORT</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&quot;ae_evport.c&quot;</span></span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">else</span></span>
@@ -264,8 +260,7 @@ Redis 在底层用哪个 I/O 多路复用函数库是在编译时决定的，源
         <span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span>
     <span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span></code></pre></div>
-<p>该规则保证在编译时会自动选择系统中性能最高的 I/O 多路复用函数库作为其 I/O 多路复用程序的底层实现。绝大多数的 Redis 服务都跑在 linux 服务器上，因此用的是 epoll。<br>
-大家都知道，epoll 常用函数主要有以下 3 个：</p>
+<p>该规则保证在编译时会自动选择系统中性能最高的 I/O 多路复用函数库作为其 I/O 多路复用程序的底层实现。绝大多数的 Redis 服务都跑在 linux 服务器上，因此用的是 epoll。<br>大家都知道，epoll 常用函数主要有以下 3 个：</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;sys/epoll.h&gt;</span></span>
 <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">epoll_create</span><span class="hljs-params">(<span class="hljs-keyword">int</span> size)</span></span>;
 <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">epoll_ctl</span><span class="hljs-params">(<span class="hljs-keyword">int</span> epfd, <span class="hljs-keyword">int</span> op, <span class="hljs-keyword">int</span> fd, struct epoll_event *event)</span></span>;
@@ -336,19 +331,9 @@ Redis 在底层用哪个 I/O 多路复用函数库是在编译时决定的，源
 &#125;
 </code></pre></div>
 <p>看起来很简单，感兴趣的小伙伴可以看看 select 等其他底层库的封装。</p>
-<h3 id="Redis- 中的事件">Redis 中的事件</h3>
-<p>Redis 是事件驱动的程序，服务器需要处理文件事件 (file event) 和时间事件(time event)，其中各结构体关系如下：<br>
-<img src="https://s1.ax1x.com/2018/10/28/icw25T.jpg" srcset="/img/loading.gif" width="800" /><br>
-可以看到事件处理的核心是 <code>aeEventLoop</code>，它的作用是负责保存待处理文件事件和时间事件的结构体。</p>
+<h3 id="Redis- 中的事件"><a href="#Redis- 中的事件" class="headerlink" title="Redis 中的事件"></a>Redis 中的事件 </h3><p>Redis 是事件驱动的程序，服务器需要处理文件事件(file event) 和时间事件 (time event)，其中各结构体关系如下：<br><img src="https://s1.ax1x.com/2018/10/28/icw25T.jpg" srcset="/img/loading.gif" width="800" /><br> 可以看到事件处理的核心是 <code>aeEventLoop</code>，它的作用是负责保存待处理文件事件和时间事件的结构体。</p>
 <p>那么，下面先介绍 Redis 中的两种事件。</p>
-<h4 id="文件事件">文件事件</h4>
-<p><strong>文件事件是 Redis 服务器对套接字操作的抽象</strong>。<br>
-服务器通过套接字与客户端进行连接，服务器与客户端的通信会产生相应的文件事件。<br>
-Redis 中使用 I/O 多路复用程序同时监听多个 socket，然后 socket 中做的不同操作关联不同的事件处理器，即采用不用的处理逻辑。<br>
-当客户端 connect server 时，即有新的连接到来，此时在服务器 listen socket fd 上产生 <code>ae.h/AE_READABLE</code> 事件，该事件由 <code>acceptTcpHandler</code> 函数进行处理。<br>
-当客户端有数据写到 socket 时，client fd 上产生<code>ae.h/AE_READABLE</code> 事件，该事件由 <code>readQueryFromClient</code> 函数进行处理。<br>
-当 sever 给 client 回复时，client fd 产生 <code>ae.h/AE_WRITABLE</code> 事件，该事件由 <code>sendReplyToClient</code> 函数进行处理。<br>
-而对于所有的文件事件，在事件处理器 <code>aeProcessEvents</code> 中都有如下处理逻辑：</p>
+<h4 id="文件事件"><a href="# 文件事件" class="headerlink" title="文件事件"></a>文件事件 </h4><p><strong> 文件事件是 Redis 服务器对套接字操作的抽象 </strong>。<br> 服务器通过套接字与客户端进行连接，服务器与客户端的通信会产生相应的文件事件。<br>Redis 中使用 I/O 多路复用程序同时监听多个 socket，然后 socket 中做的不同操作关联不同的事件处理器，即采用不用的处理逻辑。<br>当客户端 connect server 时，即有新的连接到来，此时在服务器 listen socket fd 上产生 <code>ae.h/AE_READABLE</code> 事件，该事件由 <code>acceptTcpHandler</code> 函数进行处理。<br>当客户端有数据写到 socket 时，client fd 上产生 <code>ae.h/AE_READABLE</code> 事件，该事件由 <code>readQueryFromClient</code> 函数进行处理。<br> 当 sever 给 client 回复时，client fd 产生 <code>ae.h/AE_WRITABLE</code> 事件，该事件由 <code>sendReplyToClient</code> 函数进行处理。<br>而对于所有的文件事件，在事件处理器 <code>aeProcessEvents</code> 中都有如下处理逻辑：</p>
 <div class="hljs"><pre><code class="hljs c"> <span class="hljs-comment">// 阻塞等待，返回就绪文件事件的个数</span>
 numevents = aeApiPoll(eventLoop, tvp);
 <span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; numevents; j++) &#123;
@@ -366,10 +351,8 @@ numevents = aeApiPoll(eventLoop, tvp);
     &#125;
     processed++; <span class="hljs-comment">// 处理的事件数 + 1</span>
 &#125;</code></pre></div>
-<h4 id="事件处理与调度">事件处理与调度</h4>
-<p>包含对文件事件和时间事件的处理，其实都收敛到 <code>aeProcessEvents</code> 这个函数。</p>
-<p>在 <a target="_blank" rel="noopener" href="https://draveness.me/redis-eventloop"> 网上 </a> 找了一个图可以很好的说明这个过程<br>
-<img src="https://s1.ax1x.com/2018/10/28/icwfGF.jpg" srcset="/img/loading.gif" width="650" /></p>
+<h4 id="事件处理与调度"><a href="# 事件处理与调度" class="headerlink" title="事件处理与调度"></a>事件处理与调度 </h4><p> 包含对文件事件和时间事件的处理，其实都收敛到 <code>aeProcessEvents</code> 这个函数。</p>
+<p>在 <a target="_blank" rel="noopener" href="https://draveness.me/redis-eventloop"> 网上 </a> 找了一个图可以很好的说明这个过程<br><img src="https://s1.ax1x.com/2018/10/28/icwfGF.jpg" srcset="/img/loading.gif" width="650" /></p>
 <p>在时间处理器中有这样一个逻辑:</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 找出最近要发生的那个时间事件</span>
 shortest = aeSearchNearestTimer(eventLoop);
@@ -377,13 +360,8 @@ shortest = aeSearchNearestTimer(eventLoop);
  <span class="hljs-comment">// 阻塞等待，返回就绪文件事件的个数</span>
 numevents = aeApiPoll(eventLoop, tvp);</code></pre></div>
 <p>将最近要发生的时间事件的时间作为 <code>aeApiPoll</code> 函数的最大阻塞时间，这既可以避免服务器对时间事件进行频繁的轮询（忙等待），也可以确保该函数不会阻塞过长时间。</p>
-<p><strong>注意</strong>：<br>
-事件可能是并发产生的，但是到了时间处理器这里都变成串行处理了；<br>
-时间事件并不一定是按照预设的时间点发生，会有偏差。</p>
-<h4 id="时间事件">时间事件</h4>
-<p><strong>时间事件时服务器对一些定时或者周期任务的抽象</strong>。<br>
-分为两类，定时事件和周期事件。两类事件可以根据时间事件处理器 <code>processTimeEvents</code> 中时间事件处理函数 <code>timeProc</code> 绑定的具体函数返回结果来区分。如果返回值为 <code>AE_NOMORE</code>，则表示这是个一次性的时间事件，否则表明是个周期任务。<br>
-对此，在事件处理器 <code>aeProcessEvents</code> 如下处理逻辑：</p>
+<p><strong>注意 </strong>：<br> 事件可能是并发产生的，但是到了时间处理器这里都变成串行处理了；<br>时间事件并不一定是按照预设的时间点发生，会有偏差。</p>
+<h4 id="时间事件"><a href="# 时间事件" class="headerlink" title="时间事件"></a>时间事件 </h4><p><strong> 时间事件时服务器对一些定时或者周期任务的抽象 </strong>。<br> 分为两类，定时事件和周期事件。两类事件可以根据时间事件处理器 <code>processTimeEvents</code> 中时间事件处理函数 <code>timeProc</code> 绑定的具体函数返回结果来区分。如果返回值为 <code>AE_NOMORE</code>，则表示这是个一次性的时间事件，否则表明是个周期任务。<br>对此，在事件处理器 <code>aeProcessEvents</code> 如下处理逻辑：</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (flags &amp; AE_TIME_EVENTS) <span class="hljs-comment">// 处理时间事件</span>
     processed += processTimeEvents(eventLoop);</code></pre></div>
 <p>进到 <code>processTimeEvents</code>里去看，会遍历每一个时间事件，然后执行以下逻辑：</p>
@@ -406,8 +384,7 @@ numevents = aeApiPoll(eventLoop, tvp);</code></pre></div>
 <blockquote>
 <p>在目前版本中，正常模式下的 Redis 服务器只使用了 <code>serverCron</code> 一个时间事件，而在 benchmark 模式下，服务器也值使用了两个时间事件。在这种情况下，服务器几乎是将无序链表退化成一个指针来使用，因此不影响时间事件执行的性能。</p>
 </blockquote>
-<h3 id="Redis- 服务流程">Redis 服务流程</h3>
-<p>将 Redis 源码主流程简化，其实就是下面这样，</p>
+<h3 id="Redis- 服务流程"><a href="#Redis- 服务流程" class="headerlink" title="Redis 服务流程"></a>Redis 服务流程 </h3><p> 将 Redis 源码主流程简化，其实就是下面这样，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">main</span><span class="hljs-params">(<span class="hljs-keyword">int</span> argc, <span class="hljs-keyword">char</span> **argv)</span> </span>&#123;
     ...
     initServer();
@@ -417,7 +394,7 @@ numevents = aeApiPoll(eventLoop, tvp);</code></pre></div>
     aeDeleteEventLoop(server.el);
     <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
 &#125;</code></pre></div>
-<p>而在 <code>aeMain </code> 函数中则是一个大循环，该循环一直到 <code>eventLoop-&gt;stop</code> 被标记成非 0 才会停止，如下，</p>
+<p>而在 <code>aeMain</code> 函数中则是一个大循环，该循环一直到 <code>eventLoop-&gt;stop</code> 被标记成非 0 才会停止，如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">aeMain</span><span class="hljs-params">(aeEventLoop *eventLoop)</span> </span>&#123;
     eventLoop-&gt;stop = <span class="hljs-number">0</span>;
     <span class="hljs-keyword">while</span> (!eventLoop-&gt;stop) &#123;
@@ -429,9 +406,7 @@ numevents = aeApiPoll(eventLoop, tvp);</code></pre></div>
 <p>在初始化 <code>initServer</code> 函数中会创建一个 <code>aeEventLoop</code> 结构体，如下，</p>
 <div class="hljs"><pre><code class="hljs c">server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR);</code></pre></div>
 <p><code>maxclients</code> 为配置文件中配置的可接受最大连接数。</p>
-<h3 id="参考">参考</h3>
-<p>【1】《Redis 设计与实现》<br>
-【2】<a target="_blank" rel="noopener" href="https://draveness.me/redis-eventloop">https://draveness.me/redis-eventloop</a></p>
+<h3 id="参考"><a href="# 参考" class="headerlink" title="参考"></a>参考</h3><p>【1】《Redis 设计与实现》<br>【2】<a target="_blank" rel="noopener" href="https://draveness.me/redis-eventloop">https://draveness.me/redis-eventloop</a></p>
 
             </div>
             <hr>

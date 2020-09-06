@@ -196,7 +196,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      709 字
+      702 字
     </span>
   
 
@@ -247,61 +247,35 @@
             <div class="markdown-body" id="post-body">
               <p>gdb 是一个由 GNU 开源组织发布的、UNIX/LINUX 操作系统下的、基于命令行的、功能强大的程序调试工具。当然了，一般都是使用 gdb 调试 c/cpp 程序。</p>
 <a id="more"></a>
-<p> 一般来说，GDB 主要帮忙你完成下面四个方面的功能：</p>
+<p>一般来说，GDB 主要帮忙你完成下面四个方面的功能：</p>
 <ol>
-<li> 启动你的程序，可以按照你的自定义的要求随心所欲的运行程序。</li>
-<li> 可让被调试的程序在你所指定的调置的断点处停住。（断点可以是条件表达式）</li>
-<li> 当程序被停住时，可以检查此时你的程序中所发生的事。</li>
-<li> 动态的改变你程序的执行环境。</li>
+<li>启动你的程序，可以按照你的自定义的要求随心所欲的运行程序。</li>
+<li>可让被调试的程序在你所指定的调置的断点处停住。（断点可以是条件表达式）</li>
+<li>当程序被停住时，可以检查此时你的程序中所发生的事。</li>
+<li>动态的改变你程序的执行环境。</li>
 </ol>
 <p>gdb 功能很强大，因此命令也很多，但是并不见得都能用得到，对于日常使用来说，知道一些常用的就够用了。</p>
-<h2 id="准备工作"> 准备工作 </h2>
-<p> 代码在编译时要加上 <code>-g</code> 选项，生成的可执行文件才能用 gdb 进行源码级调试。<br>
-比如，<code>gcc -g main.c -o main</code>。<br>
-<code>-g</code> 选项的作用是在可执行文件中加入源代码的信息，比如可执行文件中第几条机器指令对应源代码的第几行，但并不是把整个源文件嵌入到可执行文件中，所以在调试时必须保证 gdb 能找到源文件。</p>
-<h2 id="参数说明"> 参数说明 </h2>
-<h3 id="list-l">list/l</h3>
-<p><strong>list linenum</strong>，打印出以 linenum 行为中心的上下几行源码。<br>
-<strong>list func</strong>，打印以函数 func 定义所在行为中心的上下几行代码。<br>
-<strong>list</strong>, 打印当前行后面的源程序，每次 10 行。</p>
-<h3 id="run-r">run/r</h3>
-<p> 运行程序至第一个断点处停止。</p>
-<h3 id="break-b">break/b</h3>
-<p><strong>break linenum</strong>，在第 linenum 处设置一个断点。<br>
-<strong>break func</strong>，在 func 函数入口处设置一个断点。</p>
-<h3 id="d">d</h3>
-<p><strong>d 断点 num</strong>，删除第 num 个断点。</p>
-<h3 id="step-s">step/s</h3>
-<p> 执行一行源程序代码，如果此行代码中有函数调用，则进入该函数。</p>
-<h3 id="next-n">next/n</h3>
-<p> 与 step 相反，n 表示不进入函数内容，继续执行。</p>
-<h3 id="print-p">print/p</h3>
-<p><strong>print 变量名 </strong>，打印出变量值。</p>
-<h3 id="backtrace-bt">backtrace/bt</h3>
-<p> 查看各级函数调用及参数。</p>
-<h3 id="frame-f">frame/f</h3>
-<p><strong>frame 帧编号 </strong>，选择栈帧。</p>
-<h3 id="set">set</h3>
-<p><strong>set var 变量 = 值 </strong>，修改某变量的值。<br>
-或者用 <code>print</code> 指令也能达到目的。</p>
-<h3 id="finish">finish</h3>
-<p> 让程序一直运行到从当前函数返回为止。</p>
-<h3 id="info-i">info/i</h3>
-<p><strong>info break</strong>，查看所有已经设置的断点信息。<br>
-<strong>info locals</strong>，查看当前栈帧局部变量的值。</p>
-<h3 id="shell">shell</h3>
-<p> 不离开 gdb 就执行 UNIX shell 命令 </p>
-<h3 id="help-h">help/h</h3>
-<p> 获取帮助信息。</p>
-<h3 id="quit-q">quit/q</h3>
-<p> 离开 gdb。</p>
-<p><strong> 注意: 上述命令几乎都可以使用首字母来简写长命令。</strong></p>
-<h2 id="调试 -coredump- 文件"> 调试 coredump 文件 </h2>
-<p><strong>gdb 可执行文件 产生的 coredump 文件 </strong>，比如，<code>gdb test core.3533</code>。</p>
-<h2 id="参考"> 参考 </h2>
-<ol>
-<li><a target="_blank" rel="noopener" href="http://blog.csdn.net/21cnbao/article/details/7385161">Linux gdb 调试器用法全面解析 </a></li>
-<li><a target="_blank" rel="noopener" href="http://blog.csdn.net/gatieme/article/details/51671430"> 使用 gdb 调试程序完全教程 </a></li>
+<h2 id="准备工作"><a href="# 准备工作" class="headerlink" title="准备工作"></a>准备工作 </h2><p> 代码在编译时要加上 <code>-g</code> 选项，生成的可执行文件才能用 gdb 进行源码级调试。<br>比如，<code>gcc -g main.c -o main</code>。<br><code>-g</code> 选项的作用是在可执行文件中加入源代码的信息，比如可执行文件中第几条机器指令对应源代码的第几行，但并不是把整个源文件嵌入到可执行文件中，所以在调试时必须保证 gdb 能找到源文件。</p>
+<h2 id="参数说明"><a href="# 参数说明" class="headerlink" title="参数说明"></a>参数说明</h2><h3 id="list-l"><a href="#list-l" class="headerlink" title="list/l"></a>list/l</h3><p><strong>list linenum</strong>，打印出以 linenum 行为中心的上下几行源码。<br><strong>list func</strong>，打印以函数 func 定义所在行为中心的上下几行代码。<br><strong>list</strong>, 打印当前行后面的源程序，每次 10 行。</p>
+<h3 id="run-r"><a href="#run-r" class="headerlink" title="run/r"></a>run/r</h3><p>运行程序至第一个断点处停止。</p>
+<h3 id="break-b"><a href="#break-b" class="headerlink" title="break/b"></a>break/b</h3><p><strong>break linenum</strong>，在第 linenum 处设置一个断点。<br><strong>break func</strong>，在 func 函数入口处设置一个断点。</p>
+<h3 id="d"><a href="#d" class="headerlink" title="d"></a>d</h3><p><strong>d 断点 num</strong>，删除第 num 个断点。</p>
+<h3 id="step-s"><a href="#step-s" class="headerlink" title="step/s"></a>step/s</h3><p>执行一行源程序代码，如果此行代码中有函数调用，则进入该函数。</p>
+<h3 id="next-n"><a href="#next-n" class="headerlink" title="next/n"></a>next/n</h3><p>与 step 相反，n 表示不进入函数内容，继续执行。</p>
+<h3 id="print-p"><a href="#print-p" class="headerlink" title="print/p"></a>print/p</h3><p><strong>print 变量名</strong>，打印出变量值。</p>
+<h3 id="backtrace-bt"><a href="#backtrace-bt" class="headerlink" title="backtrace/bt"></a>backtrace/bt</h3><p>查看各级函数调用及参数。</p>
+<h3 id="frame-f"><a href="#frame-f" class="headerlink" title="frame/f"></a>frame/f</h3><p><strong>frame 帧编号</strong>，选择栈帧。</p>
+<h3 id="set"><a href="#set" class="headerlink" title="set"></a>set</h3><p><strong>set var 变量 = 值 </strong>，修改某变量的值。<br> 或者用 <code>print</code> 指令也能达到目的。</p>
+<h3 id="finish"><a href="#finish" class="headerlink" title="finish"></a>finish</h3><p>让程序一直运行到从当前函数返回为止。</p>
+<h3 id="info-i"><a href="#info-i" class="headerlink" title="info/i"></a>info/i</h3><p><strong>info break</strong>，查看所有已经设置的断点信息。<br><strong>info locals</strong>，查看当前栈帧局部变量的值。</p>
+<h3 id="shell"><a href="#shell" class="headerlink" title="shell"></a>shell</h3><p>不离开 gdb 就执行 UNIX shell 命令</p>
+<h3 id="help-h"><a href="#help-h" class="headerlink" title="help/h"></a>help/h</h3><p>获取帮助信息。</p>
+<h3 id="quit-q"><a href="#quit-q" class="headerlink" title="quit/q"></a>quit/q</h3><p>离开 gdb。</p>
+<p><strong>注意: 上述命令几乎都可以使用首字母来简写长命令。</strong></p>
+<h2 id="调试 -coredump- 文件"><a href="# 调试 -coredump- 文件" class="headerlink" title="调试 coredump 文件"></a>调试 coredump 文件</h2><p><strong>gdb 可执行文件 产生的 coredump 文件</strong>，比如，<code>gdb test core.3533</code>。</p>
+<h2 id="参考"><a href="# 参考" class="headerlink" title="参考"></a>参考</h2><ol>
+<li><a target="_blank" rel="noopener" href="http://blog.csdn.net/21cnbao/article/details/7385161">Linux gdb 调试器用法全面解析</a></li>
+<li><a target="_blank" rel="noopener" href="http://blog.csdn.net/gatieme/article/details/51671430">使用 gdb 调试程序完全教程</a></li>
 </ol>
 
             </div>

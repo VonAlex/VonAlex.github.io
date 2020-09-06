@@ -248,30 +248,18 @@
               <p>使用 golang 开发项目时经常会使用到 redis 服务，这时就需要一个趁手的 sdk，所以就在 github 中找了一个 star 较多的项目，这就是本篇的主角 <strong>redigo</strong>，同时这也是 redis 的 <a target="_blank" rel="noopener" href="https://redis.io/clients#go"> 官方推荐</a>。</p>
 <p>不过在使用过程中遇到了一些小问题，因此就去了解了一下源码，以下作为一个笔记。</p>
 <!--more---->
-<p>redigo 项目代码量较少，且注释明确，适合阅读学习。<br>
-redigo 主要完成了以下功能:</p>
+<p>redigo 项目代码量较少，且注释明确，适合阅读学习。<br>redigo 主要完成了以下功能:</p>
 <ul>
-<li>
-<p>与 redis server 建立连接</p>
+<li><p>与 redis server 建立连接</p>
 </li>
-<li>
-<p>按照 <a target="_blank" rel="noopener" href="https://redis.io/topics/protocol">RESP</a> 协议进行命令组装</p>
+<li><p>按照 <a target="_blank" rel="noopener" href="https://redis.io/topics/protocol">RESP</a> 协议进行命令组装</p>
 </li>
-<li>
-<p>向 Redis server 发送组装好的命令</p>
-</li>
-<li>
-<p>接收 Redis server 返回的数据</p>
-</li>
-<li>
-<p>将返回数据解析成 go 的数据类型</p>
-</li>
-<li>
-<p>提供连接池的使用方式</p>
-</li>
+<li>向 Redis server 发送组装好的命令</li>
+<li>接收 Redis server 返回的数据</li>
+<li>将返回数据解析成 go 的数据类型</li>
+<li>提供连接池的使用方式</li>
 </ul>
-<h2 id="1- 代码结构">1. 代码结构</h2>
-<div class="hljs"><pre><code class="hljs shell">redis
+<h2 id="1- 代码结构"><a href="#1- 代码结构" class="headerlink" title="1. 代码结构"></a>1. 代码结构</h2><div class="hljs"><pre><code class="hljs shell">redis
 ├── conn.go  // 实现 redis.go 中定义的接口，完成以上主要功能
 ├── conn_test.go
 ├── doc.go
@@ -292,8 +280,7 @@ redigo 主要完成了以下功能:</p>
 ├── test_test.go
 └── zpop_example_test.go</code></pre></div>
 <p>项目主体主要有以上代码组成。</p>
-<h2 id="2- 创建连接">2. 创建连接</h2>
-<p>代码位于文件 <code>conn.go</code>，要创建的连接是一个自定义的数据结构 <code>conn</code>，如下，</p>
+<h2 id="2- 创建连接"><a href="#2- 创建连接" class="headerlink" title="2. 创建连接"></a>2. 创建连接 </h2><p> 代码位于文件 <code>conn.go</code>，要创建的连接是一个自定义的数据结构 <code>conn</code>，如下，</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-comment">// conn is the low-level implementation of Conn</span>
 <span class="hljs-keyword">type</span> conn <span class="hljs-keyword">struct</span> &#123;
     <span class="hljs-comment">// Shared</span>
@@ -328,8 +315,7 @@ redigo 主要完成了以下功能:</p>
     skipVerify   <span class="hljs-keyword">bool</span>
     tlsConfig    *tls.Config
 &#125;</code></pre></div>
-<p>其中包含各种超时设置，创建连接使用的函数，以及 TLS 等。<br>
-参数设置则封装了一系列 <code>Dialxxxx</code> 函数，如 <code>DialWriteTimeout</code>,</p>
+<p>其中包含各种超时设置，创建连接使用的函数，以及 TLS 等。<br>参数设置则封装了一系列 <code>Dialxxxx</code> 函数，如 <code>DialWriteTimeout</code>,</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-comment">// DialWriteTimeout specifies the timeout for writing a single command.</span>
 <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">DialWriteTimeout</span><span class="hljs-params">(d time.Duration)</span> <span class="hljs-title">DialOption</span></span> &#123;
     <span class="hljs-keyword">return</span> DialOption&#123;<span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(do *dialOptions)</span></span> &#123;
@@ -383,8 +369,7 @@ redigo 主要完成了以下功能:</p>
     <span class="hljs-keyword">return</span> c, <span class="hljs-literal">nil</span>
 &#125;</code></pre></div>
 <p>还有一个类似的 <code>DialURL</code> 函数就不分析了。</p>
-<h2 id="3- 请求与接收">3. 请求与接收</h2>
-<p>非 pipeline 的形式，都是通过 <code>Do</code> 函数去触发这个流程的。</p>
+<h2 id="3- 请求与接收"><a href="#3- 请求与接收" class="headerlink" title="3. 请求与接收"></a>3. 请求与接收 </h2><p> 非 pipeline 的形式，都是通过 <code>Do</code> 函数去触发这个流程的。</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(c *conn)</span> <span class="hljs-title">Do</span><span class="hljs-params">(cmd <span class="hljs-keyword">string</span>, args ...<span class="hljs-keyword">interface</span>&#123;&#125;)</span> <span class="hljs-params">(<span class="hljs-keyword">interface</span>&#123;&#125;, error)</span></span> &#123;
     c.mu.Lock() <span class="hljs-comment">// 需要更新 pending 变量，加锁串行</span>
     pending := c.pending
@@ -438,8 +423,7 @@ redigo 主要完成了以下功能:</p>
     &#125;
     <span class="hljs-keyword">return</span> reply, err
 &#125;</code></pre></div>
-<h3 id="3-1- 发送命令">3.1 发送命令</h3>
-<p>发送命令前必须以 RESP 协议序列化，主要用到以下函数，</p>
+<h3 id="3-1- 发送命令"><a href="#3-1- 发送命令" class="headerlink" title="3.1 发送命令"></a>3.1 发送命令 </h3><p> 发送命令前必须以 RESP 协议序列化，主要用到以下函数，</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(c *conn)</span> <span class="hljs-title">writeCommand</span><span class="hljs-params">(cmd <span class="hljs-keyword">string</span>, args []<span class="hljs-keyword">interface</span>&#123;&#125;)</span> <span class="hljs-params">(err error)</span></span> &#123;
     c.writeLen(<span class="hljs-string">&#x27;*&#x27;</span>, <span class="hljs-number">1</span>+<span class="hljs-built_in">len</span>(args)) <span class="hljs-comment">// +1 是将 cmd 加上，将参数个数写入 buf， 如 *3\r\n</span>
     err = c.writeString(cmd)
@@ -500,14 +484,9 @@ truec.bw.WriteString(s)
 true_, err := c.bw.WriteString(<span class="hljs-string">&quot;\r\n&quot;</span>)
 true<span class="hljs-keyword">return</span> err
 &#125;</code></pre></div>
-<p>按照 RESP 协议的格式将命令拼接完以后需要发出去，通过 <code>bufio</code> 的 <code>Flush</code> 完成。<br>
-另外，redigo 还支持 pipeline 的返回方式发送请求，使用到的函数是 <code>Send</code> 和 <code>Flush</code>。在 <code>Send</code>中只是把命令写到 bufio 的 buff 里了，<code>Flush</code> 才会发到对端。</p>
-<h3 id="3-2- 响应解析">3.2 响应解析</h3>
-<p>发送命令成功后， redis server 那边处理完请求后，同样以 RESP 的格式回复。<br>
-解析函数是 <code>readReply</code>，对照着 RESP 协议看下就好了，还是很简单的。<br>
-multi bulk reply 可以反复调用 bulk reply 解析函数去递归完成解析。</p>
-<h3 id="3-3- 关闭连接">3.3 关闭连接</h3>
-<p>使用完毕连接以后，需要手动 close 掉，如下，</p>
+<p>按照 RESP 协议的格式将命令拼接完以后需要发出去，通过 <code>bufio</code> 的 <code>Flush</code> 完成。<br>另外，redigo 还支持 pipeline 的返回方式发送请求，使用到的函数是 <code>Send</code> 和 <code>Flush</code>。在 <code>Send</code>中只是把命令写到 bufio 的 buff 里了，<code>Flush</code> 才会发到对端。</p>
+<h3 id="3-2- 响应解析"><a href="#3-2- 响应解析" class="headerlink" title="3.2 响应解析"></a>3.2 响应解析 </h3><p> 发送命令成功后， redis server 那边处理完请求后，同样以 RESP 的格式回复。<br>解析函数是 <code>readReply</code>，对照着 RESP 协议看下就好了，还是很简单的。<br>multi bulk reply 可以反复调用 bulk reply 解析函数去递归完成解析。</p>
+<h3 id="3-3- 关闭连接"><a href="#3-3- 关闭连接" class="headerlink" title="3.3 关闭连接"></a>3.3 关闭连接 </h3><p> 使用完毕连接以后，需要手动 close 掉，如下，</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(c *conn)</span> <span class="hljs-title">Close</span><span class="hljs-params">()</span> <span class="hljs-title">error</span></span> &#123;
     c.mu.Lock()
     err := c.err
@@ -518,10 +497,8 @@ multi bulk reply 可以反复调用 bulk reply 解析函数去递归完成解析
     c.mu.Unlock()
     <span class="hljs-keyword">return</span> err
 &#125;</code></pre></div>
-<h2 id="4-pool- 的分析">4. pool 的分析</h2>
-<p>很多人在用 redigo 的时候会使用其连接池，因为使用该 sdk 时间较长，发现了 pool 的实现有两个版本。</p>
-<h3 id="4-1- 老版本 -pool">4.1 老版本 pool</h3>
-<p>主要数据结构为 <code>pool</code>，即</p>
+<h2 id="4-pool- 的分析"><a href="#4-pool- 的分析" class="headerlink" title="4. pool 的分析"></a>4. pool 的分析 </h2><p> 很多人在用 redigo 的时候会使用其连接池，因为使用该 sdk 时间较长，发现了 pool 的实现有两个版本。</p>
+<h3 id="4-1- 老版本 -pool"><a href="#4-1- 老版本 -pool" class="headerlink" title="4.1 老版本 pool"></a>4.1 老版本 pool</h3><p>主要数据结构为 <code>pool</code>，即</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> Pool <span class="hljs-keyword">struct</span> &#123;
 
     <span class="hljs-comment">// Dial is an application supplied function for creating and configuring a</span>
@@ -571,8 +548,7 @@ multi bulk reply 可以反复调用 bulk reply 解析函数去递归完成解析
     <span class="hljs-comment">// Stack of idleConn with most recently used at the front.</span>
     idle list.List
 &#125;</code></pre></div>
-<p>该版本中使用了条件变量 <code>Cond</code>来协调多协程获取连接池中的连接<br>
-<code>idle</code> 使用的是 go 标准库 container 中的 list 数据结构，其中存放的是池中的连接，每个连接的数据结构如下，</p>
+<p>该版本中使用了条件变量 <code>Cond</code>来协调多协程获取连接池中的连接<br><code>idle</code> 使用的是 go 标准库 container 中的 list 数据结构，其中存放的是池中的连接，每个连接的数据结构如下，</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> idleConn <span class="hljs-keyword">struct</span> &#123;
     c Conn
     t time.Time
@@ -584,8 +560,7 @@ multi bulk reply 可以反复调用 bulk reply 解析函数去递归完成解析
     state <span class="hljs-keyword">int</span>
 &#125;
 </code></pre></div>
-<h4 id="4-1-1- 从 -pool- 获取连接">4.1.1 从 pool 获取连接</h4>
-<div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(p *Pool)</span> <span class="hljs-title">Get</span><span class="hljs-params">()</span> <span class="hljs-title">Conn</span></span> &#123;
+<h4 id="4-1-1- 从 -pool- 获取连接"><a href="#4-1-1- 从 -pool- 获取连接" class="headerlink" title="4.1.1 从 pool 获取连接"></a>4.1.1 从 pool 获取连接</h4><div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(p *Pool)</span> <span class="hljs-title">Get</span><span class="hljs-params">()</span> <span class="hljs-title">Conn</span></span> &#123;
     c, err := p.get()
     <span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;
       <span class="hljs-keyword">return</span> errorConnection&#123;err&#125;
@@ -683,8 +658,7 @@ multi bulk reply 可以反复调用 bulk reply 解析函数去递归完成解析
       p.cond.Signal() <span class="hljs-comment">// 通知 wait 的请求返回连接</span>
     &#125;
 &#125;</code></pre></div>
-<h4 id="4-1-2- 向 -pool-return- 连接">4.1.2 向 pool return 连接</h4>
-<p>用完连接后要还回去，在调用连接的 <code>Close</code> 函数中会使用 <code>put</code>。</p>
+<h4 id="4-1-2- 向 -pool-return- 连接"><a href="#4-1-2- 向 -pool-return- 连接" class="headerlink" title="4.1.2 向 pool return 连接"></a>4.1.2 向 pool return 连接 </h4><p> 用完连接后要还回去，在调用连接的 <code>Close</code> 函数中会使用 <code>put</code>。</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(p *Pool)</span> <span class="hljs-title">put</span><span class="hljs-params">(c Conn, forceClose <span class="hljs-keyword">bool</span>)</span> <span class="hljs-title">error</span></span> &#123;
     err := c.Err()
     p.mu.Lock()
@@ -711,8 +685,7 @@ multi bulk reply 可以反复调用 bulk reply 解析函数去递归完成解析
 &#125;</code></pre></div>
 <p>将没有出错的连接并且不是别强制关闭的连接放回到 idle list 中，注意，这里是放到 <strong> 队头 </strong>！如果 list 长度大于最大闲置连接数(MaxIdle)，那么从队尾取连接 <code>remove</code> 掉。</p>
 <p><code>Signal</code> 唤醒条件变量。</p>
-<h3 id="4-2- 新版本 -pool">4.2 新版本 pool</h3>
-<p>在版本的 pool 里，自己实现了一个 list，取代 golang 的官方库 list。</p>
+<h3 id="4-2- 新版本 -pool"><a href="#4-2- 新版本 -pool" class="headerlink" title="4.2 新版本 pool"></a>4.2 新版本 pool</h3><p>在版本的 pool 里，自己实现了一个 list，取代 golang 的官方库 list。</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> idleList <span class="hljs-keyword">struct</span> &#123; <span class="hljs-comment">// 只记录头尾</span>
 truecount       <span class="hljs-keyword">int</span> <span class="hljs-comment">// list 长度</span>
 truefront, back *poolConn
@@ -724,15 +697,13 @@ truet          time.Time
 truecreated    time.Time
 truenext, prev *poolConn
 &#125;</code></pre></div>
-<p>同时实现了几个双链表的操作，<code>pushFront</code>、<code>popFront</code> 和 <code>popBack</code>。<br>
-新版本的 pool 里去掉了条件变量，换上了 channel。</p>
+<p>同时实现了几个双链表的操作，<code>pushFront</code>、<code>popFront</code> 和 <code>popBack</code>。<br>新版本的 pool 里去掉了条件变量，换上了 channel。</p>
 <div class="hljs"><pre><code class="hljs go">chInitialized <span class="hljs-keyword">uint32</span> <span class="hljs-comment">// set to 1 when field ch is initialized</span>
 ch           <span class="hljs-keyword">chan</span> <span class="hljs-keyword">struct</span>&#123;&#125; <span class="hljs-comment">// limits open connections when p.Wait is true</span>
 idle         idleList      <span class="hljs-comment">// idle connections</span>
 waitCount    <span class="hljs-keyword">int64</span>         <span class="hljs-comment">// total number of connections waited for.</span>
 waitDuration time.Duration <span class="hljs-comment">// total time waited for new connections.</span></code></pre></div>
-<p>pool 里的连接个数使用了 buffer channel 进行控制，大小为 <code>MaxActive</code>。<br>
-在第一次从 pool 中获取连接时，进行 channel 来初始化，即</p>
+<p>pool 里的连接个数使用了 buffer channel 进行控制，大小为 <code>MaxActive</code>。<br>在第一次从 pool 中获取连接时，进行 channel 来初始化，即</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(p *Pool)</span> <span class="hljs-title">lazyInit</span><span class="hljs-params">()</span></span> &#123;
     <span class="hljs-comment">// Fast path.</span>
     <span class="hljs-keyword">if</span> atomic.LoadUint32(&amp;p.chInitialized) == <span class="hljs-number">1</span> &#123;
@@ -753,8 +724,7 @@ waitDuration time.Duration <span class="hljs-comment">// total time waited for n
     &#125;
     p.mu.Unlock()
 &#125;</code></pre></div>
-<h4 id="4-2-1- 从 -pool- 获取连接">4.2.1 从 pool 获取连接</h4>
-<div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(p *Pool)</span> <span class="hljs-title">get</span><span class="hljs-params">(ctx context.Context)</span> <span class="hljs-params">(*poolConn, error)</span></span> &#123;
+<h4 id="4-2-1- 从 -pool- 获取连接"><a href="#4-2-1- 从 -pool- 获取连接" class="headerlink" title="4.2.1 从 pool 获取连接"></a>4.2.1 从 pool 获取连接</h4><div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(p *Pool)</span> <span class="hljs-title">get</span><span class="hljs-params">(ctx context.Context)</span> <span class="hljs-params">(*poolConn, error)</span></span> &#123;
 
 true<span class="hljs-comment">// Handle limit for p.Wait == true.</span>
     <span class="hljs-keyword">var</span> waited time.Duration
@@ -844,11 +814,8 @@ true<span class="hljs-comment">// Handle limit for p.Wait == true.</span>
     &#125;
     <span class="hljs-keyword">return</span> &amp;poolConn&#123;c: c, created: nowFunc()&#125;, err
 &#125;</code></pre></div>
-<p>可以看到只有在连接池满了愿意等待时，才回初始化 buffer channel，即调用 <code>lazyInit</code> 函数，省去了不必要的内存占用，可以借鉴。<br>
-当连接池已满，则 channel 为空，此时取连接的流程会阻塞在 <code>&lt;-p.ch</code>，这跟上一版本的 <code>cond.Wait()</code> 有相同的作用。<br>
-有相同的清理过期连接的逻辑，以及连接创建逻辑。</p>
-<h4 id="4-2-2- 从 -pool- 获取连接">4.2.2 从 pool 获取连接</h4>
-<div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(p *Pool)</span> <span class="hljs-title">put</span><span class="hljs-params">(pc *poolConn, forceClose <span class="hljs-keyword">bool</span>)</span> <span class="hljs-title">error</span></span> &#123;
+<p>可以看到只有在连接池满了愿意等待时，才回初始化 buffer channel，即调用 <code>lazyInit</code> 函数，省去了不必要的内存占用，可以借鉴。<br>当连接池已满，则 channel 为空，此时取连接的流程会阻塞在 <code>&lt;-p.ch</code>，这跟上一版本的 <code>cond.Wait()</code> 有相同的作用。<br>有相同的清理过期连接的逻辑，以及连接创建逻辑。</p>
+<h4 id="4-2-2- 从 -pool- 获取连接"><a href="#4-2-2- 从 -pool- 获取连接" class="headerlink" title="4.2.2 从 pool 获取连接"></a>4.2.2 从 pool 获取连接</h4><div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(p *Pool)</span> <span class="hljs-title">put</span><span class="hljs-params">(pc *poolConn, forceClose <span class="hljs-keyword">bool</span>)</span> <span class="hljs-title">error</span></span> &#123;
     p.mu.Lock()
     <span class="hljs-keyword">if</span> !p.closed &amp;&amp; !forceClose &#123;
       pc.t = nowFunc()
@@ -874,12 +841,8 @@ true<span class="hljs-comment">// Handle limit for p.Wait == true.</span>
     p.mu.Unlock()
     <span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span>
 &#125;</code></pre></div>
-<p><code>ch</code> 控制着 pool 中连接的数量，当取走一个时，需要 <code>&lt;-ch</code>，当还回一个时，需要 <code>ch &lt;- struct&#123;&#125;&#123;&#125;</code>。<br>
-另外，还要考虑到某些失败的情况，是否需要将配额还回 <code>ch</code>。</p>
-<h3 id="4-3- 分析">4.3 分析</h3>
-<p>从上面的代码可以看出，不管哪个版本的 pool，获得连接是从 <strong> 队首 </strong> 获取，还连接也是从 <strong> 队首 </strong> 还，淘汰过期连接或者多出的连接是从 <strong> 队尾 </strong> 淘汰。<br>
-另外，新版本的 pool 实现比老版本更加符合 golang 的语言风格。<br>
-从某种角度讲，这种 pool 的管理方式会造成 <strong> 某些连接过热 </strong> 的情况，即负载均衡不均，尤其是过期时间设置不合理的情况下，需慎重使用。</p>
+<p><code>ch</code> 控制着 pool 中连接的数量，当取走一个时，需要 <code>&lt;-ch</code>，当还回一个时，需要 <code>ch &lt;- struct&#123;&#125;&#123;&#125;</code>。<br>另外，还要考虑到某些失败的情况，是否需要将配额还回 <code>ch</code>。</p>
+<h3 id="4-3- 分析"><a href="#4-3- 分析" class="headerlink" title="4.3 分析"></a>4.3 分析 </h3><p> 从上面的代码可以看出，不管哪个版本的 pool，获得连接是从 <strong> 队首 </strong> 获取，还连接也是从 <strong> 队首 </strong> 还，淘汰过期连接或者多出的连接是从 <strong> 队尾 </strong> 淘汰。<br>另外，新版本的 pool 实现比老版本更加符合 golang 的语言风格。<br>从某种角度讲，这种 pool 的管理方式会造成 <strong> 某些连接过热 </strong> 的情况，即负载均衡不均，尤其是过期时间设置不合理的情况下，需慎重使用。</p>
 
             </div>
             <hr>

@@ -247,9 +247,7 @@
             <div class="markdown-body" id="post-body">
               <p>在 Redis cluster 中故障转移是个很重要的功能，下面就从故障发现到故障转移整个流程做一下详细分析。</p>
 <!--more---->
-<h2 id="1- 故障检测">1. 故障检测</h2>
-<h3 id="1-1-PFAIL- 标记">1.1 PFAIL 标记</h3>
-<p>集群中每个节点都会定期向其他节点发送 <strong>PING</strong> 消息，以此来检测对方是否在线，如果接收 <strong>PING</strong> 消息的节点 B 没有在规定时间（<strong>cluster_node_timeout</strong>）内回应节点 A <strong>PONG</strong> 消息，那么节点 A 就会将节点 B 标记为疑似下线（probable fail,  <strong>PFAIL</strong>）。</p>
+<h2 id="1- 故障检测"><a href="#1- 故障检测" class="headerlink" title="1. 故障检测"></a>1. 故障检测 </h2><h3 id="1-1-PFAIL- 标记"><a href="#1-1-PFAIL- 标记" class="headerlink" title="1.1 PFAIL 标记"></a>1.1 PFAIL 标记</h3><p> 集群中每个节点都会定期向其他节点发送 <strong>PING</strong> 消息，以此来检测对方是否在线，如果接收 <strong>PING</strong> 消息的节点 B 没有在规定时间（<strong>cluster_node_timeout</strong>）内回应节点 A <strong>PONG</strong> 消息，那么节点 A 就会将节点 B 标记为疑似下线（probable fail,  <strong>PFAIL</strong>）。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterCron</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-comment">// ...</span>
     di = dictGetSafeIterator(server.cluster-&gt;nodes);
@@ -270,8 +268,7 @@
     dictReleaseIterator(di);
     <span class="hljs-comment">// ...</span>
 &#125;</code></pre></div>
-<p>可以看到，在 <code>clusterCron</code> 函数中如果对节点 B 发出 PING 消息，在 <strong>server.cluster_node_timeout</strong> 时间内没有收到其返回的 PONG 消息，如果节点 B 现在没有被标记成 <strong>CLUSTER_NODE_PFAIL</strong> 状态，那么现在就做下这个标记。<br>
-可以根据 <strong>ping_sent</strong> 参数进行判断的依据如下，</p>
+<p>可以看到，在 <code>clusterCron</code> 函数中如果对节点 B 发出 PING 消息，在 <strong>server.cluster_node_timeout</strong> 时间内没有收到其返回的 PONG 消息，如果节点 B 现在没有被标记成 <strong>CLUSTER_NODE_PFAIL</strong> 状态，那么现在就做下这个标记。<br>可以根据 <strong>ping_sent</strong> 参数进行判断的依据如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">clusterProcessPacket</span><span class="hljs-params">(clusterLink *link)</span> </span>&#123;
     <span class="hljs-comment">// ...</span>
     <span class="hljs-keyword">if</span> (link-&gt;node &amp;&amp; type == CLUSTERMSG_TYPE_PONG) &#123;
@@ -281,19 +278,12 @@
     &#125;
     <span class="hljs-comment">// ...</span>
 &#125;</code></pre></div>
-<p>当节点 A 接收到节点 B 的 PONG 消息时，会把 <strong>ping_sent</strong> 更新成 0，同时记下收到本次 PONG 消息的时间。<br>
-上面提到的 clusterNode 与 clusterLink 有如下关联关系：<br>
-<img src="http://ww1.sinaimg.cn/large/71ca8e3cly1fzpznib0gij20ff07qjrt.jpg" srcset="/img/loading.gif" alt=""></p>
-<p>可以看出， clusterLink 就是为了接收对端 gossip 消息而设置的。<br>
-另外，我们发现， 在上面的 <code>clusterCron</code> 函数中将节点标记成 PFAIL 时，会将 update_state 变量置为 1，这会引发后面更改集群状态的逻辑。</p>
+<p>当节点 A 接收到节点 B 的 PONG 消息时，会把 <strong>ping_sent</strong> 更新成 0，同时记下收到本次 PONG 消息的时间。<br>上面提到的 clusterNode 与 clusterLink 有如下关联关系：<br><img src="http://ww1.sinaimg.cn/large/71ca8e3cly1fzpznib0gij20ff07qjrt.jpg" srcset="/img/loading.gif" alt=""></p>
+<p>可以看出， clusterLink 就是为了接收对端 gossip 消息而设置的。<br>另外，我们发现， 在上面的 <code>clusterCron</code> 函数中将节点标记成 PFAIL 时，会将 update_state 变量置为 1，这会引发后面更改集群状态的逻辑。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (update_state || server.cluster-&gt;state == CLUSTER_FAIL)
     clusterUpdateState();</code></pre></div>
-<p>集群有两个状态，<strong>CLUSTER_OK</strong> 和  <strong>CLUSTER_FAIL</strong>，如果集群目前状态是 CLUSTER_FAIL，且设置了参数 <code>cluster-require-full-coverage yes</code>，那么此时访问集群会返回错误，意思是可能有某些 slot 没有被 server 接管。<br>
-<code>clusterUpdateState</code> 函数负责更新集群状态，该部分逻辑与本篇博文要讲的主逻辑关系不大，所以放到了后面的 <strong> 补充章节 </strong> 中了。</p>
-<h3 id="1-2-FAIL- 标记">1.2 FAIL 标记</h3>
-<h4 id="1-2-1- 主动标记 -FAIL">1.2.1 主动标记 FAIL</h4>
-<p>被节点 A 标记成 FAIL/ PFAIL 的节点如何让节点 C 知道呢？这主要是通过平常发送的 PING/PONG 消息实现的，在 3.x 的版本时，会尽最大努力把这样的节点放到 gossip 消息的流言部分，到后面的 4.x 版本的代码中每次的 PING/PONG 消息都会把 PFAIL 节点都带上。<br>
-<code>clusterProcessGossipSection</code> 函数用来处理 gossip 消息的流言部分。</p>
+<p>集群有两个状态，<strong>CLUSTER_OK</strong> 和  <strong>CLUSTER_FAIL</strong>，如果集群目前状态是 CLUSTER_FAIL，且设置了参数 <code>cluster-require-full-coverage yes</code>，那么此时访问集群会返回错误，意思是可能有某些 slot 没有被 server 接管。<br><code>clusterUpdateState</code> 函数负责更新集群状态，该部分逻辑与本篇博文要讲的主逻辑关系不大，所以放到了后面的 <strong> 补充章节 </strong> 中了。</p>
+<h3 id="1-2-FAIL- 标记"><a href="#1-2-FAIL- 标记" class="headerlink" title="1.2 FAIL 标记"></a>1.2 FAIL 标记 </h3><h4 id="1-2-1- 主动标记 -FAIL"><a href="#1-2-1- 主动标记 -FAIL" class="headerlink" title="1.2.1 主动标记 FAIL"></a>1.2.1 主动标记 FAIL</h4><p> 被节点 A 标记成 FAIL/ PFAIL 的节点如何让节点 C 知道呢？这主要是通过平常发送的 PING/PONG 消息实现的，在 3.x 的版本时，会尽最大努力把这样的节点放到 gossip 消息的流言部分，到后面的 4.x 版本的代码中每次的 PING/PONG 消息都会把 PFAIL 节点都带上。<br><code>clusterProcessGossipSection</code> 函数用来处理 gossip 消息的流言部分。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterProcessGossipSection</span><span class="hljs-params">(clusterMsg *hdr, clusterLink *link)</span> </span>&#123;
     <span class="hljs-keyword">uint16_t</span> count = ntohs(hdr-&gt;count);
     clusterMsgDataGossip *g = (clusterMsgDataGossip*) hdr-&gt;data.ping.gossip;
@@ -320,8 +310,7 @@
     &#125;
     <span class="hljs-comment">// ...</span>
 &#125;</code></pre></div>
-<p>该函数依次处理 gossip 消息流言部分携带的各节点信息（总节点数的 1/10）。当发现带有 CLUSTER_NODE_FAIL 或者 CLUSTER_NODE_PFAIL 时会调用 <code>clusterNodeAddFailureReport</code> 函数。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">clusterNodeAddFailureReport</span><span class="hljs-params">(clusterNode *failing, clusterNode *sender)</span> </span>&#123;
+<p>该函数依次处理 gossip 消息流言部分携带的各节点信息（总节点数的 1/10）。当发现带有 CLUSTER_NODE_FAIL 或者 CLUSTER_NODE_PFAIL 时会调用 <code>clusterNodeAddFailureReport</code> 函数。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">clusterNodeAddFailureReport</span><span class="hljs-params">(clusterNode *failing, clusterNode *sender)</span> </span>&#123;
     <span class="hljs-built_in">list</span> *l = failing-&gt;fail_reports;
     listNode *ln;
     listIter li;
@@ -344,15 +333,11 @@
     fr-&gt;time = mstime();
     listAddNodeTail(l,fr);
     <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;
-&#125;</code></pre></div>
-<p>每一个节点都有一个名为 fail_reports 的 list 结构的变量，用来搜集该异常节点获得了集群中哪些节点的 PFAIL 状态投票。fail_reports 每个成员都是一个 clusterNodeFailReport 结构。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">typedef</span> <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">clusterNodeFailReport</span> &#123;</span>
+&#125;</code></pre></div><br>每一个节点都有一个名为 fail_reports 的 list 结构的变量，用来搜集该异常节点获得了集群中哪些节点的 PFAIL 状态投票。fail_reports 每个成员都是一个 clusterNodeFailReport 结构。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">typedef</span> <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">clusterNodeFailReport</span> &#123;</span>
     <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">clusterNode</span> *<span class="hljs-title">node</span>;</span>  <span class="hljs-comment">/* Node reporting the failure condition. */</span>
     <span class="hljs-keyword">mstime_t</span> time;             <span class="hljs-comment">/* Time of the last report from this node. */</span>
-&#125; clusterNodeFailReport;</code></pre></div>
-<p>clusterNodeFailReport 中带有时间戳，标记这个节点上一次被报上来处于异常状态的时间。<br>
-每次调用 <code>clusterNodeAddFailureReport</code> 函数时，先会检查 sender 是否已经为该异常节点投票过了，如果有，更新时间戳，如果没有，把 sender 加入到投票节点中。<br>
-简单点说就是，在 A 节点看来 B 节点是  PFAIL 状态，在 gossip 通信中把它告诉了 C 节点，C 节点发现这个异常状态的节点，检查一下为 B 节点投过票的节点中有没有  A 节点，如果没有就加进去。</p>
+&#125; clusterNodeFailReport;</code></pre></div></p>
+<p>clusterNodeFailReport 中带有时间戳，标记这个节点上一次被报上来处于异常状态的时间。<br>每次调用 <code>clusterNodeAddFailureReport</code> 函数时，先会检查 sender 是否已经为该异常节点投票过了，如果有，更新时间戳，如果没有，把 sender 加入到投票节点中。<br>简单点说就是，在 A 节点看来 B 节点是  PFAIL 状态，在 gossip 通信中把它告诉了 C 节点，C 节点发现这个异常状态的节点，检查一下为 B 节点投过票的节点中有没有  A 节点，如果没有就加进去。</p>
 <p>然后下面就是判断 PFAIL 状态是不是要转变成 FAIL 状态的关键。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">markNodeAsFailingIfNeeded</span><span class="hljs-params">(clusterNode *node)</span> </span>&#123;
     <span class="hljs-keyword">int</span> failures;
@@ -389,8 +374,7 @@
     clusterBroadcastMessage(buf,ntohl(hdr-&gt;totlen));
 &#125;</code></pre></div>
 <p>发送的 gossip 消息类型为 CLUSTERMSG_TYPE_FAIL，广播的节点排除自身和处于 HANDSHAKE 状态节点。</p>
-<h4 id="1-2-2-Gossip- 被动感知 -FAIL">1.2.2 Gossip 被动感知 FAIL</h4>
-<p>前面说过，gossip 消息的处理函数为 <code>clusterProcessPacket</code>，下面看 CLUSTERMSG_TYPE_FAIL 类型的消息如何处理。</p>
+<h4 id="1-2-2-Gossip- 被动感知 -FAIL"><a href="#1-2-2-Gossip- 被动感知 -FAIL" class="headerlink" title="1.2.2 Gossip 被动感知 FAIL"></a>1.2.2 Gossip 被动感知 FAIL</h4><p>前面说过，gossip 消息的处理函数为 <code>clusterProcessPacket</code>，下面看 CLUSTERMSG_TYPE_FAIL 类型的消息如何处理。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">clusterProcessPacket</span><span class="hljs-params">(clusterLink *link)</span> </span>&#123;
     <span class="hljs-comment">// ...</span>
     <span class="hljs-keyword">uint16_t</span> type = ntohs(hdr-&gt;type);
@@ -419,11 +403,8 @@
     <span class="hljs-comment">// ...</span>
 &#125;</code></pre></div>
 <p>集群中另一个节点 D 收到节点 B 广播过来的消息：B 节点 FAIL 了。如果 D 还没有把 B 标记成 FAIL，那么标记成 CLUSTER_NODE_FAIL，并取消 CLUSTER_NODE_PFAIL 标记；否则，忽略，因为 D 已经知道 B 是 FAIL 节点了。</p>
-<h2 id="2- 故障转移">2. 故障转移</h2>
-<p>failover 分为两类，主动 failover（主动切主从）以及被动 failover（被动切主从），下面挨个进行分析。</p>
-<h3 id="2-1- 被动 -failover">2.1 被动 failover</h3>
-<h4 id="2-1-1- 先验条件及初始化">2.1.1 先验条件及初始化</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterCron</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+<h2 id="2- 故障转移"><a href="#2- 故障转移" class="headerlink" title="2. 故障转移"></a>2. 故障转移</h2><p>failover 分为两类，主动 failover（主动切主从）以及被动 failover（被动切主从），下面挨个进行分析。</p>
+<h3 id="2-1- 被动 -failover"><a href="#2-1- 被动 -failover" class="headerlink" title="2.1 被动 failover"></a>2.1 被动 failover</h3><h4 id="2-1-1- 先验条件及初始化"><a href="#2-1-1- 先验条件及初始化" class="headerlink" title="2.1.1 先验条件及初始化"></a>2.1.1 先验条件及初始化</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterCron</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-comment">// ...</span>
     <span class="hljs-keyword">if</span> (nodeIsSlave(myself)) &#123;
         clusterHandleSlaveFailover();
@@ -431,8 +412,7 @@
     &#125;
     <span class="hljs-comment">// ...</span>
 &#125;</code></pre></div>
-<p>是否要做被动主从切换，在 <code>clusterHandleSlaveFailover</code> 函数中有如下的判断逻辑，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (nodeIsMaster(myself) ||
+<p>是否要做被动主从切换，在 <code>clusterHandleSlaveFailover</code> 函数中有如下的判断逻辑，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (nodeIsMaster(myself) ||
     myself-&gt;slaveof == <span class="hljs-literal">NULL</span> ||
     (!nodeFailed(myself-&gt;slaveof) &amp;&amp; !manual_failover) ||
     myself-&gt;slaveof-&gt;numslots == <span class="hljs-number">0</span>)
@@ -441,7 +421,7 @@
 <span class="hljs-comment">     * are returning without failing over to NONE. */</span>
     server.cluster-&gt;cant_failover_reason = CLUSTER_CANT_FAILOVER_NONE;
     <span class="hljs-keyword">return</span>;
-&#125;</code></pre></div>
+&#125;</code></pre></div></p>
 <p>只有满足如下条件的节点才有资格做 failover：</p>
 <ul>
 <li>slave 节点</li>
@@ -449,8 +429,7 @@
 <li>master 负责的 slot 数量不为空</li>
 <li>master 被标记成了 FAIL，或者这是一个主动 failover（manual_failover 为真）</li>
 </ul>
-<p>假设，现在 B 节点的 slave Bx 节点检测到 B 节点挂掉了，通过了以上的条件测试，接下来就会进行 failover。<br>
-那么下面 Bx 节点就开始在集群中进行拉票，该逻辑也在 <code>clusterHandleSlaveFailover</code> 函数中。</p>
+<p>假设，现在 B 节点的 slave Bx 节点检测到 B 节点挂掉了，通过了以上的条件测试，接下来就会进行 failover。<br>那么下面 Bx 节点就开始在集群中进行拉票，该逻辑也在 <code>clusterHandleSlaveFailover</code> 函数中。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">mstime_t</span> auth_age = mstime() - server.cluster-&gt;failover_auth_time;
 <span class="hljs-keyword">int</span> needed_quorum = (server.cluster-&gt;size / <span class="hljs-number">2</span>) + <span class="hljs-number">1</span>;
 <span class="hljs-keyword">mstime_t</span> auth_timeout, auth_retry_time;
@@ -458,10 +437,7 @@
 auth_timeout = server.cluster_node_timeout*<span class="hljs-number">2</span>;
 <span class="hljs-keyword">if</span> (auth_timeout &lt; <span class="hljs-number">2000</span>) auth_timeout =<span class="hljs-number">2000</span> ;
 auth_retry_time = auth_timeout*<span class="hljs-number">2</span>;</code></pre></div>
-<p>cluster 的 <strong>failover_auth_time</strong> 属性，表示 slave 节点开始进行故障转移的时刻。集群初始化时该属性置为 0，一旦满足 failover 的条件后，该属性就置为 <strong> 未来的某个时间点</strong>（不是立马执行），在该时间点，slave 节点才开始进行拉票。<strong>auth_age</strong> 变量表示从发起 failover 流程开始到现在，已经过去了多长时间。<br>
-<strong>needed_quorum</strong> 变量表示当前 slave 节点必须至少获得多少选票，才能成为新的 master。<br>
-<strong>auth_timeout</strong> 变量表示当前 slave 发起投票后，等待回应的超时时间，至少为 2s。如果超过该时间还没有获得足够的选票，那么表示本次 failover 失败。<br>
-<strong>auth_retry_time</strong> 变量用来判断是否可以开始发起下一次 failover 的时间间隔。</p>
+<p>cluster 的 <strong>failover_auth_time</strong> 属性，表示 slave 节点开始进行故障转移的时刻。集群初始化时该属性置为 0，一旦满足 failover 的条件后，该属性就置为 <strong> 未来的某个时间点</strong>（不是立马执行），在该时间点，slave 节点才开始进行拉票。<strong>auth_age</strong> 变量表示从发起 failover 流程开始到现在，已经过去了多长时间。<br><strong>needed_quorum</strong> 变量表示当前 slave 节点必须至少获得多少选票，才能成为新的 master。<br><strong>auth_timeout</strong> 变量表示当前 slave 发起投票后，等待回应的超时时间，至少为 2s。如果超过该时间还没有获得足够的选票，那么表示本次 failover 失败。<br><strong>auth_retry_time</strong> 变量用来判断是否可以开始发起下一次 failover 的时间间隔。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_CONNECTED) &#123;
     data_age = (<span class="hljs-keyword">mstime_t</span>)(server.unixtime - server.master-&gt;lastinteraction) * <span class="hljs-number">1000</span>;
 &#125; <span class="hljs-keyword">else</span> &#123;
@@ -473,8 +449,7 @@ auth_retry_time = auth_timeout*<span class="hljs-number">2</span>;</code></pre><
 <blockquote>
 <p>data_age 主要用于判断当前 slave 节点的数据新鲜度；如果 data_age 超过了一定时间，表示当前 slave 节点的数据已经太老了，不能替换掉下线 master 节点，因此在不是手动强制故障转移的情况下，直接返回。</p>
 </blockquote>
-<h4 id="2-1-2- 制定 -failover- 时间">2.1.2 制定 failover 时间</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterHandleSlaveFailover</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+<h4 id="2-1-2- 制定 -failover- 时间"><a href="#2-1-2- 制定 -failover- 时间" class="headerlink" title="2.1.2 制定 failover 时间"></a>2.1.2 制定 failover 时间</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterHandleSlaveFailover</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-comment">// ...</span>
     <span class="hljs-keyword">if</span> (auth_age &gt; auth_retry_time) &#123;
         server.cluster-&gt;failover_auth_time = mstime() +
@@ -499,13 +474,9 @@ auth_retry_time = auth_timeout*<span class="hljs-number">2</span>;</code></pre><
     &#125;
     <span class="hljs-comment">// ...</span>
 &#125;</code></pre></div>
-<p>满足条件（<strong>auth_age &gt; auth_retry_time</strong>）后，发起故障转移流程。<br>
-首先设置故障转移发起时刻，即设置 failover_auth_time 时间。</p>
+<p>满足条件（<strong>auth_age &gt; auth_retry_time</strong>）后，发起故障转移流程。<br>首先设置故障转移发起时刻，即设置 failover_auth_time 时间。</p>
 <div class="hljs"><pre><code class="hljs c">mstime() + <span class="hljs-number">500</span> + random()%<span class="hljs-number">500</span> + rank*<span class="hljs-number">1000</span></code></pre></div>
-<p>固定延时 500ms 是为了让 master fail 的消息能够广泛传播到集群，这样集群中的其他节点才可能投票。<br>
-随机延时是为了避免多个你 slave 节点同时发起 failover 流程。<br>
-rank 表示 slave 节点的排名，计算方式如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">clusterGetSlaveRank</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+<p>固定延时 500ms 是为了让 master fail 的消息能够广泛传播到集群，这样集群中的其他节点才可能投票。<br>随机延时是为了避免多个你 slave 节点同时发起 failover 流程。<br>rank 表示 slave 节点的排名，计算方式如下，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">clusterGetSlaveRank</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> myoffset;
     <span class="hljs-keyword">int</span> j, rank = <span class="hljs-number">0</span>;
     clusterNode *master;
@@ -519,13 +490,11 @@ rank 表示 slave 节点的排名，计算方式如下，</p>
         <span class="hljs-keyword">if</span> (master-&gt;slaves[j] != myself &amp;&amp;
             master-&gt;slaves[j]-&gt;repl_offset &gt; myoffset) rank++;
     <span class="hljs-keyword">return</span> rank;
-&#125;</code></pre></div>
+&#125;</code></pre></div></p>
 <p>可以看出，排名主要是根据复制数据量来定，复制数据量越多，排名越靠前（rank 值越小）。这样做是为了做 failover 时尽量选择一个复制数据量较多的 slave，以尽最大努力保留数据。在没有开始拉选票之前，<strong>每隔一段时间 </strong>（每次调用<code>clusterHandleSlaveFailover</code> 函数，也就是每次 cron 的时间）就会调用一次 <code>clusterGetSlaveRank</code> 函数，以更新当前 slave 节点的排名。</p>
 <p><strong>注意</strong>，如果是 mf，那么 failover_auth_time 和 failover_auth_rank 都置为 0，表示该 slave 节点现在就可以执行故障转移。</p>
-<p>最后向该 master 的所有 slave 广播 PONG 消息，主要是为了更新复制偏移量，以便其他 slave 计算出 failover 时间点。<br>
-这时，函数返回，就此开始了一轮新的故障转移，当已经处在某一轮故障转移时，执行接下来的逻辑。</p>
-<h4 id="2-1-3-slave- 拉选票">2.1.3 slave 拉选票</h4>
-<p>首先对于一些不合理的 failover 要过滤掉。</p>
+<p>最后向该 master 的所有 slave 广播 PONG 消息，主要是为了更新复制偏移量，以便其他 slave 计算出 failover 时间点。<br>这时，函数返回，就此开始了一轮新的故障转移，当已经处在某一轮故障转移时，执行接下来的逻辑。</p>
+<h4 id="2-1-3-slave- 拉选票"><a href="#2-1-3-slave- 拉选票" class="headerlink" title="2.1.3 slave 拉选票"></a>2.1.3 slave 拉选票 </h4><p> 首先对于一些不合理的 failover 要过滤掉。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Return ASAP if we can&#x27;t still start the election.</span>
 <span class="hljs-comment"> */</span>
 <span class="hljs-keyword">if</span> (mstime() &lt; server.cluster-&gt;failover_auth_time) &#123;
@@ -540,8 +509,7 @@ rank 表示 slave 节点的排名，计算方式如下，</p>
     clusterLogCantFailover(CLUSTER_CANT_FAILOVER_EXPIRED);
     <span class="hljs-keyword">return</span>;
 &#125;</code></pre></div>
-<p>然后开始拉选票。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.cluster-&gt;failover_auth_sent == <span class="hljs-number">0</span>) &#123;
+<p>然后开始拉选票。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.cluster-&gt;failover_auth_sent == <span class="hljs-number">0</span>) &#123;
     server.cluster-&gt;currentEpoch++; <span class="hljs-comment">// 增加当前节点的 currentEpoch 的值，表示要开始新一轮选举了</span>
     server.cluster-&gt;failover_auth_epoch = server.cluster-&gt;currentEpoch;
     serverLog(LL_WARNING,<span class="hljs-string">&quot;Starting a failover election for epoch %llu.&quot;</span>,
@@ -554,9 +522,7 @@ rank 表示 slave 节点的排名，计算方式如下，</p>
                          CLUSTER_TODO_UPDATE_STATE|
                          CLUSTER_TODO_FSYNC_CONFIG);
     <span class="hljs-keyword">return</span>; <span class="hljs-comment">/* Wait for replies. */</span>
-&#125;</code></pre></div>
-<p>如果 <strong>failover_auth_sent</strong> 为 0，表示没有发起过投票，那么将 currentEpoch 加 1，记录 failover_auth_epoch 为 currentEpoch，函数 <code>clusterRequestFailoverAuth</code> 用来发起投票，failover_auth_sent 置 1，表示该 slave 已经发起过投票了。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterRequestFailoverAuth</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+&#125;</code></pre></div><br>如果 <strong>failover_auth_sent</strong> 为 0，表示没有发起过投票，那么将 currentEpoch 加 1，记录 failover_auth_epoch 为 currentEpoch，函数 <code>clusterRequestFailoverAuth</code> 用来发起投票，failover_auth_sent 置 1，表示该 slave 已经发起过投票了。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterRequestFailoverAuth</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> buf[<span class="hljs-keyword">sizeof</span>(clusterMsg)];
     clusterMsg *hdr = (clusterMsg*) buf;
     <span class="hljs-keyword">uint32_t</span> totlen;
@@ -569,20 +535,16 @@ rank 表示 slave 节点的排名，计算方式如下，</p>
     totlen = <span class="hljs-keyword">sizeof</span>(clusterMsg)-<span class="hljs-keyword">sizeof</span>(<span class="hljs-keyword">union</span> clusterMsgData);
     hdr-&gt;totlen = htonl(totlen);
     clusterBroadcastMessage(buf,totlen);
-&#125;</code></pre></div>
-<p><code>clusterRequestFailoverAuth</code> 函数向集群广播 <strong>CLUSTERMSG_TYPE_FAILOVER_AUTH_REQUEST</strong> 类型的 gossip 信息，这类型的信息就是向集群中的 master 节点索要本轮选举中的选票。另外，如果是 mf，那么会在 gossip hdr 中带上 <strong>CLUSTERMSG_FLAG0_FORCEACK</strong> 信息。</p>
-<h4 id="2-1-4- 其他 -master- 投票">2.1.4 其他 master 投票</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (type == CLUSTERMSG_TYPE_FAILOVER_AUTH_REQUEST) &#123;
+&#125;</code></pre></div><br><code>clusterRequestFailoverAuth</code> 函数向集群广播 <strong>CLUSTERMSG_TYPE_FAILOVER_AUTH_REQUEST</strong> 类型的 gossip 信息，这类型的信息就是向集群中的 master 节点索要本轮选举中的选票。另外，如果是 mf，那么会在 gossip hdr 中带上 <strong>CLUSTERMSG_FLAG0_FORCEACK</strong> 信息。</p>
+<h4 id="2-1-4- 其他 -master- 投票"><a href="#2-1-4- 其他 -master- 投票" class="headerlink" title="2.1.4 其他 master 投票"></a>2.1.4 其他 master 投票</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (type == CLUSTERMSG_TYPE_FAILOVER_AUTH_REQUEST) &#123;
     <span class="hljs-keyword">if</span> (!sender) <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;  <span class="hljs-comment">/* We don&#x27;t know that node. */</span>
     clusterSendFailoverAuthIfNeeded(sender,hdr);
 &#125;</code></pre></div>
 <p>在 <code>clusterProcessPacket</code> 函数中处理 gossip 消息，当接收到 <strong>CLUSTERMSG_TYPE_FAILOVER_AUTH_REQUEST</strong> 类型的消息时，调用 <code>clusterSendFailoverAuthIfNeeded</code> 函数处理，在满足条件的基础上，给 sender 投票。</p>
 <p>注：以下若不进行特殊说明，都是 <code>clusterSendFailoverAuthIfNeeded</code> 函数处理逻辑。</p>
-<h5 id="2-1-4-1- 筛掉没资格投票的节点">2.1.4.1 筛掉没资格投票的节点</h5>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (nodeIsSlave(myself) || myself-&gt;numslots == <span class="hljs-number">0</span>) <span class="hljs-keyword">return</span>;</code></pre></div>
+<h5 id="2-1-4-1- 筛掉没资格投票的节点"><a href="#2-1-4-1- 筛掉没资格投票的节点" class="headerlink" title="2.1.4.1 筛掉没资格投票的节点"></a>2.1.4.1 筛掉没资格投票的节点</h5><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (nodeIsSlave(myself) || myself-&gt;numslots == <span class="hljs-number">0</span>) <span class="hljs-keyword">return</span>;</code></pre></div>
 <p><i class="fa fa-times" aria-hidden="true"></i>  slave 节点或者不负责 slot 的 master 节点</p>
-<h5 id="2-1-4-2- 筛掉不需要投票的 -sender">2.1.4.2 筛掉不需要投票的 sender</h5>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">uint64_t</span> requestCurrentEpoch = ntohu64(request-&gt;currentEpoch);
+<h5 id="2-1-4-2- 筛掉不需要投票的 -sender"><a href="#2-1-4-2- 筛掉不需要投票的 -sender" class="headerlink" title="2.1.4.2 筛掉不需要投票的 sender"></a>2.1.4.2 筛掉不需要投票的 sender</h5><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">uint64_t</span> requestCurrentEpoch = ntohu64(request-&gt;currentEpoch);
 <span class="hljs-keyword">if</span> (requestCurrentEpoch &lt; server.cluster-&gt;currentEpoch) &#123;
     serverLog(LL_WARNING,
               <span class="hljs-string">&quot;Failover auth denied to %.40s: reqEpoch (%llu) &lt; curEpoch(%llu)&quot;</span>,
@@ -591,8 +553,7 @@ rank 表示 slave 节点的排名，计算方式如下，</p>
               (<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span>) server.cluster-&gt;currentEpoch);
     <span class="hljs-keyword">return</span>;
 &#125;</code></pre></div>
-<p><i class="fa fa-times" aria-hidden="true"></i>  sender 节点集群信息过旧。<br>
-正常来说，如果 receiver 在接收到 sender 的 CLUSTERMSG_TYPE_FAILOVER_AUTH_REQUEST 消息之前接收了 PING/PONG 消息，会更新自己的 currentEpoch，这时 currentEpoch 会增加，因为 sender 发起选举之前，会先增加自身的 currentEpoch；否则的话，receiver 的 currentEpoch 应该小于 sender。因此 sender 的 currentEpoch 应该 <strong>&gt;=</strong>  receiver 的。有可能 sender 是个长时间下线的节点刚刚上线，这样的节点不能给他投票，因为它的集群信息过旧。</p>
+<p><i class="fa fa-times" aria-hidden="true"></i>  sender 节点集群信息过旧。<br>正常来说，如果 receiver 在接收到 sender 的 CLUSTERMSG_TYPE_FAILOVER_AUTH_REQUEST 消息之前接收了 PING/PONG 消息，会更新自己的 currentEpoch，这时 currentEpoch 会增加，因为 sender 发起选举之前，会先增加自身的 currentEpoch；否则的话，receiver 的 currentEpoch 应该小于 sender。因此 sender 的 currentEpoch 应该 <strong>&gt;=</strong>  receiver 的。有可能 sender 是个长时间下线的节点刚刚上线，这样的节点不能给他投票，因为它的集群信息过旧。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.cluster-&gt;lastVoteEpoch == server.cluster-&gt;currentEpoch) &#123;
     serverLog(LL_WARNING,
               <span class="hljs-string">&quot;Failover auth denied to %.40s: already voted for epoch %llu&quot;</span>,
@@ -600,8 +561,7 @@ rank 表示 slave 节点的排名，计算方式如下，</p>
               (<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span>) server.cluster-&gt;currentEpoch);
     <span class="hljs-keyword">return</span>;
 &#125;</code></pre></div>
-<p><i class="fa fa-times" aria-hidden="true"></i>  receiver 节点在本轮选举中已经投过票了，避免两个 slave 节点同时赢得本界选举。<br>
-lastVoteEpoch 记录了在本轮投票中 receiver 投过票的 sender 的 currentEpoch。各 slave 节点独立发起选举，currentEpoch 是相同的，都在原来的基础上加 1。</p>
+<p><i class="fa fa-times" aria-hidden="true"></i>  receiver 节点在本轮选举中已经投过票了，避免两个 slave 节点同时赢得本界选举。<br>lastVoteEpoch 记录了在本轮投票中 receiver 投过票的 sender 的 currentEpoch。各 slave 节点独立发起选举，currentEpoch 是相同的，都在原来的基础上加 1。</p>
 <div class="hljs"><pre><code class="hljs c">clusterNode *master = node-&gt;slaveof;
 <span class="hljs-keyword">if</span> (nodeIsMaster(node) || master == <span class="hljs-literal">NULL</span> || (!nodeFailed(master) &amp;&amp; !force_ack))
 &#123;
@@ -620,9 +580,7 @@ lastVoteEpoch 记录了在本轮投票中 receiver 投过票的 sender 的 curre
     &#125;
     <span class="hljs-keyword">return</span>;
 &#125;</code></pre></div>
-<p><i class="fa fa-times" aria-hidden="true"></i>  sender 是个 master。<br>
-<i class="fa fa-times" aria-hidden="true"></i>  sender 是个没有 master 的 slave。<br>
-<i class="fa fa-times" aria-hidden="true"></i>  sender 的 master 没有 fail，且不是个 mf。</p>
+<p><i class="fa fa-times" aria-hidden="true">&lt;/i&gt;  sender 是个 master。<br><i class="fa fa-times" aria-hidden="true"></i>  sender 是个没有 master 的 slave。<br><i class="fa fa-times" aria-hidden="true"></i>  sender 的 master 没有 fail，且不是个 mf。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (mstime() - node-&gt;slaveof-&gt;voted_time &lt; server.cluster_node_timeout * <span class="hljs-number">2</span>)
 &#123;
     serverLog(LL_WARNING,
@@ -632,9 +590,7 @@ lastVoteEpoch 记录了在本轮投票中 receiver 投过票的 sender 的 curre
               (<span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span>) ((server.cluster_node_timeout*<span class="hljs-number">2</span>) - (mstime() - node-&gt;slaveof-&gt;voted_time)));
     <span class="hljs-keyword">return</span>;
 &#125;</code></pre></div>
-<p><i class="fa fa-times" aria-hidden="true"></i>  两次投票时间间隔 <strong> 不能少于 2 倍 的 cluster_node_timeout</strong>。<br>
-这个裕量时间，使得获得赢得选举的 slave 将新的主从关系周知集群其他节点，避免其他 slave 发起新一轮的投票。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">uint64_t</span> requestConfigEpoch = ntohu64(request-&gt;configEpoch);
+<p><i class="fa fa-times" aria-hidden="true">&lt;/i&gt;  两次投票时间间隔 <strong> 不能少于 2 倍 的 cluster_node_timeout</strong>。<br>这个裕量时间，使得获得赢得选举的 slave 将新的主从关系周知集群其他节点，避免其他 slave 发起新一轮的投票。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">uint64_t</span> requestConfigEpoch = ntohu64(request-&gt;configEpoch);
 <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *claimed_slots = request-&gt;myslots;
 <span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; CLUSTER_SLOTS; j++) &#123;
     <span class="hljs-keyword">if</span> (bitmapTestBit(claimed_slots, j) == <span class="hljs-number">0</span>) <span class="hljs-keyword">continue</span>;
@@ -653,16 +609,12 @@ lastVoteEpoch 记录了在本轮投票中 receiver 投过票的 sender 的 curre
               (<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span>) server.cluster-&gt;slots[j]-&gt;configEpoch,
               (<span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span>) requestConfigEpoch);
     <span class="hljs-keyword">return</span>;
-&#125;</code></pre></div>
-<p><i class="fa fa-times" aria-hidden="true"></i>  sender 节点声称要接管的 slots，在 receiver 节点看来其中有个别 slot 原来负责节点的 configEpoch 要比 sender 的大，这说明 sender 看到的集群消息太旧了，这可能是一个长时间下线又重新上线的节点。</p>
-<h5 id="2-1-4-3- 在本轮选举投票">2.1.4.3 在本轮选举投票</h5>
-<div class="hljs"><pre><code class="hljs c">clusterSendFailoverAuth(node);
+&#125;</code></pre></div><br><i class="fa fa-times" aria-hidden="true"></i>  sender 节点声称要接管的 slots，在 receiver 节点看来其中有个别 slot 原来负责节点的 configEpoch 要比 sender 的大，这说明 sender 看到的集群消息太旧了，这可能是一个长时间下线又重新上线的节点。</p>
+<h5 id="2-1-4-3- 在本轮选举投票"><a href="#2-1-4-3- 在本轮选举投票" class="headerlink" title="2.1.4.3 在本轮选举投票"></a>2.1.4.3 在本轮选举投票</h5><div class="hljs"><pre><code class="hljs c">clusterSendFailoverAuth(node);
 server.cluster-&gt;lastVoteEpoch = server.cluster-&gt;currentEpoch;
 node-&gt;slaveof-&gt;voted_time = mstime(); <span class="hljs-comment">// 更新投票时间</span></code></pre></div>
 <p><code>clusterSendFailoverAuth</code> 函数中发送 <strong>CLUSTERMSG_TYPE_FAILOVER_AUTH_ACK</strong> 类型的 gossip 消息，这就算在本轮选举中投票了，并记录本轮投票的 epoch 以及投票时间。</p>
-<h4 id="2-1-5-slave- 统计选票">2.1.5 slave 统计选票</h4>
-<p>slave 接收到 <strong>CLUSTERMSG_TYPE_FAILOVER_AUTH_ACK</strong> 类型的 gossip 消息，就算统计到一票。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (type == CLUSTERMSG_TYPE_FAILOVER_AUTH_ACK) &#123; <span class="hljs-comment">// slave 统计票数</span>
+<h4 id="2-1-5-slave- 统计选票"><a href="#2-1-5-slave- 统计选票" class="headerlink" title="2.1.5 slave 统计选票"></a>2.1.5 slave 统计选票</h4><p>slave 接收到 <strong>CLUSTERMSG_TYPE_FAILOVER_AUTH_ACK</strong> 类型的 gossip 消息，就算统计到一票。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (type == CLUSTERMSG_TYPE_FAILOVER_AUTH_ACK) &#123; <span class="hljs-comment">// slave 统计票数</span>
     <span class="hljs-keyword">if</span> (!sender) <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;  <span class="hljs-comment">/* We don&#x27;t know that node. */</span>
     <span class="hljs-comment">/* We consider this vote only if the sender is a master serving</span>
 <span class="hljs-comment">         * a non zero number of slots, and its currentEpoch is greater or</span>
@@ -675,11 +627,8 @@ node-&gt;slaveof-&gt;voted_time = mstime(); <span class="hljs-comment">// 更新
 <span class="hljs-comment">             * we check ASAP. */</span>
         clusterDoBeforeSleep(CLUSTER_TODO_HANDLE_FAILOVER);
     &#125;
-&#125;</code></pre></div>
-<p>sender 是个负责 slot 的 master 并且满足 currentEpoch 的要求，那么这张选票有效。出现 <code>senderCurrentEpoch &lt; server.cluster-&gt;failover_auth_epoch</code> 的情况时有可能的，如果这张选票是上一轮选举的获得选票，就不能作数。<br>
-failover_auth_count 变量中记录了 slave 在本轮选举中获得选票数目。</p>
-<h4 id="2-1-6-slave- 做主从切换">2.1.6 slave 做主从切换</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterHandleSlaveFailover</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+&#125;</code></pre></div><br>sender 是个负责 slot 的 master 并且满足 currentEpoch 的要求，那么这张选票有效。出现 <code>senderCurrentEpoch &lt; server.cluster-&gt;failover_auth_epoch</code> 的情况时有可能的，如果这张选票是上一轮选举的获得选票，就不能作数。<br>failover_auth_count 变量中记录了 slave 在本轮选举中获得选票数目。</p>
+<h4 id="2-1-6-slave- 做主从切换"><a href="#2-1-6-slave- 做主从切换" class="headerlink" title="2.1.6 slave 做主从切换"></a>2.1.6 slave 做主从切换</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterHandleSlaveFailover</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-comment">// ...</span>
     <span class="hljs-keyword">int</span> needed_quorum = (server.cluster-&gt;size / <span class="hljs-number">2</span>) + <span class="hljs-number">1</span>;
     <span class="hljs-keyword">if</span> (server.cluster-&gt;failover_auth_count &gt;= needed_quorum) &#123;
@@ -701,9 +650,7 @@ failover_auth_count 变量中记录了 slave 在本轮选举中获得选票数�
         clusterLogCantFailover(CLUSTER_CANT_FAILOVER_WAITING_VOTES);
     &#125;
 &#125;</code></pre></div>
-<p>slave 节点获得足够多选票后， 成为新的 master 节点。<br>
-更新自己的 configEpoch 为 <strong> 选举协商 </strong> 的 failover_auth_epoch，这是本节点就获得了最新当前集群最大的 configEpoch，表明它看到的集群信息现在是最新的。<br>
-最后调用 <code>clusterFailoverReplaceYourMaster</code> 函数取代下线主节点，成为新的主节点，并向其他节点广播这种变化。</p>
+<p>slave 节点获得足够多选票后， 成为新的 master 节点。<br>更新自己的 configEpoch 为 <strong> 选举协商 </strong> 的 failover_auth_epoch，这是本节点就获得了最新当前集群最大的 configEpoch，表明它看到的集群信息现在是最新的。<br>最后调用 <code>clusterFailoverReplaceYourMaster</code> 函数取代下线主节点，成为新的主节点，并向其他节点广播这种变化。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterFailoverReplaceYourMaster</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-keyword">int</span> j;
     clusterNode *oldmaster = myself-&gt;slaveof;
@@ -741,8 +688,7 @@ failover_auth_count 变量中记录了 slave 在本轮选举中获得选票数�
     resetManualFailover();
 &#125;</code></pre></div>
 <p>进行必要的 flag 设置和 slots 交接，向集群广播 PONG 消息，并进行善后处理。</p>
-<h4 id="2-1-7- 集群其他节点感知主从变化">2.1.7 集群其他节点感知主从变化</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (type == CLUSTERMSG_TYPE_PING || type == CLUSTERMSG_TYPE_PONG || type == CLUSTERMSG_TYPE_MEET) &#123;
+<h4 id="2-1-7- 集群其他节点感知主从变化"><a href="#2-1-7- 集群其他节点感知主从变化" class="headerlink" title="2.1.7 集群其他节点感知主从变化"></a>2.1.7 集群其他节点感知主从变化</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (type == CLUSTERMSG_TYPE_PING || type == CLUSTERMSG_TYPE_PONG || type == CLUSTERMSG_TYPE_MEET) &#123;
     <span class="hljs-comment">// ...</span>
     <span class="hljs-comment">/* Check for role switch: slave -&gt; master or master -&gt; slave. */</span>
     <span class="hljs-keyword">if</span> (sender) &#123;
@@ -767,14 +713,10 @@ failover_auth_count 变量中记录了 slave 在本轮选举中获得选票数�
         clusterUpdateSlotsConfigWith(sender,senderConfigEpoch,hdr-&gt;myslots);
     <span class="hljs-comment">// ...</span>
 &#125;</code></pre></div>
-<p>集群中其他节点接收到 PONG 消息后，对 sender 进行正确的 role 标记，以某节点 D 为例。<br>
-对于刚刚做完故障转移的 slave，也即现在 master，在节点 D 看来它负责的 slot 是空的，所以 dirty_slots 为 1。<br>
-之后调用 <code>clusterUpdateSlotsConfigWith</code> 函数处理 slots 的 dirty diff 信息。</p>
+<p>集群中其他节点接收到 PONG 消息后，对 sender 进行正确的 role 标记，以某节点 D 为例。<br>对于刚刚做完故障转移的 slave，也即现在 master，在节点 D 看来它负责的 slot 是空的，所以 dirty_slots 为 1。<br>之后调用 <code>clusterUpdateSlotsConfigWith</code> 函数处理 slots 的 dirty diff 信息。</p>
 <p>至此 failover 的逻辑就已经基本完成。</p>
-<h3 id="2-2- 主动 -failover">2.2 主动 failover</h3>
-<p>除了上面的发现故障后集群自动 failover，也可以进行主动的主从切换。</p>
-<h4 id="2-2-1-slave- 节点接受 -cluster-failover- 命令">2.2.1 slave 节点接受 cluster failover 命令</h4>
-<p>主动 failover 是通过 redis 命令实现的，命令格式为 <code>CLUSTER FAILOVER [FORCE|TAKEOVER]</code>，该命令使用详情可以参考这篇 <a target="_blank" rel="noopener" href="http://www.redis.cn/commands/cluster-failover.html"> 文档</a>。</p>
+<h3 id="2-2- 主动 -failover"><a href="#2-2- 主动 -failover" class="headerlink" title="2.2 主动 failover"></a>2.2 主动 failover</h3><p>除了上面的发现故障后集群自动 failover，也可以进行主动的主从切换。</p>
+<h4 id="2-2-1-slave- 节点接受 -cluster-failover- 命令"><a href="#2-2-1-slave- 节点接受 -cluster-failover- 命令" class="headerlink" title="2.2.1 slave 节点接受 cluster failover 命令"></a>2.2.1 slave 节点接受 cluster failover 命令 </h4><p> 主动 failover 是通过 redis 命令实现的，命令格式为 <code>CLUSTER FAILOVER [FORCE|TAKEOVER]</code>，该命令使用详情可以参考这篇 <a target="_blank" rel="noopener" href="http://www.redis.cn/commands/cluster-failover.html"> 文档</a>。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> CLUSTER_MF_TIMEOUT 5000</span>
 <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="hljs-number">1</span>]-&gt;ptr,<span class="hljs-string">&quot;failover&quot;</span>) &amp;&amp; (c-&gt;argc == <span class="hljs-number">2</span> || c-&gt;argc == <span class="hljs-number">3</span>))&#123;
     <span class="hljs-comment">/* CLUSTER FAILOVER [FORCE|TAKEOVER] */</span>
@@ -797,9 +739,7 @@ failover_auth_count 变量中记录了 slave 在本轮选举中获得选票数�
     <span class="hljs-comment">// ...</span>
     server.cluster-&gt;mf_end = mstime() + CLUSTER_MF_TIMEOUT; <span class="hljs-comment">// mf 的超时时间为 5s</span>
 &#125;</code></pre></div>
-<p>cluster failover 命令有三种不同的选项，各有不同的含义，如上面注释所说。takeover 变量标记是否要经过选举， force 变量标记是否需要与 master 沟通。<br>
-另外，mf 过程有一个过期时间，目前定义为 5s，同时， mf_end 也表示现在正在做 mf。<br>
-不同的选项有不同的处理方式，如下，</p>
+<p>cluster failover 命令有三种不同的选项，各有不同的含义，如上面注释所说。takeover 变量标记是否要经过选举， force 变量标记是否需要与 master 沟通。<br>另外，mf 过程有一个过期时间，目前定义为 5s，同时， mf_end 也表示现在正在做 mf。<br>不同的选项有不同的处理方式，如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (takeover) &#123;
     <span class="hljs-comment">// takeover 不会做任何初始化校验。</span>
     <span class="hljs-comment">// 不经过其他节点选举协商，直接将该节点的 current epoch 加 1，然后广播这个新的配置</span>
@@ -816,11 +756,8 @@ failover_auth_count 变量中记录了 slave 在本轮选举中获得选票数�
     serverLog(LL_WARNING,<span class="hljs-string">&quot;Manual failover user request accepted.&quot;</span>);
     clusterSendMFStart(myself-&gt;slaveof); <span class="hljs-comment">// 发送带有 CLUSTERMSG_TYPE_MFSTART 标记的 gossip 包 (只有消息头) 给我的 master</span>
 &#125;</code></pre></div>
-<p>takeover 方式最为粗暴，slave 节点不发起选举，而是直接将自己升级为 master，接手原主节点的槽位，增加自己的 configEpoch 后更新配置。<code>clusterFailoverReplaceYourMaster</code> 的逻辑在前面讲过，只有在本轮选举中获得足够多的选票才会调用该函数。<br>
-force 方式表示可以直接开始选举过程，选举过程也在前面说过了。<br>
-现在来看看默认方式，处理逻辑为 <code>clusterSendMFStart</code> 函数。该函数主要逻辑就是发送向要做 failover 的 slave 的 master 发送 <code>CLUSTERMSG_TYPE_MFSTART</code> 类型的 gossip 消息。</p>
-<h4 id="2-2-2-master- 节点做 -mf- 准备">2.2.2 master 节点做 mf 准备</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (type == CLUSTERMSG_TYPE_MFSTART) &#123;
+<p>takeover 方式最为粗暴，slave 节点不发起选举，而是直接将自己升级为 master，接手原主节点的槽位，增加自己的 configEpoch 后更新配置。<code>clusterFailoverReplaceYourMaster</code> 的逻辑在前面讲过，只有在本轮选举中获得足够多的选票才会调用该函数。<br>force 方式表示可以直接开始选举过程，选举过程也在前面说过了。<br>现在来看看默认方式，处理逻辑为 <code>clusterSendMFStart</code> 函数。该函数主要逻辑就是发送向要做 failover 的 slave 的 master 发送 <code>CLUSTERMSG_TYPE_MFSTART</code> 类型的 gossip 消息。</p>
+<h4 id="2-2-2-master- 节点做 -mf- 准备"><a href="#2-2-2-master- 节点做 -mf- 准备" class="headerlink" title="2.2.2 master 节点做 mf 准备"></a>2.2.2 master 节点做 mf 准备</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (type == CLUSTERMSG_TYPE_MFSTART) &#123;
     <span class="hljs-comment">/* This message is acceptable only if I&#x27;m a master and the sender</span>
 <span class="hljs-comment">     * is one of my slaves. */</span>
     <span class="hljs-keyword">if</span> (!sender || sender-&gt;slaveof != myself) <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;
@@ -835,9 +772,7 @@ force 方式表示可以直接开始选举过程，选举过程也在前面说�
     serverLog(LL_WARNING,<span class="hljs-string">&quot;Manual failover requested by slave %.40s.&quot;</span>,
               sender-&gt;name);
 &#125;</code></pre></div>
-<p><code>resetManualFailover</code> 函数中重置与 mf 相关的参数，表示这是一次新的 mf。<br>
-设置 mf_end，将它的 master 指向 sender（就是那个搞事情的 slave），同时阻塞 client 10s 钟。<br>
-随后，标记在做 mf 的 master 发送 PING 信息时 hdr 会带上 <strong>CLUSTERMSG_FLAG0_PAUSED</strong> 标记。</p>
+<p><code>resetManualFailover</code> 函数中重置与 mf 相关的参数，表示这是一次新的 mf。<br>设置 mf_end，将它的 master 指向 sender（就是那个搞事情的 slave），同时阻塞 client 10s 钟。<br>随后，标记在做 mf 的 master 发送 PING 信息时 hdr 会带上 <strong>CLUSTERMSG_FLAG0_PAUSED</strong> 标记。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterBuildMessageHdr</span><span class="hljs-params">(clusterMsg *hdr, <span class="hljs-keyword">int</span> type)</span> </span>&#123;
     <span class="hljs-comment">// ...</span>
       <span class="hljs-comment">/* Set the message flags. */</span>
@@ -846,10 +781,7 @@ force 方式表示可以直接开始选举过程，选举过程也在前面说�
     <span class="hljs-comment">// ...</span>
 &#125;</code></pre></div>
 <p>mflags 记录与 mf 相关的 flag。</p>
-<h4 id="2-2-3-slave- 处理">2.2.3 slave 处理</h4>
-<h5 id="2-2-3-1- 获得 -master- 的 -repl-offset">2.2.3.1 获得 master 的 repl offset</h5>
-<p>slave 节点处理带有  <strong>CLUSTERMSG_FLAG0_PAUSED</strong> 标记的 gossip 消息。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">clusterProcessPacket</span><span class="hljs-params">(clusterLink *link)</span> </span>&#123;
+<h4 id="2-2-3-slave- 处理"><a href="#2-2-3-slave- 处理" class="headerlink" title="2.2.3 slave 处理"></a>2.2.3 slave 处理</h4><h5 id="2-2-3-1- 获得 -master- 的 -repl-offset"><a href="#2-2-3-1- 获得 -master- 的 -repl-offset" class="headerlink" title="2.2.3.1 获得 master 的 repl offset"></a>2.2.3.1 获得 master 的 repl offset</h5><p>slave 节点处理带有  <strong>CLUSTERMSG_FLAG0_PAUSED</strong> 标记的 gossip 消息。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">clusterProcessPacket</span><span class="hljs-params">(clusterLink *link)</span> </span>&#123;
     <span class="hljs-comment">// ...</span>
     sender = clusterLookupNode(hdr-&gt;sender);
     <span class="hljs-keyword">if</span> (sender &amp;&amp; !nodeInHandshake(sender)) &#123;
@@ -868,10 +800,8 @@ force 方式表示可以直接开始选举过程，选举过程也在前面说�
         &#125;
     &#125;
     <span class="hljs-comment">// ...</span>
-&#125;</code></pre></div>
-<p>对于那个发起 failover 的 slave，记下其 master 的 repl_offset，如果之前还没有记录下的话。</p>
-<h5 id="2-2-3-2- 向 -maser- 追平 -repl-offset">2.2.3.2 向 maser 追平 repl offset</h5>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterCron</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+&#125;</code></pre></div><br>对于那个发起 failover 的 slave，记下其 master 的 repl_offset，如果之前还没有记录下的话。</p>
+<h5 id="2-2-3-2- 向 -maser- 追平 -repl-offset"><a href="#2-2-3-2- 向 -maser- 追平 -repl-offset" class="headerlink" title="2.2.3.2 向 maser 追平 repl offset"></a>2.2.3.2 向 maser 追平 repl offset</h5><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterCron</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-comment">// ...</span>
     <span class="hljs-keyword">if</span> (nodeIsSlave(myself)) &#123;
         clusterHandleManualFailover();
@@ -899,13 +829,9 @@ force 方式表示可以直接开始选举过程，选举过程也在前面说�
                   <span class="hljs-string">&quot;manual failover can start.&quot;</span>);
     &#125;
 &#125;</code></pre></div>
-<p>在 <code>clusterCron</code> 函数里有 <code>clusterHandleManualFailover</code> 的逻辑。<br>
-mf_end 为 0，说明此时没有 mf 发生。<br>
-mf_can_start 非 0 值，表示现在可以此 slave 可以发起选举了。<br>
-mf_master_offset 为 0，说明现在还没有获得 master 的复制偏移量，需要等一会儿。当 mf_master_offset 值等于 <code>replicationGetSlaveOffset</code> 函数的返回值时，把 mf_can_start 置为 1。另外，应该记得，使用带有 force 选项的 <code>CLUSTER FAILOVER</code> 命令，直接就会把 mf_can_start 置为 1，而 <code>replicationGetSlaveOffset</code> 函数的作用就是检查当前的主从复制偏移量，也就是说主从复制偏移量一定要达到 mf_master_offset 时，slave 才会发起选举，即默认选项有一个追平 repl offset 的过程。</p>
+<p>在 <code>clusterCron</code> 函数里有 <code>clusterHandleManualFailover</code> 的逻辑。<br>mf_end 为 0，说明此时没有 mf 发生。<br>mf_can_start 非 0 值，表示现在可以此 slave 可以发起选举了。<br>mf_master_offset 为 0，说明现在还没有获得 master 的复制偏移量，需要等一会儿。当 mf_master_offset 值等于 <code>replicationGetSlaveOffset</code> 函数的返回值时，把 mf_can_start 置为 1。另外，应该记得，使用带有 force 选项的 <code>CLUSTER FAILOVER</code> 命令，直接就会把 mf_can_start 置为 1，而 <code>replicationGetSlaveOffset</code> 函数的作用就是检查当前的主从复制偏移量，也就是说主从复制偏移量一定要达到 mf_master_offset 时，slave 才会发起选举，即默认选项有一个追平 repl offset 的过程。</p>
 <p>其他一些选举什么的流程跟被动 failover 没有区别。</p>
-<h4 id="2-2-4- 过期清理 -mf">2.2.4 过期清理 mf</h4>
-<p>主从节点在周期性的<code>clusterCron</code> 中都有一个检查本次 mf 是否过期的函数。</p>
+<h4 id="2-2-4- 过期清理 -mf"><a href="#2-2-4- 过期清理 -mf" class="headerlink" title="2.2.4 过期清理 mf"></a>2.2.4 过期清理 mf</h4><p>主从节点在周期性的<code>clusterCron</code> 中都有一个检查本次 mf 是否过期的函数。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">manualFailoverCheckTimeout</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-keyword">if</span> (server.cluster-&gt;mf_end &amp;&amp; server.cluster-&gt;mf_end &lt; mstime()) &#123;
         serverLog(LL_WARNING,<span class="hljs-string">&quot;Manual failover timed out.&quot;</span>);
@@ -924,17 +850,13 @@ mf_master_offset 为 0，说明现在还没有获得 master 的复制偏移量�
     server.cluster-&gt;mf_master_offset = <span class="hljs-number">0</span>;
 &#125;</code></pre></div>
 <p>如果过期没有做 mf ，那么就会重置它的相关参数。</p>
-<h2 id="3- 附录">3. 附录</h2>
-<h3 id="3-1-epoch- 概念">3.1 epoch 概念</h3>
-<p>在 Redis cluster 里 epoch 是个非常重要的概念，类似于 raft 算法中的 term 概念。Redis cluster 里主要是两种：currentEpoch 和 configEpoch。</p>
-<h4 id="3-1-1-currentEpoch">3.1.1 currentEpoch</h4>
-<blockquote>
-<p>这是一个集群状态相关的概念，可以当做记录集群状态变更的递增版本号。每个集群节点，都会通过 server.cluster-&gt;currentEpoch 记录当前的 currentEpoch。</p>
+<h2 id="3- 附录"><a href="#3- 附录" class="headerlink" title="3. 附录"></a>3. 附录 </h2><h3 id="3-1-epoch- 概念"><a href="#3-1-epoch- 概念" class="headerlink" title="3.1 epoch 概念"></a>3.1 epoch 概念</h3><p> 在 Redis cluster 里 epoch 是个非常重要的概念，类似于 raft 算法中的 term 概念。Redis cluster 里主要是两种：currentEpoch 和 configEpoch。</p>
+<h4 id="3-1-1-currentEpoch"><a href="#3-1-1-currentEpoch" class="headerlink" title="3.1.1 currentEpoch"></a>3.1.1 currentEpoch</h4><blockquote>
+<p> 这是一个集群状态相关的概念，可以当做记录集群状态变更的递增版本号。每个集群节点，都会通过 server.cluster-&gt;currentEpoch 记录当前的 currentEpoch。</p>
 <p>集群节点创建时，不管是主节点还是从节点，都置 currentEpoch 为 0。当前节点接收到来自其他节点的包时，如果发送者的 currentEpoch（消息头部会包含发送者的 currentEpoch）大于当前节点的 currentEpoch，那么当前节点会更新 currentEpoch 为发送者的 currentEpoch。因此，集群中所有节点的 currentEpoch 最终会达成一致，相当于对集群状态的认知达成了一致。</p>
 </blockquote>
 <p>currentEpoch 作用在于，集群状态发生改变时，某节点会先增加自身 currentEpoch 的值，然后向集群中其他节点征求同意，以便执行某些动作。目前，仅用于 slave 节点的故障转移流程，在上面分析中也看到了，在发起选举之前，slave 会增加自己的 currentEpoch，并且得到的 currentEpoch 表示这一轮选举的 voteEpoch，当获得了足够多的选票后才会执行故障转移。</p>
-<h4 id="3-1-2-configEpoch">3.1.2 configEpoch</h4>
-<blockquote>
+<h4 id="3-1-2-configEpoch"><a href="#3-1-2-configEpoch" class="headerlink" title="3.1.2 configEpoch"></a>3.1.2 configEpoch</h4><blockquote>
 <p>这是一个集群节点配置相关的概念，每个集群节点都有自己独一无二的 configepoch。所谓的节点配置，实际上是指节点所负责的 slot 信息。</p>
 </blockquote>
 <p>configEpoch 主要用于解决不同的节点就 slot 归属认知发生冲突的情况。公说公有理婆说婆有理，到底听谁的，configEpoch 越大，看到的集群节点配置信息越新，就越有话语权。对于冲突的情况，后面会有博客进行详细分析。</p>
@@ -950,8 +872,7 @@ mf_master_offset 为 0，说明现在还没有获得 master 的复制偏移量�
 <li>每个节点的 node epoch 都是独一无二的。</li>
 <li>拥有越高 epoch 的节点, 集群信息越新。</li>
 </ol>
-<h3 id="3-2-clusterUpdateState- 函数逻辑">3.2 clusterUpdateState 函数逻辑</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> CLUSTER_MAX_REJOIN_DELAY 5000</span>
+<h3 id="3-2-clusterUpdateState- 函数逻辑"><a href="#3-2-clusterUpdateState- 函数逻辑" class="headerlink" title="3.2 clusterUpdateState 函数逻辑"></a>3.2 clusterUpdateState 函数逻辑</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> CLUSTER_MAX_REJOIN_DELAY 5000</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> CLUSTER_MIN_REJOIN_DELAY 500</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> CLUSTER_WRITABLE_DELAY 2000</span>
 <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterUpdateState</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
@@ -1038,8 +959,7 @@ mf_master_offset 为 0，说明现在还没有获得 master 的复制偏移量�
         server.cluster-&gt;state = new_state;
     &#125;
 </code></pre></div>
-<h2 id="4- 参考">4. 参考</h2>
-<p><i class="fa fa-link" aria-hidden="true"></i> <a target="_blank" rel="noopener" href="https://blog.csdn.net/gqtcgq/article/details/51830428">Redis 源码解析：27 集群 (三) 主从复制、故障转移</a></p>
+<h2 id="4- 参考"><a href="#4- 参考" class="headerlink" title="4. 参考"></a>4. 参考 </h2><p><i class="fa fa-link" aria-hidden="true"></i> <a target="_blank" rel="noopener" href="https://blog.csdn.net/gqtcgq/article/details/51830428">Redis 源码解析：27 集群(三) 主从复制、故障转移</a></p>
 
             </div>
             <hr>

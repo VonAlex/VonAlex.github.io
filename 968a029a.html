@@ -247,19 +247,11 @@
             <div class="markdown-body" id="post-body">
               <p>redis 代码中主从复制流程的核心部分在于 <strong> 状态机的流转</strong>。</p>
 <!--more---->
-<p>单机模式下以  <strong>SLAVEOF</strong> 命令触发；<br>
-cluster 模式下以 <strong>REPLICATE</strong> 命令触发，且 cluster 模式下不支持 <strong>SLAVEOF</strong> 命令。</p>
-<p>在该过程中，master 与 slave 各有不同的流转逻辑，交互频繁，本文以下内容试图介绍 slave 的处理逻辑, 以下流程图可以辅助理解。<br>
-<img src="https://s2.ax1x.com/2019/09/09/nGjlXd.png" srcset="/img/loading.gif" alt="nGjlXd.png"></p>
-<p>代码中在 <code>redisServer</code> 结构体里定义的很多 <strong>repl</strong> 前缀的变量都用于此过程，如<code>repl_transfer_fd</code>。<br>
-各变量的作用在源码注释里已经写得非常详细了，不做赘述。</p>
-<h2 id="单机模式下的主从复制">单机模式下的主从复制</h2>
-<p>redis 实例以单机模式启动，即在 <span id="inline-blue"> redis.conf </span> 中配置 <strong>cluster-enabled no</strong>。</p>
-<h3 id="触发方式">触发方式</h3>
-<p>有以下三种方式可触发主从复制流程。<br>
-① <span id="inline-blue">redis.conf </span> 中配置 <code>slaveof &lt;masterip&gt; &lt;masterport&gt;</code>；<br>
-② redis-server 命令启动服务时指定参数 <code>--slaveof [masterip] [masterport]</code>；<br>
-③ 对一个实例执行 <code>slaveof [masterip] [masterport]</code> 命令。</p>
+<p>单机模式下以  <strong>SLAVEOF</strong> 命令触发；<br>cluster 模式下以 <strong>REPLICATE</strong> 命令触发，且 cluster 模式下不支持 <strong>SLAVEOF</strong> 命令。</p>
+<p>在该过程中，master 与 slave 各有不同的流转逻辑，交互频繁，本文以下内容试图介绍 slave 的处理逻辑, 以下流程图可以辅助理解。<br><img src="https://s2.ax1x.com/2019/09/09/nGjlXd.png" srcset="/img/loading.gif" alt="nGjlXd.png"></p>
+<p>代码中在 <code>redisServer</code> 结构体里定义的很多 <strong>repl</strong> 前缀的变量都用于此过程，如 <code>repl_transfer_fd</code>。<br> 各变量的作用在源码注释里已经写得非常详细了，不做赘述。</p>
+<h2 id="单机模式下的主从复制"><a href="# 单机模式下的主从复制" class="headerlink" title="单机模式下的主从复制"></a>单机模式下的主从复制</h2><p>redis 实例以单机模式启动，即在 <span id="inline-blue"> redis.conf </span> 中配置 <strong>cluster-enabled no</strong>。</p>
+<h3 id="触发方式"><a href="# 触发方式" class="headerlink" title="触发方式"></a>触发方式 </h3><p> 有以下三种方式可触发主从复制流程。<br>① <span id="inline-blue">redis.conf </span> 中配置 <code>slaveof &lt;masterip&gt; &lt;masterport&gt;</code>；<br>② redis-server 命令启动服务时指定参数 <code>--slaveof [masterip] [masterport]</code>；<br>③ 对一个实例执行 <code>slaveof [masterip] [masterport]</code> 命令。</p>
 <p>①② 逻辑相似，直接标记 <code>server.repl_state</code> 为 <strong>REPL_STATE_CONNECT</strong> 状态，以 ① 为例简要说明，加载配置文件时有如下逻辑，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">loadServerConfigFromString</span><span class="hljs-params">(<span class="hljs-keyword">char</span> *config)</span> </span>&#123;
     ....
@@ -271,9 +263,7 @@ cluster 模式下以 <strong>REPLICATE</strong> 命令触发，且 cluster 模�
     &#125;
 ....
 &#125;</code></pre></div>
-<p>而 ③ 在标记 <code>REPL_STATE_CONNECT</code> 状态前需要做一些检查。<br>
-首先，检查实例是否开启了 cluster 模式，如果开启了，那么直接返回，不支持这个命令。<br>
-接着，通过检查 <code>slaveof</code> 命令后面的参数来判断使用的是哪个命令，代码如下，</p>
+<p>而 ③ 在标记 <code>REPL_STATE_CONNECT</code> 状态前需要做一些检查。<br>首先，检查实例是否开启了 cluster 模式，如果开启了，那么直接返回，不支持这个命令。<br>接着，通过检查 <code>slaveof</code> 命令后面的参数来判断使用的是哪个命令，代码如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">slaveofCommand</span><span class="hljs-params">(client *c)</span> </span>&#123;
     <span class="hljs-comment">/* cluster 模式开启后，禁用 slaveof 命令 */</span>
     <span class="hljs-keyword">if</span> (server.cluster_enabled) &#123;
@@ -310,8 +300,7 @@ cluster 模式下以 <strong>REPLICATE</strong> 命令触发，且 cluster 模�
     &#125;
     addReply(c,shared.ok);
 &#125;</code></pre></div>
-<h4 id="SLAVEOF-NO-ONE- 命令">SLAVEOF NO ONE 命令</h4>
-<p>该命令会取消现有的主从关系，使 slave 变为 master，主要函数如下，</p>
+<h4 id="SLAVEOF-NO-ONE- 命令"><a href="#SLAVEOF-NO-ONE- 命令" class="headerlink" title="SLAVEOF NO ONE 命令"></a>SLAVEOF NO ONE 命令 </h4><p> 该命令会取消现有的主从关系，使 slave 变为 master，主要函数如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">replicationUnsetMaster</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-comment">// 已经是 master 了，无需继续操作</span>
     <span class="hljs-keyword">if</span> (server.masterhost == <span class="hljs-literal">NULL</span>) <span class="hljs-keyword">return</span>;
@@ -331,16 +320,10 @@ cluster 模式下以 <strong>REPLICATE</strong> 命令触发，且 cluster 模�
     cancelReplicationHandshake();
     server.repl_state = REPL_STATE_NONE;
 &#125;</code></pre></div>
-<p>这里主要涉及到一些与 master 相关的变量的内存释放。<br>
-如果该实例有 master，且不是其他实例的 master，即 <code>listLength(server.slaves) == 0</code>，也就是说未形成链式结构，那么记录下原 master 的  replication offset。在某些特定条件下，副本的数据新鲜度可以通过 replication offset 来比较，有时由于网络等原因暂时断开了，隔了一段时间又重新连上原 master，有了这个偏移量可以减少做完全重同步的可能性(我是这么理解的)。<br>
-<strong>freeClient</strong> 函数会释放掉原来的 master，做一些内存释放，一些标志位重置等。</p>
+<p>这里主要涉及到一些与 master 相关的变量的内存释放。<br>如果该实例有 master，且不是其他实例的 master，即 <code>listLength(server.slaves) == 0</code>，也就是说未形成链式结构，那么记录下原 master 的  replication offset。在某些特定条件下，副本的数据新鲜度可以通过 replication offset 来比较，有时由于网络等原因暂时断开了，隔了一段时间又重新连上原 master，有了这个偏移量可以减少做完全重同步的可能性(我是这么理解的)。<br><strong>freeClient</strong> 函数会释放掉原来的 master，做一些内存释放，一些标志位重置等。</p>
 <p>接下来的 <code>replicationDiscardCachedMaster</code> 函数中会释放掉 <code>server.cached_master</code>，因为这里缓存以前的 mater 已经没用了，不知道下次要连的是哪个 master，或者自己以后成为一个 master，避免不必要的内存浪费。</p>
-<p><code>cancelReplicationHandshake</code> 函数则会取消一个正在进行尝试 handshake 的主从复制过程。<br>
-最后重置状态机为 <strong>REPL_STATE_NONE</strong>。</p>
-<h4 id="SLAVEOF-host-port- 命令">SLAVEOF host port 命令</h4>
-<p>通过执行该命令，可以将当前实例变成某个实例的 slave。<br>
-如果指定的主从关系已经存在，那本次命令没必要继续执行了，直接返回；否则，通过 <code>replicationSetMaster</code> 函数设置新的主从关系，代码如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">replicationSetMaster</span><span class="hljs-params">(<span class="hljs-keyword">char</span> *ip, <span class="hljs-keyword">int</span> port)</span> </span>&#123;
+<p><code>cancelReplicationHandshake</code> 函数则会取消一个正在进行尝试 handshake 的主从复制过程。<br>最后重置状态机为 <strong>REPL_STATE_NONE</strong>。</p>
+<h4 id="SLAVEOF-host-port- 命令"><a href="#SLAVEOF-host-port- 命令" class="headerlink" title="SLAVEOF host port 命令"></a>SLAVEOF host port 命令 </h4><p> 通过执行该命令，可以将当前实例变成某个实例的 slave。<br>如果指定的主从关系已经存在，那本次命令没必要继续执行了，直接返回；否则，通过 <code>replicationSetMaster</code> 函数设置新的主从关系，代码如下，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">replicationSetMaster</span><span class="hljs-params">(<span class="hljs-keyword">char</span> *ip, <span class="hljs-keyword">int</span> port)</span> </span>&#123;
     sdsfree(server.masterhost);
     server.masterhost = sdsnew(ip);
     server.masterport = port;
@@ -357,19 +340,8 @@ cluster 模式下以 <strong>REPLICATE</strong> 命令触发，且 cluster 模�
     server.repl_state = REPL_STATE_CONNECT;
     server.master_repl_offset = <span class="hljs-number">0</span>;
     server.repl_down_since = <span class="hljs-number">0</span>;
-&#125;</code></pre></div>
-<p>在以上函数中，<br>
-先保存下要连接的 ip 和 port，方便后面进行建立网络连接。<br>
-如果，该节点之前有 master 了，那么需要释放掉原来的 master，跟上面一节的逻辑类似，前面详细说过了。<br>
-<strong>disconnectAllBlockedClients</strong> 函数会 unlock 已经 lock 在这个实例上的 client，并返回 <strong>-UNBLOCKED</strong> 开头的错误。这是因为该实例已经改变了角色，block 已经没什么意义。比如当一个实例从 master 变为 slave，那么由于 list 选项而阻塞在该实例上的 client 就不安全了，<strong>因为数据随着从新的 slave 同步数据，该实例的数据集可能会发生变化</strong>。<br>
-<strong>disconnectSlaves</strong> 函数释放掉所有的 slave，重新同步新的数据。<br>
-释放掉 <code>server.cached_master</code>，同样因为数据集变化了，cache 的数据并不能用了。<br>
-释放掉 <code>server.repl_backlog</code>，理由同上。<br>
-<code>cancelReplicationHandshake</code> 函数在上面讲过了。<br>
-将 <code>server.repl_state</code> 置为 <strong>REPL_STATE_CONNECT</strong> 状态，复制偏离量归零等。<br>
-最后返回 OK，也就是这个命令的返回值<code>+OK\r\n</code>。</p>
-<h3 id="主从建立连接">主从建立连接</h3>
-<p>redis 中有很多 cron 任务，其中就有一个负责 replication 的，即每秒执行一次的 <strong>replicationCron</strong> 函数。</p>
+&#125;</code></pre></div><br>在以上函数中，<br>先保存下要连接的 ip 和 port，方便后面进行建立网络连接。<br>如果，该节点之前有 master 了，那么需要释放掉原来的 master，跟上面一节的逻辑类似，前面详细说过了。<br><strong>disconnectAllBlockedClients</strong> 函数会 unlock 已经 lock 在这个实例上的 client，并返回 <strong>-UNBLOCKED</strong> 开头的错误。这是因为该实例已经改变了角色，block 已经没什么意义。比如当一个实例从 master 变为 slave，那么由于 list 选项而阻塞在该实例上的 client 就不安全了，<strong>因为数据随着从新的 slave 同步数据，该实例的数据集可能会发生变化 </strong>。<br><strong>disconnectSlaves</strong> 函数释放掉所有的 slave，重新同步新的数据。<br> 释放掉 <code>server.cached_master</code>，同样因为数据集变化了，cache 的数据并不能用了。<br>释放掉 <code>server.repl_backlog</code>，理由同上。<br><code>cancelReplicationHandshake</code> 函数在上面讲过了。<br>将 <code>server.repl_state</code> 置为 <strong>REPL_STATE_CONNECT</strong> 状态，复制偏离量归零等。<br>最后返回 OK，也就是这个命令的返回值<code>+OK\r\n</code>。</p>
+<h3 id="主从建立连接"><a href="# 主从建立连接" class="headerlink" title="主从建立连接"></a>主从建立连接</h3><p>redis 中有很多 cron 任务，其中就有一个负责 replication 的，即每秒执行一次的 <strong>replicationCron</strong> 函数。</p>
 <div class="hljs"><pre><code class="hljs c">run_with_period(<span class="hljs-number">1000</span>) replicationCron();</code></pre></div>
 <p>在上一步中，状态机已经流转到 <strong>REPL_STATE_CONNECT</strong> 状态，这里直接就进入到主从建连的逻辑。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">replicationCron</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
@@ -412,16 +384,13 @@ true......
 &#125;</code></pre></div>
 <p><code>server.repl_transfer_lastio</code> 用于记录上一次 fd 读事件的时刻，<code>server.repl_transfer_s</code> 记录主从复制使用到的 socket fd。</p>
 <p>更新状态机为 <strong>REPL_STATE_CONNECTING</strong>。</p>
-<h3 id="主从 -handshake- 过程">主从 handshake 过程</h3>
-<h4 id="发送 -ping">发送 ping</h4>
-<p>主从建连成功后，通过 fd 的读写事件触发  <code>syncWithMaster</code> 回调函数。</p>
+<h3 id="主从 -handshake- 过程"><a href="# 主从 -handshake- 过程" class="headerlink" title="主从 handshake 过程"></a>主从 handshake 过程 </h3><h4 id="发送 -ping"><a href="# 发送 -ping" class="headerlink" title="发送 ping"></a> 发送 ping</h4><p>主从建连成功后，通过 fd 的读写事件触发  <code>syncWithMaster</code> 回调函数。</p>
 <p>如果该事件在用户把本实例用 <strong>SLAVEOF NO ONE</strong> 变成 master 后出触发，那么没有执行下去的必要，判断逻辑如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_NONE) &#123;
     close(fd);
     <span class="hljs-keyword">return</span>;
 &#125;</code></pre></div>
-<p>下面是同步发送 PING 的代码逻辑，更新状态机为 <strong>REPL_STATE_RECEIVE_PONG</strong>。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_CONNECTING) &#123;
+<p>下面是同步发送 PING 的代码逻辑，更新状态机为 <strong>REPL_STATE_RECEIVE_PONG</strong>。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_CONNECTING) &#123;
     serverLog(LL_NOTICE,<span class="hljs-string">&quot;Non blocking connect for SYNC fired the event.&quot;</span>);
 
     <span class="hljs-comment">/* 为了等待 pong 的返回，删除 fd 上的可写事件，但保留可读事件 */</span>
@@ -432,11 +401,8 @@ true......
     err = sendSynchronousCommand(SYNC_CMD_WRITE,fd,<span class="hljs-string">&quot;PING&quot;</span>,<span class="hljs-literal">NULL</span>);
     <span class="hljs-keyword">if</span> (err) <span class="hljs-keyword">goto</span> write_error;
     <span class="hljs-keyword">return</span>;
-&#125;</code></pre></div>
-<p><code>sendSynchronousCommand</code> 函数通过 flag 标识读写命令，此处写命令标识为 <strong>SYNC_CMD_WRITE</strong>。</p>
-<h4 id="验证 -AUTH">验证 AUTH</h4>
-<p>使用 <strong>sendSynchronousCommand</strong> 函数同步读取 master 对 PING 的回复。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_RECEIVE_PONG) &#123;
+&#125;</code></pre></div><br><code>sendSynchronousCommand</code> 函数通过 flag 标识读写命令，此处写命令标识为 <strong>SYNC_CMD_WRITE</strong>。</p>
+<h4 id="验证 -AUTH"><a href="# 验证 -AUTH" class="headerlink" title="验证 AUTH"></a>验证 AUTH</h4><p>使用 <strong>sendSynchronousCommand</strong> 函数同步读取 master 对 PING 的回复。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_RECEIVE_PONG) &#123;
     <span class="hljs-comment">/* 读取上面发送的 ping 命令的 response */</span>
     err = sendSynchronousCommand(SYNC_CMD_READ,fd,<span class="hljs-literal">NULL</span>);
     <span class="hljs-keyword">if</span> (err[<span class="hljs-number">0</span>] != <span class="hljs-string">&#x27;+&#x27;</span> &amp;&amp; <span class="hljs-built_in">strncmp</span>(err,<span class="hljs-string">&quot;-NOAUTH&quot;</span>,<span class="hljs-number">7</span>) != <span class="hljs-number">0</span> &amp;&amp;
@@ -451,8 +417,7 @@ true......
     &#125;
     sdsfree(err);
     server.repl_state = REPL_STATE_SEND_AUTH;
-&#125;</code></pre></div>
-<p>回复只可能有 3 种情况：<strong>+PONG</strong>，<strong>-NOAUTH</strong> 和 <strong>-ERR operation not permitted</strong>（老版本的 redis 主节点）。如果不是，直接进入错误处理代码流程。</p>
+&#125;</code></pre></div><br>回复只可能有 3 种情况：<strong>+PONG</strong>，<strong>-NOAUTH</strong> 和 <strong>-ERR operation not permitted</strong>（老版本的 redis 主节点）。如果不是，直接进入错误处理代码流程。</p>
 <p><strong>注意</strong>：这里的读操作会更新变量 <code>server.repl_transfer_lastio</code>。</p>
 <p>调整状态机为 <strong>REDIS_REPL_SEND_AUTH</strong>。这里没有 <code>return</code>，直接往下执行，进入鉴权的逻辑，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_SEND_AUTH) &#123;
@@ -465,8 +430,7 @@ true......
      	 server.repl_state = REPL_STATE_SEND_PORT;
     &#125;
 &#125;</code></pre></div>
-<p>如果配置文件中没有设置 <strong>masterauth</strong> 选项，那么状态机置为 <strong>REPL_STATE_SEND_PORT</strong>。<br>
-否则，需要发送 <code>AUTH</code> 命令鉴权。状态机置为 <strong>REPL_STATE_RECEIVE_AUTH</strong>。</p>
+<p>如果配置文件中没有设置 <strong>masterauth</strong> 选项，那么状态机置为 <strong>REPL_STATE_SEND_PORT</strong>。<br>否则，需要发送 <code>AUTH</code> 命令鉴权。状态机置为 <strong>REPL_STATE_RECEIVE_AUTH</strong>。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Receive AUTH reply. */</span>
 <span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_RECEIVE_AUTH) &#123;
     err = sendSynchronousCommand(SYNC_CMD_READ,fd,<span class="hljs-literal">NULL</span>);
@@ -479,13 +443,8 @@ true......
     server.repl_state = REPL_STATE_SEND_PORT;
 &#125;</code></pre></div>
 <p>验证 auth 通过后，状态机置为 <strong>REPL_STATE_SEND_PORT</strong>，否则，直接跳到的 err 处理流程。</p>
-<h4 id="发送 -REPLCONF- 命令">发送 REPLCONF 命令</h4>
-<p>slave 将发送一连串的 <code>REPLCONF</code> 命令，以告知 master 自己的一些信息。<br>
-<code>slave-announce-ip</code> 和 <code>slave-announce-port</code> 主要是针对转发或者 NAT 场景下，master 无法通过 socket 连接获得对端信息时使用。</p>
-<p>首先发送自己的 port 信息，<code>REPLCONF listening-port &lt;port&gt;</code>，状态机置为 <strong>REPL_STATE_RECEIVE_PORT</strong>，返回，等下一次事件触发。<br>
-接着，同步读取 master 的回复，即使返回错误也没有关系，状态机置为 <strong>REPL_STATE_SEND_IP</strong>。<br>
-代码如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Set the slave port, so that Master&#x27;s INFO command can list the</span>
+<h4 id="发送 -REPLCONF- 命令"><a href="# 发送 -REPLCONF- 命令" class="headerlink" title="发送 REPLCONF 命令"></a>发送 REPLCONF 命令</h4><p>slave 将发送一连串的 <code>REPLCONF</code> 命令，以告知 master 自己的一些信息。<br><code>slave-announce-ip</code> 和 <code>slave-announce-port</code> 主要是针对转发或者 NAT 场景下，master 无法通过 socket 连接获得对端信息时使用。</p>
+<p>首先发送自己的 port 信息，<code>REPLCONF listening-port &lt;port&gt;</code>，状态机置为 <strong>REPL_STATE_RECEIVE_PORT</strong>，返回，等下一次事件触发。<br>接着，同步读取 master 的回复，即使返回错误也没有关系，状态机置为 <strong>REPL_STATE_SEND_IP</strong>。<br>代码如下，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Set the slave port, so that Master&#x27;s INFO command can list the</span>
 <span class="hljs-comment"> * slave listening port correctly. */</span>
 <span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_SEND_PORT) &#123;
     sds port = sdsfromlonglong(server.slave_announce_port ?
@@ -506,15 +465,12 @@ true......
                 <span class="hljs-string">&quot;REPLCONF listening-port: %s&quot;</span>, err);
     &#125;
     sdsfree(err);
-    server.repl_state = REPL_STATE_SEND_IP;</code></pre></div>
-<p>如果没有配置 <code>slave-announce-ip</code> 时，直接将状态机调跳转到 <strong>REPL_STATE_SEND_CAPA</strong>，跳过发送 REPLCONF ip-address 的步骤。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_SEND_IP &amp;&amp;
+    server.repl_state = REPL_STATE_SEND_IP;</code></pre></div><br>如果没有配置 <code>slave-announce-ip</code> 时，直接将状态机调跳转到 <strong>REPL_STATE_SEND_CAPA</strong>，跳过发送 REPLCONF ip-address 的步骤。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_SEND_IP &amp;&amp;
     server.slave_announce_ip == <span class="hljs-literal">NULL</span>)
 &#123;
   server.repl_state = REPL_STATE_SEND_CAPA;
-&#125;</code></pre></div>
-<p>发送 REPLCONF ip-address，接收回复，将状态机置为 <strong>REPL_STATE_SEND_CAPA</strong>。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* REPLCONF ip-address &lt;ip&gt;  */</span>
+&#125;</code></pre></div></p>
+<p>发送 REPLCONF ip-address，接收回复，将状态机置为 <strong>REPL_STATE_SEND_CAPA</strong>。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* REPLCONF ip-address &lt;ip&gt;  */</span>
 <span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_SEND_IP) &#123;
     err = sendSynchronousCommand(SYNC_CMD_WRITE,fd,<span class="hljs-string">&quot;REPLCONF&quot;</span>,
                                  <span class="hljs-string">&quot;ip-address&quot;</span>,server.slave_announce_ip, <span class="hljs-literal">NULL</span>);
@@ -533,8 +489,8 @@ true......
     &#125;
     sdsfree(err);
     server.repl_state = REPL_STATE_SEND_CAPA;
-&#125;</code></pre></div>
-<p>状态机置为  <strong>REPL_STATE_SEND_CAPA</strong>，告知 master 自己的能力，现在只有 eof，表示支持无磁盘化主从复制，以后可能会有更多，格式为 <code> REPLCONF capa X capa Y capa Z ...</code>。</p>
+&#125;</code></pre></div></p>
+<p>状态机置为  <strong>REPL_STATE_SEND_CAPA</strong>，告知 master 自己的能力，现在只有 eof，表示支持无磁盘化主从复制，以后可能会有更多，格式为 <code>REPLCONF capa X capa Y capa Z ...</code>。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_SEND_CAPA) &#123;
     err = sendSynchronousCommand(SYNC_CMD_WRITE,fd,<span class="hljs-string">&quot;REPLCONF&quot;</span>,
                                  <span class="hljs-string">&quot;capa&quot;</span>,<span class="hljs-string">&quot;eof&quot;</span>,<span class="hljs-literal">NULL</span>);
@@ -556,21 +512,16 @@ true......
 &#125;
 </code></pre></div>
 <p>状态机置为 <strong>REPL_STATE_SEND_PSYNC</strong>。</p>
-<h4 id="尝试做部分重同步">尝试做部分重同步</h4>
-<p>为解决旧版本 redis 在处理断线情况下完全复制的低效问题， 从 2.8 版本开始，使用 PSYNC 命令代替 SYNC 命令来执行复制时的同步操作，这个点在前面的博客讲过了。</p>
-<p>为高效起见，首先尝试做部分重同步，试探逻辑在函数 <strong>slaveTryPartialResynchronization</strong> 中。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_SEND_PSYNC) &#123;
+<h4 id="尝试做部分重同步"><a href="# 尝试做部分重同步" class="headerlink" title="尝试做部分重同步"></a>尝试做部分重同步 </h4><p> 为解决旧版本 redis 在处理断线情况下完全复制的低效问题， 从 2.8 版本开始，使用 PSYNC 命令代替 SYNC 命令来执行复制时的同步操作，这个点在前面的博客讲过了。</p>
+<p>为高效起见，首先尝试做部分重同步，试探逻辑在函数 <strong>slaveTryPartialResynchronization</strong> 中。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_state == REPL_STATE_SEND_PSYNC) &#123;
     <span class="hljs-keyword">if</span> (slaveTryPartialResynchronization(fd,<span class="hljs-number">0</span>) == PSYNC_WRITE_ERROR) &#123;
         err = sdsnew(<span class="hljs-string">&quot;Write error sending the PSYNC command.&quot;</span>);
         <span class="hljs-keyword">goto</span> write_error;
     &#125;
     server.repl_state = REPL_STATE_RECEIVE_PSYNC;
     <span class="hljs-keyword">return</span>;
-&#125;</code></pre></div>
-<p><strong>slaveTryPartialResynchronization</strong> 里包含了读写两部分，其中写的部分在上半部，当第二个参数为 0 时，发送 PSYNC 命令，命令格式为 <code>PSYNC &lt;runid&gt; &lt;offset&gt;</code>。<br>
-发送 PSYNC 时，分两种情况，首次连接或非首次连接。首次连接时，runid 未知，用 <code>?</code> 代替，offset 置为初始值 -1。<br>
-代码逻辑如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (!read_reply) &#123;
+&#125;</code></pre></div></p>
+<p><strong>slaveTryPartialResynchronization</strong> 里包含了读写两部分，其中写的部分在上半部，当第二个参数为 0 时，发送 PSYNC 命令，命令格式为 <code>PSYNC &lt;runid&gt; &lt;offset&gt;</code>。<br>发送 PSYNC 时，分两种情况，首次连接或非首次连接。首次连接时，runid 未知，用 <code>?</code> 代替，offset 置为初始值 -1。<br>代码逻辑如下，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (!read_reply) &#123;
 trueserver.repl_master_initial_offset = <span class="hljs-number">-1</span>;
 
     <span class="hljs-keyword">if</span> (server.cached_master) &#123; <span class="hljs-comment">// 重连</span>
@@ -592,9 +543,7 @@ trueserver.repl_master_initial_offset = <span class="hljs-number">-1</span>;
         <span class="hljs-keyword">return</span> PSYNC_WRITE_ERROR;
     &#125;
     <span class="hljs-keyword">return</span> PSYNC_WAIT_REPLY;
-&#125;</code></pre></div>
-<p>发送出错后，需要删掉 fd 上的可读事件。<br>
-回到 <strong>syncWithMaster</strong> 函数中，状态机置为 <strong>REPL_STATE_RECEIVE_PSYNC</strong>。</p>
+&#125;</code></pre></div><br>发送出错后，需要删掉 fd 上的可读事件。<br>回到 <strong>syncWithMaster</strong> 函数中，状态机置为 <strong>REPL_STATE_RECEIVE_PSYNC</strong>。</p>
 <p>代码逻辑走到这一步，如果状态机的状态不是 <strong>REPL_STATE_RECEIVE_PSYNC</strong>，一定是哪里出错了，进入错误处理流程，即，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* If reached this point, we should be in REPL_STATE_RECEIVE_PSYNC. */</span>
 <span class="hljs-keyword">if</span> (server.repl_state != REPL_STATE_RECEIVE_PSYNC) &#123;
@@ -602,8 +551,7 @@ trueserver.repl_master_initial_offset = <span class="hljs-number">-1</span>;
         <span class="hljs-string">&quot;state should be RECEIVE_PSYNC but is %d&quot;</span>, server.repl_state);
     <span class="hljs-keyword">goto</span> error;
 &#125;</code></pre></div>
-<p>接着去读取 master 的给的回复信息，</p>
-<div class="hljs"><pre><code class="hljs c">psync_result = slaveTryPartialResynchronization(fd,<span class="hljs-number">1</span>);</code></pre></div>
+<p>接着去读取 master 的给的回复信息，<br><div class="hljs"><pre><code class="hljs c">psync_result = slaveTryPartialResynchronization(fd,<span class="hljs-number">1</span>);</code></pre></div></p>
 <p>可能会读到三种，<code>+FULLRESYNC</code>、<code>+CONTINUE</code>以及<code>-ERR</code>。</p>
 <div class="hljs"><pre><code class="hljs c">reply = sendSynchronousCommand(SYNC_CMD_READ,fd,<span class="hljs-literal">NULL</span>);
 <span class="hljs-keyword">if</span> (sdslen(reply) == <span class="hljs-number">0</span>) &#123;
@@ -613,8 +561,7 @@ trueserver.repl_master_initial_offset = <span class="hljs-number">-1</span>;
 &#125;
 <span class="hljs-comment">/* 删除 fd 可读事件，方便后面为 f&#x27;d 重新注册新的回调 */</span>
 aeDeleteFileEvent(server.el,fd,AE_READABLE);</code></pre></div>
-<p>【1】<code>+FULLRESYNC</code> 回复表示不能进行部分重同步，slave 告诉给 master 的 offset 不在 master 的复制积压缓冲区范围内，只能进行完全重同步，返回给上层函数 <strong>PSYNC_FULLRESYNC</strong>，代码如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* 完全重同步得到 response 为 +FULLRESYNC &lt;master_runid&gt; &lt;offset&gt; */</span>
+<p>【1】<code>+FULLRESYNC</code> 回复表示不能进行部分重同步，slave 告诉给 master 的 offset 不在 master 的复制积压缓冲区范围内，只能进行完全重同步，返回给上层函数 <strong>PSYNC_FULLRESYNC</strong>，代码如下，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* 完全重同步得到 response 为 +FULLRESYNC &lt;master_runid&gt; &lt;offset&gt; */</span>
 <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">strncmp</span>(reply,<span class="hljs-string">&quot;+FULLRESYNC&quot;</span>,<span class="hljs-number">11</span>)) &#123;
     <span class="hljs-keyword">char</span> *runid = <span class="hljs-literal">NULL</span>, *offset = <span class="hljs-literal">NULL</span>;
     runid = <span class="hljs-built_in">strchr</span>(reply,<span class="hljs-string">&#x27; &#x27;</span>);
@@ -640,17 +587,14 @@ aeDeleteFileEvent(server.el,fd,AE_READABLE);</code></pre></div>
     replicationDiscardCachedMaster();
     sdsfree(reply);
     <span class="hljs-keyword">return</span> PSYNC_FULLRESYNC;
-&#125;</code></pre></div>
-<p>以上代码解析出 master 的 runid，以及 offset，分别赋值给 <code>repl_master_runid</code> 和 <code>repl_master_initial_offset</code>。因为要进行全同步，<code>cached_master</code> 保存的信息就失效了，需要重置，即函数 <code>replicationDiscardCachedMaster</code> 的调用。</p>
-<p>【2】<code>+CONTINUE</code> 表示可以进行部分重同步，返回给上层函数 <strong>PSYNC_CONTINUE</strong>。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (!<span class="hljs-built_in">strncmp</span>(reply,<span class="hljs-string">&quot;+CONTINUE&quot;</span>,<span class="hljs-number">9</span>)) &#123;
+&#125;</code></pre></div><br>以上代码解析出 master 的 runid，以及 offset，分别赋值给 <code>repl_master_runid</code> 和 <code>repl_master_initial_offset</code>。因为要进行全同步，<code>cached_master</code> 保存的信息就失效了，需要重置，即函数 <code>replicationDiscardCachedMaster</code> 的调用。</p>
+<p>【2】<code>+CONTINUE</code> 表示可以进行部分重同步，返回给上层函数 <strong>PSYNC_CONTINUE</strong>。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (!<span class="hljs-built_in">strncmp</span>(reply,<span class="hljs-string">&quot;+CONTINUE&quot;</span>,<span class="hljs-number">9</span>)) &#123;
     serverLog(LL_NOTICE,
               <span class="hljs-string">&quot;Successful partial resynchronization with master.&quot;</span>);
     sdsfree(reply);
     replicationResurrectCachedMaster(fd);
     <span class="hljs-keyword">return</span> PSYNC_CONTINUE;
-&#125;</code></pre></div>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">replicationResurrectCachedMaster</span><span class="hljs-params">(<span class="hljs-keyword">int</span> newfd)</span> </span>&#123;
+&#125;</code></pre></div><br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">replicationResurrectCachedMaster</span><span class="hljs-params">(<span class="hljs-keyword">int</span> newfd)</span> </span>&#123;
     server.master = server.cached_master;
     server.cached_master = <span class="hljs-literal">NULL</span>;
     server.master-&gt;fd = newfd;
@@ -674,29 +618,21 @@ aeDeleteFileEvent(server.el,fd,AE_READABLE);</code></pre></div>
             freeClientAsync(server.master); <span class="hljs-comment">/* Close ASAP. */</span>
         &#125;
     &#125;
-&#125;</code></pre></div>
-<p>可以看出，从 <code>cached_master</code> 恢复 master，将状态机置为 <strong>REPL_STATE_CONNECTED</strong>。<br>
-为 fd 的读事件注册新的回调函数 readQueryFromClient。<br>
-如果在<code> server.master</code> 上仍然有 reply，或者是在写 buffer 里有数据，那么需要为写事件注册回调函数 <code>sendReplyToClient</code>。</p>
+&#125;</code></pre></div><br>可以看出，从 <code>cached_master</code> 恢复 master，将状态机置为 <strong>REPL_STATE_CONNECTED</strong>。<br>为 fd 的读事件注册新的回调函数 readQueryFromClient。<br>如果在<code>server.master</code> 上仍然有 reply，或者是在写 buffer 里有数据，那么需要为写事件注册回调函数 <code>sendReplyToClient</code>。</p>
 <p>【3】<code>-ERR</code> 的情况。需要清理现有的 <code>cached_master</code>，返回给上层函数 <strong>PSYNC_NOT_SUPPORTED</strong> 。</p>
-<p>回到 <strong>syncWithMaster</strong> 函数里，处理 PSYNC 命令的返回值。<br>
-当返回的是 <strong>PSYNC_CONTINUE</strong> 时，表示进行的是部分重同步，该函数结束。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (psync_result == PSYNC_CONTINUE) &#123; <span class="hljs-comment">/* 部分重同步 ，不会走到下面接收 rdb 的流程 */</span>
+<p>回到 <strong>syncWithMaster</strong> 函数里，处理 PSYNC 命令的返回值。<br>当返回的是 <strong>PSYNC_CONTINUE</strong> 时，表示进行的是部分重同步，该函数结束。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (psync_result == PSYNC_CONTINUE) &#123; <span class="hljs-comment">/* 部分重同步 ，不会走到下面接收 rdb 的流程 */</span>
   serverLog(LL_NOTICE, <span class="hljs-string">&quot;MASTER &lt;-&gt; SLAVE sync: Master accepted a Partial Resynchronization.&quot;</span>);
   <span class="hljs-keyword">return</span>;
-&#125;</code></pre></div>
-<p>否则，有两种可能，进行完全重同步，或者 master 不支持 PSYNC 命令(老版本的 master)，但是无论如何都需要断开现有的所有 slave，因为新 master 可能会传过来一份不同的数据。<br>
-同时清空复制积压缓冲区，即 repl_backlog，不允许我的 slave 做 psync 了（<strong>毕竟数据不同了嘛</strong>）。</p>
-<p>如果新 master 不支持 PSYNC 命令，那么同步发送 SYNC 命令。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (psync_result == PSYNC_NOT_SUPPORTED) &#123;
+&#125;</code></pre></div></p>
+<p>否则，有两种可能，进行完全重同步，或者 master 不支持 PSYNC 命令 (老版本的 master)，但是无论如何都需要断开现有的所有 slave，因为新 master 可能会传过来一份不同的数据。<br> 同时清空复制积压缓冲区，即 repl_backlog，不允许我的 slave 做 psync 了（<strong>毕竟数据不同了嘛</strong>）。</p>
+<p>如果新 master 不支持 PSYNC 命令，那么同步发送 SYNC 命令。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (psync_result == PSYNC_NOT_SUPPORTED) &#123;
     serverLog(LL_NOTICE,<span class="hljs-string">&quot;Retrying with SYNC...&quot;</span>);
     <span class="hljs-keyword">if</span> (syncWrite(fd,<span class="hljs-string">&quot;SYNC\r\n&quot;</span>,<span class="hljs-number">6</span>,server.repl_syncio_timeout*<span class="hljs-number">1000</span>) == <span class="hljs-number">-1</span>) &#123;
         serverLog(LL_WARNING,<span class="hljs-string">&quot;I/O error writing to MASTER: %s&quot;</span>,
                   strerror(errno));
         <span class="hljs-keyword">goto</span> error;
     &#125;
-&#125;</code></pre></div>
-<p>如果没有出错，接下来准备完全重同步阶段 master 发过来的 rdb 数据。创建一个名字以 tmp 为前缀的临时 rdb 接收文件，打开，并记录 fd，最多 5 次，要是还不能成功创建一个临时文件，那么就走错误处理的流程了。代码如下，</p>
+&#125;</code></pre></div><br>如果没有出错，接下来准备完全重同步阶段 master 发过来的 rdb 数据。创建一个名字以 tmp 为前缀的临时 rdb 接收文件，打开，并记录 fd，最多 5 次，要是还不能成功创建一个临时文件，那么就走错误处理的流程了。代码如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">while</span>(maxtries--) &#123;
     <span class="hljs-built_in">snprintf</span>(tmpfile,<span class="hljs-number">256</span>,
              <span class="hljs-string">&quot;temp-%d.%ld.rdb&quot;</span>,(<span class="hljs-keyword">int</span>)server.unixtime,(<span class="hljs-keyword">long</span> <span class="hljs-keyword">int</span>)getpid());
@@ -708,17 +644,14 @@ aeDeleteFileEvent(server.el,fd,AE_READABLE);</code></pre></div>
     serverLog(LL_WARNING,<span class="hljs-string">&quot;Opening the temp file needed for MASTER &lt;-&gt; SLAVE synchronization: %s&quot;</span>,strerror(errno));
     <span class="hljs-keyword">goto</span> error;
 &#125;</code></pre></div>
-<p>接着为 fd 的读事件注册回调函数 <code>readSyncBulkPayload</code>，用来处理从 master 读到的数据 rdb 文件。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* 为 fd 的可读事件注册新的函数 readSyncBulkPayload */</span>
+<p>接着为 fd 的读事件注册回调函数 <code>readSyncBulkPayload</code>，用来处理从 master 读到的数据 rdb 文件。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* 为 fd 的可读事件注册新的函数 readSyncBulkPayload */</span>
 <span class="hljs-keyword">if</span> (aeCreateFileEvent(server.el,fd, AE_READABLE,readSyncBulkPayload,<span class="hljs-literal">NULL</span>) == AE_ERR)
 &#123;
     serverLog(LL_WARNING,
               <span class="hljs-string">&quot;Can&#x27;t create readable event for SYNC: %s (fd=%d)&quot;</span>,
               strerror(errno),fd);
     <span class="hljs-keyword">goto</span> error;
-&#125;</code></pre></div>
-<p>最后是一些 server 变量的赋值。</p>
-<div class="hljs"><pre><code class="hljs c">server.repl_state = REPL_STATE_TRANSFER;
+&#125;</code></pre></div><br>最后是一些 server 变量的赋值。<br><div class="hljs"><pre><code class="hljs c">server.repl_state = REPL_STATE_TRANSFER;
 <span class="hljs-comment">/* 初始化 RDB 文件大小 */</span>
 server.repl_transfer_size = <span class="hljs-number">-1</span>;
 <span class="hljs-comment">/* 已读数据大小 */</span>
@@ -730,13 +663,10 @@ server.repl_transfer_fd = dfd;
 <span class="hljs-comment">/* 最近一次读数据的时间 */</span>
 server.repl_transfer_lastio = server.unixtime;
 <span class="hljs-comment">/* 本地临时 rdb 文件的名字 */</span>
-server.repl_transfer_tmpfile = zstrdup(tmpfile);</code></pre></div>
+server.repl_transfer_tmpfile = zstrdup(tmpfile);</code></pre></div></p>
 <p>状态机置为 <strong>REPL_STATE_TRANSFER</strong>，<code>repl_transfer_fd</code> 记录 rdb 临时文件的 fd。</p>
-<h4 id="几个超时保证">几个超时保证</h4>
-<p>在 <strong>replicationCron</strong> 函数中的开始部分，有一些超时保证。</p>
-<p>与 master 建立连接后，一直没能发 PING，说明连接可能有问题。<br>
-在鉴权和确认 capa 的流程中，花了过多的时间。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.masterhost &amp;&amp;
+<h4 id="几个超时保证"><a href="# 几个超时保证" class="headerlink" title="几个超时保证"></a>几个超时保证 </h4><p> 在 <strong>replicationCron</strong> 函数中的开始部分，有一些超时保证。</p>
+<p>与 master 建立连接后，一直没能发 PING，说明连接可能有问题。<br>在鉴权和确认 capa 的流程中，花了过多的时间。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.masterhost &amp;&amp;
     (server.repl_state == REPL_STATE_CONNECTING ||  slaveIsInHandshakeState()) &amp;&amp;
         (time(<span class="hljs-literal">NULL</span>)-server.repl_transfer_lastio) &gt; server.repl_timeout) <span class="hljs-comment">// 默认 60s 超时</span>
 &#123;
@@ -747,33 +677,25 @@ server.repl_transfer_tmpfile = zstrdup(tmpfile);</code></pre></div>
 <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">slaveIsInHandshakeState</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-keyword">return</span> server.repl_state &gt;= REPL_STATE_RECEIVE_PONG &amp;&amp;
         server.repl_state &lt;= REPL_STATE_RECEIVE_PSYNC;
-&#125;</code></pre></div>
-<p>接收 rdb 文件的时长做限制。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Bulk transfer I/O timeout? */</span>
+&#125;</code></pre></div><br>接收 rdb 文件的时长做限制。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Bulk transfer I/O timeout? */</span>
 <span class="hljs-keyword">if</span> (server.masterhost &amp;&amp; server.repl_state == REPL_STATE_TRANSFER &amp;&amp;
     (time(<span class="hljs-literal">NULL</span>)-server.repl_transfer_lastio) &gt; server.repl_timeout) <span class="hljs-comment">// 默认 60s 超时</span>
 &#123;
     serverLog(LL_WARNING,<span class="hljs-string">&quot;Timeout receiving bulk data from MASTER... If the problem persists try to set the &#x27;repl-timeout&#x27; parameter in redis.conf to a larger value.&quot;</span>);
     cancelReplicationHandshake();
-&#125;</code></pre></div>
-<p>成为 slave 以后，没有数据发过来。</p>
-<div class="hljs"><pre><code class="hljs c"> <span class="hljs-comment">/* Timed out master when we are an already connected slave? */</span>
+&#125;</code></pre></div><br>成为 slave 以后，没有数据发过来。<br><div class="hljs"><pre><code class="hljs c"> <span class="hljs-comment">/* Timed out master when we are an already connected slave? */</span>
 <span class="hljs-keyword">if</span> (server.masterhost &amp;&amp; server.repl_state == REPL_STATE_CONNECTED &amp;&amp;
     (time(<span class="hljs-literal">NULL</span>)-server.master-&gt;lastinteraction) &gt; server.repl_timeout)
 &#123;
     serverLog(LL_WARNING,<span class="hljs-string">&quot;MASTER timeout: no data nor PING received...&quot;</span>);
     freeClient(server.master);
-&#125;</code></pre></div>
-<h3 id="接收 -RDB- 文件">接收 RDB 文件</h3>
-<p>接收 rdb 数据有两种方式，一种是磁盘化的，一种是无磁盘化的。</p>
+&#125;</code></pre></div></p>
+<h3 id="接收 -RDB- 文件"><a href="# 接收 -RDB- 文件" class="headerlink" title="接收 RDB 文件"></a>接收 RDB 文件 </h3><p> 接收 rdb 数据有两种方式，一种是磁盘化的，一种是无磁盘化的。</p>
 <blockquote>
-<p>从 V2.8.18 开始，redis 引入了“无硬盘复制”选项，开启该选项时，redis 在与 slave 进行复制初始化时将不会将快照内容存储到硬盘上，而是直接通过网络发送给 slave，避免了硬盘的性能瓶颈，可以在配置文件中使用 <strong>repl-diskless-sync</strong> 选项来配置开启该功能。</p>
+<p>  从 V2.8.18 开始，redis 引入了“无硬盘复制”选项，开启该选项时，redis 在与 slave 进行复制初始化时将不会将快照内容存储到硬盘上，而是直接通过网络发送给 slave，避免了硬盘的性能瓶颈，可以在配置文件中使用 <strong>repl-diskless-sync</strong> 选项来配置开启该功能。</p>
 </blockquote>
-<p>两种方式发送的数据格式是不一样的。<br>
-磁盘化复制时，master 先生成 rdb 文件，然后将文件内容加上 <code>$&lt;len&gt;/r/n</code> 的头部后，发送给 slave。<br>
-而无磁盘化复制时，master 直接把 rdb 数据发送给你 slave 时，以 <code>$EOF:&lt;XXX&gt;\r\n</code> 开头，并以 <code>&lt;XXX&gt;</code> 结尾，开头和结尾的 <code>&lt;XXX&gt;</code> 内容相同，都是 40 个字节，是由 <strong>0123456789abcdef</strong> 中的字符组成的随机字符串，为了校验数据的是否发送完成。</p>
-<p>该流程主要是回调函数 <code>readSyncBulkPayload</code> 中的逻辑。<br>
-首先读取 master 传过来的辅助信息。</p>
+<p>两种方式发送的数据格式是不一样的。<br>磁盘化复制时，master 先生成 rdb 文件，然后将文件内容加上 <code>$&lt;len&gt;/r/n</code> 的头部后，发送给 slave。<br>而无磁盘化复制时，master 直接把 rdb 数据发送给你 slave 时，以 <code>$EOF:&lt;XXX&gt;\r\n</code> 开头，并以 <code>&lt;XXX&gt;</code> 结尾，开头和结尾的 <code>&lt;XXX&gt;</code> 内容相同，都是 40 个字节，是由 <strong>0123456789abcdef</strong> 中的字符组成的随机字符串，为了校验数据的是否发送完成。</p>
+<p>该流程主要是回调函数 <code>readSyncBulkPayload</code> 中的逻辑。<br>首先读取 master 传过来的辅助信息。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.repl_transfer_size == <span class="hljs-number">-1</span>) &#123;
     <span class="hljs-comment">/* 第一行内容 $&lt;len&gt;/r/n */</span>
     <span class="hljs-keyword">if</span> (syncReadLine(fd,buf,<span class="hljs-number">1024</span>,server.repl_syncio_timeout*<span class="hljs-number">1000</span>) == <span class="hljs-number">-1</span>) &#123;
@@ -817,8 +739,7 @@ server.repl_transfer_tmpfile = zstrdup(tmpfile);</code></pre></div>
     &#125;
     <span class="hljs-keyword">return</span>;
 &#125;</code></pre></div>
-<p>同步读取第一行内容，当开启了无磁盘化同步时，有一点需要注意，保存完 eofmark 后，要把 <code>repl_transfer_size</code> 变量置为一个非 -1 的值，防止下次事件触发后又进到这个逻辑里来了。而正常同步时，可以读到 <code>repl_transfer_size</code> 的大小。<br>
-通过 <code>usemark</code> 来标记同步类型，值为 1 表示无磁盘化的同步，值为 0 表示磁盘化同步。</p>
+<p>同步读取第一行内容，当开启了无磁盘化同步时，有一点需要注意，保存完 eofmark 后，要把 <code>repl_transfer_size</code> 变量置为一个非 -1 的值，防止下次事件触发后又进到这个逻辑里来了。而正常同步时，可以读到 <code>repl_transfer_size</code> 的大小。<br>通过 <code>usemark</code> 来标记同步类型，值为 1 表示无磁盘化的同步，值为 0 表示磁盘化同步。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Read bulk data */</span>
 <span class="hljs-keyword">if</span> (usemark) &#123;
     readlen = <span class="hljs-keyword">sizeof</span>(buf);
@@ -834,8 +755,7 @@ server.repl_transfer_tmpfile = zstrdup(tmpfile);</code></pre></div>
     cancelReplicationHandshake();
     <span class="hljs-keyword">return</span>;
 &#125;</code></pre></div>
-<p>计算出 readlen 后，读取数据，如果读错了，要断开连接，清理 fd ，重置同步状态等，<code>cancelReplicationHandshake</code> 的逻辑在上面已经说过。<br>
-如果是 usemark，那么需要校验 eofmark，以便知道数据是否已经读完。</p>
+<p>计算出 readlen 后，读取数据，如果读错了，要断开连接，清理 fd ，重置同步状态等，<code>cancelReplicationHandshake</code> 的逻辑在上面已经说过。<br>如果是 usemark，那么需要校验 eofmark，以便知道数据是否已经读完。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">int</span> eof_reached = <span class="hljs-number">0</span>;
 
 <span class="hljs-keyword">if</span> (usemark) &#123;
@@ -852,8 +772,7 @@ server.repl_transfer_tmpfile = zstrdup(tmpfile);</code></pre></div>
 &#125;</code></pre></div>
 <p>如果读到的数据长度 &gt;= 40，那么截取 buf 最后 40 个字符。否则使用 <code>memmove</code> 和 <code>memcpy</code> 将最后的 40 个字节填满，这部分操作有点绕，画了个图帮助理解，</p>
 <p><img src="http://ww1.sinaimg.cn/large/71ca8e3cly1g5w95590gbj20h60873z7.jpg" srcset="/img/loading.gif" alt="lastbytes"></p>
-<p>然后根据前面记录 eofmark 去判断是不是数据接收结束了，如果是，<code>eof_reached</code> 置为 1。<br>
-读完一次数据需要将其写入本地的临时 rdb 文件里，</p>
+<p>然后根据前面记录 eofmark 去判断是不是数据接收结束了，如果是，<code>eof_reached</code> 置为 1。<br>读完一次数据需要将其写入本地的临时 rdb 文件里，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (write(server.repl_transfer_fd,buf,nread) != nread) &#123;
     serverLog(LL_WARNING,<span class="hljs-string">&quot;Write error or short write writing to the DB dump file needed for MASTER &lt;-&gt; SLAVE synchronization: %s&quot;</span>, strerror(errno));
     <span class="hljs-keyword">goto</span> error;
@@ -878,8 +797,7 @@ server.repl_transfer_read += nread; <span class="hljs-comment">// 更新读了�
                     server.repl_transfer_last_fsync_off, sync_size);
     server.repl_transfer_last_fsync_off += sync_size;
 &#125;</code></pre></div>
-<p>刷盘策略是每 8M 一次。<br>
-如果不是无磁盘化的主从同步，就要依赖于接收到的数据 size 与第一次传过来的值作比较。</p>
+<p>刷盘策略是每 8M 一次。<br>如果不是无磁盘化的主从同步，就要依赖于接收到的数据 size 与第一次传过来的值作比较。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (!usemark) &#123;
     <span class="hljs-keyword">if</span> (server.repl_transfer_read == server.repl_transfer_size)
         eof_reached = <span class="hljs-number">1</span>;
@@ -933,8 +851,7 @@ serverLog(LL_NOTICE, <span class="hljs-string">&quot;MASTER &lt;-&gt; SLAVE sync
     cancelReplicationHandshake();
     <span class="hljs-keyword">return</span>;
 &#125;</code></pre></div>
-<p>在加载新数据之前，需要先删除 socket fd 的可读事件，这是因为在调用 <code>rdbLoad</code> 加载 rdb 数据时，每次调用<code>rioRead</code> 都会因为要计算 checksum 而调用 <code>processEventsWhileBlocked</code> 处理当前已触发的事件，如果不删除该可读事件的话，就会递归进入的本函数中（因此，slave 在加载 rdb 数据时，是不能处理主节点发来的其他数据的）。<br>
-然后做一些清理工作。</p>
+<p>在加载新数据之前，需要先删除 socket fd 的可读事件，这是因为在调用 <code>rdbLoad</code> 加载 rdb 数据时，每次调用 <code>rioRead</code> 都会因为要计算 checksum 而调用 <code>processEventsWhileBlocked</code> 处理当前已触发的事件，如果不删除该可读事件的话，就会递归进入的本函数中（因此，slave 在加载 rdb 数据时，是不能处理主节点发来的其他数据的）。<br> 然后做一些清理工作。</p>
 <div class="hljs"><pre><code class="hljs c">zfree(server.repl_transfer_tmpfile);
 close(server.repl_transfer_fd);</code></pre></div>
 <p>根据 socket fd 创建一个 master 的 client。</p>
@@ -953,8 +870,7 @@ replicationCreateMasterClient(server.repl_transfer_s);</code></pre></div>
         server.master-&gt;flags |= CLIENT_PRE_PSYNC;
 &#125;</code></pre></div>
 <p>需要注意一点，如果 master 不支持 PSYNC 的话，那么 salve 不会得到 <code>+FULLRESYNC</code> 的回复，也就不会更新 <code>server.repl_master_initial_offset</code> 变量，它就一直是 -1，在这里创建 master client 时，会给它一个标记 <strong>CLIENT_PRE_PSYNC</strong>。</p>
-<p>这里会把状态机更新为 <strong>REPL_STATE_CONNECTED</strong>。<br>
-最后，如果 aof 功能没有关闭的话，需要重新生成 aof 文件，因为数据已经改变了。</p>
+<p>这里会把状态机更新为 <strong>REPL_STATE_CONNECTED</strong>。<br>最后，如果 aof 功能没有关闭的话，需要重新生成 aof 文件，因为数据已经改变了。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.aof_state != AOF_OFF) &#123;
     <span class="hljs-keyword">int</span> retry = <span class="hljs-number">10</span>;
 
@@ -970,10 +886,8 @@ replicationCreateMasterClient(server.repl_transfer_s);</code></pre></div>
 &#125;</code></pre></div>
 <p>到这里，<code>readSyncBulkPayload</code> 函数读取并加载新 rdb 文件的流程就走完了。</p>
 <p>当复制状态变为 <strong>REPL_STATE_CONNECTED</strong> 后，表示进入了命令传播阶段。后续 slave 将 master 当成一个客户端，并接收其发来的命令请求，像处理普通客户端一样处理即可。命令传播在前面的博客已经详细讲过。</p>
-<h3 id="探活机制">探活机制</h3>
-<p>在 master-slave 连接建立以后，他们就通过心跳进行相互探活，这些机制都在 <code>replicationCron</code> 函数里。</p>
-<h4 id="master- 探活">master 探活</h4>
-<p>master 会定期给它所有的 slave 发送 PING。</p>
+<h3 id="探活机制"><a href="# 探活机制" class="headerlink" title="探活机制"></a>探活机制 </h3><p> 在 master-slave 连接建立以后，他们就通过心跳进行相互探活，这些机制都在 <code>replicationCron</code> 函数里。</p>
+<h4 id="master- 探活"><a href="#master- 探活" class="headerlink" title="master 探活"></a>master 探活</h4><p>master 会定期给它所有的 slave 发送 PING。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> ((replication_cron_loops % server.repl_ping_slave_period) == <span class="hljs-number">0</span>) &#123;
     ping_argv[<span class="hljs-number">0</span>] = createStringObject(<span class="hljs-string">&quot;PING&quot;</span>,<span class="hljs-number">4</span>);
     replicationFeedSlaves(server.slaves, server.slaveseldb,
@@ -1007,8 +921,7 @@ replicationCreateMasterClient(server.repl_transfer_s);</code></pre></div>
     &#125;
 &#125;</code></pre></div>
 <p>如果 <code>repl_backlog</code> 不为空，那么组装 redis 协议的命令，这里是 <code>*1\r\n$4\r\nPING</code>，放到 <code>repl_backlog</code> 变量里。</p>
-<h4 id="slave- 探活">slave 探活</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">replicationCron</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+<h4 id="slave- 探活"><a href="#slave- 探活" class="headerlink" title="slave 探活"></a>slave 探活</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">replicationCron</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     ...
     <span class="hljs-keyword">if</span> (server.masterhost &amp;&amp; server.master &amp;&amp;
           !(server.master-&gt;flags &amp; CLIENT_PRE_PSYNC)) &#123;
@@ -1030,8 +943,7 @@ replicationCreateMasterClient(server.repl_transfer_s);</code></pre></div>
     &#125;
 &#125;</code></pre></div>
 <p>对于非老版本的 master，slave 向它定期发送 <code>REPLCONF ACK &lt;offset&gt;</code> 命令，以便告诉它复制偏移量。</p>
-<h2 id="cluster- 模式">cluster 模式</h2>
-<p>cluster 模式下，使用 <code>CLUSTER REPLICATE &lt;NODE ID&gt;</code> 命令来进行新的主从关系的构建。</p>
+<h2 id="cluster- 模式"><a href="#cluster- 模式" class="headerlink" title="cluster 模式"></a>cluster 模式</h2><p>cluster 模式下，使用 <code>CLUSTER REPLICATE &lt;NODE ID&gt;</code> 命令来进行新的主从关系的构建。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterCommand</span><span class="hljs-params">(client *c)</span> </span>&#123;
     ...
     <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="hljs-number">1</span>]-&gt;ptr,<span class="hljs-string">&quot;replicate&quot;</span>) &amp;&amp; c-&gt;argc == <span class="hljs-number">3</span>) &#123;
@@ -1069,8 +981,7 @@ replicationCreateMasterClient(server.repl_transfer_s);</code></pre></div>
     &#125;
     .....
 &#125;</code></pre></div>
-<p><strong>很重要的一个检查 </strong> 是，有 slot 或者有数据的 master 节点，不能做此操作，防止丢数据。<br>
-跳过一些合理性检查，重点函数就是 <code>clusterSetMaster</code> 了，那么它做了什么呢？</p>
+<p><strong>很重要的一个检查 </strong> 是，有 slot 或者有数据的 master 节点，不能做此操作，防止丢数据。<br>跳过一些合理性检查，重点函数就是 <code>clusterSetMaster</code> 了，那么它做了什么呢？</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterSetMaster</span><span class="hljs-params">(clusterNode *n)</span> </span>&#123;
     serverAssert(n != myself);
     serverAssert(myself-&gt;numslots == <span class="hljs-number">0</span>);
@@ -1088,9 +999,7 @@ replicationCreateMasterClient(server.repl_transfer_s);</code></pre></div>
     replicationSetMaster(n-&gt;ip, n-&gt;port);
     resetManualFailover();
 &#125;</code></pre></div>
-<p>首先，如果本身是个 master，那么取消掉 master 和 migrating 的 flag，因为该 master 没有数据，可以大胆地取消迁移的叫标记，然后加上 slave 的标记 <strong>CLUSTER_NODE_SLAVE</strong>。<br>
-如果原本就是个 slave 节点，那么调整自己的主从归属信息，置空以手动主从切换有关的变量值，关于 cluster mf 的逻辑以后会专门去讨论。<br>
-然后就是前面说过的 <code>replicationSetMaster</code> 函数，触发上也是在 cron 里，就不啰嗦了。</p>
+<p>首先，如果本身是个 master，那么取消掉 master 和 migrating 的 flag，因为该 master 没有数据，可以大胆地取消迁移的叫标记，然后加上 slave 的标记 <strong>CLUSTER_NODE_SLAVE</strong>。<br>如果原本就是个 slave 节点，那么调整自己的主从归属信息，置空以手动主从切换有关的变量值，关于 cluster mf 的逻辑以后会专门去讨论。<br>然后就是前面说过的 <code>replicationSetMaster</code> 函数，触发上也是在 cron 里，就不啰嗦了。</p>
 <p>以上，主从复制中，slave 的逻辑就介绍完了。</p>
 
             </div>

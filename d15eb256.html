@@ -250,8 +250,7 @@
 </blockquote>
 <!--more---->
 <p>为防止 aofrewrite 过程阻塞服务器，Redis 服务器会 <code>fork</code> 一个子进程执行该过程，且任何时刻只能有一个子进程做这件事。</p>
-<h2 id="server- 相关变量">server 相关变量</h2>
-<p>为了保证 AOF 的连续性，父进程把 aofrewrite 期间的写命令缓存起来，等子进程重写之后再追加到新的 AOF 文件。如果 aofrewrite 期间写命令写入量较大的话，子进程结束后，父进程的追加就涉及到 <strong> 大量的写磁盘操作</strong>，造成服务性能下降。</p>
+<h2 id="server- 相关变量"><a href="#server- 相关变量" class="headerlink" title="server 相关变量"></a>server 相关变量 </h2><p> 为了保证 AOF 的连续性，父进程把 aofrewrite 期间的写命令缓存起来，等子进程重写之后再追加到新的 AOF 文件。如果 aofrewrite 期间写命令写入量较大的话，子进程结束后，父进程的追加就涉及到 <strong> 大量的写磁盘操作</strong>，造成服务性能下降。</p>
 <p>Redis 通过在父子进程间建立 pipe，把 aofrewrite 期间的写命令通过 pipe 同步给子进程，这样一来，追加写盘的操作也就转嫁给了子进程。Redis server 中与之相关的变量主要有以下几个，主要三个 pipe。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">int</span> aof_pipe_write_data_to_child;
 <span class="hljs-keyword">int</span> aof_pipe_read_data_from_parent;
@@ -261,16 +260,14 @@
 <span class="hljs-keyword">int</span> aof_pipe_read_ack_from_parent;
 <span class="hljs-keyword">int</span> aof_stop_sending_diff; <span class="hljs-comment">/*If true stop sending accumulated diffs to child process. */</span>
 sds aof_child_diff;        <span class="hljs-comment">/* AOF diff accumulator child side. */</span></code></pre></div>
-<h2 id="实现原理">实现原理</h2>
-<p>aofrewrite 的入口逻辑在 <code>rewriteAppendOnlyFileBackground</code> 函数。</p>
+<h2 id="实现原理"><a href="# 实现原理" class="headerlink" title="实现原理"></a>实现原理</h2><p>aofrewrite 的入口逻辑在 <code>rewriteAppendOnlyFileBackground</code> 函数。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">rewriteAppendOnlyFileBackground</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     ...
     <span class="hljs-keyword">if</span> (server.aof_child_pid != <span class="hljs-number">-1</span> || server.rdb_child_pid != <span class="hljs-number">-1</span>) <span class="hljs-keyword">return</span> C_ERR;
     ...
 &#125;</code></pre></div>
 <p>要确保没有后台进程做 aofrewrite 或者 rdb，才会考虑做本次的 aofrewrite。</p>
-<h3 id="pipe- 初始化">pipe 初始化</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">rewriteAppendOnlyFileBackground</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+<h3 id="pipe- 初始化"><a href="#pipe- 初始化" class="headerlink" title="pipe 初始化"></a>pipe 初始化</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">rewriteAppendOnlyFileBackground</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
    ...
    <span class="hljs-keyword">if</span> (aofCreatePipes() != C_OK) <span class="hljs-keyword">return</span> C_ERR;
    ...
@@ -306,12 +303,10 @@ error:
 &#125;</code></pre></div>
 <p>在 <code>aofCreatePipes</code> 函数中，对 pipe 进行初始化，pipe 各变量的用处从名字也可以看出来，一共有三条 pipe，每条 pipe 一来一回，占用两个 fd。</p>
 <p>pipe 1 用于父进程向子进程发送缓存的新数据。子进程在 aofrewrite 时，会定期从该管道中读取数据并缓存起来，并在最后将缓存的数据写入重写的新 AOF 文件，这两个 fd 都设置为非阻塞式的。</p>
-<p>pipe 2 负责子进程向父进程发送结束信号。父进程监听 <strong>fds[2]</strong> 读事件，回调函数为 <strong>aofChildPipeReadable</strong>。父进程不断地接收客户端命令，但是子进程不可能无休止地等待父进程的数据，因此，子进程在遍历完数据库所有数据之后，从 pipe 1 中执行一段时间的读取操作后，就会向 pipe 2 中发送一个特殊标记 “<strong>!</strong>”，父进程收到子进程的 “<strong>!</strong>” 后，就会置 <strong>server.aof_stop_sending_diff</strong>  为 1，表示不再向父进程发送缓存数据了。</p>
-<p>pipe 3 负责父进程向子进程发送应答信号。父进程收到子进程的 “<strong>!</strong>” 后，会通过该管道也向子进程应答一个 “<strong>!</strong>”，表示已收到了停止信号。</p>
+<p>pipe 2 负责子进程向父进程发送结束信号。父进程监听 <strong>fds[2]</strong> 读事件，回调函数为 <strong>aofChildPipeReadable</strong>。父进程不断地接收客户端命令，但是子进程不可能无休止地等待父进程的数据，因此，子进程在遍历完数据库所有数据之后，从 pipe 1 中执行一段时间的读取操作后，就会向 pipe 2 中发送一个特殊标记 “<strong>!</strong>“，父进程收到子进程的 “<strong>!</strong>“ 后，就会置 <strong>server.aof_stop_sending_diff</strong>  为 1，表示不再向父进程发送缓存数据了。</p>
+<p>pipe 3 负责父进程向子进程发送应答信号。父进程收到子进程的 “<strong>!</strong>“ 后，会通过该管道也向子进程应答一个 “<strong>!</strong>“，表示已收到了停止信号。</p>
 <p>详细过程后面会细说。</p>
-<h3 id="父进程处理逻辑">父进程处理逻辑</h3>
-<h4 id="rewriteAppendOnlyFileBackground- 函数">rewriteAppendOnlyFileBackground 函数</h4>
-<p>接着上面的逻辑，server  <code>fork</code> 出一个子进程，两个进程分别做各有不同的处理，下面先看父进程的一些主要处理（代码有删减）。</p>
+<h3 id="父进程处理逻辑"><a href="# 父进程处理逻辑" class="headerlink" title="父进程处理逻辑"></a>父进程处理逻辑 </h3><h4 id="rewriteAppendOnlyFileBackground- 函数"><a href="#rewriteAppendOnlyFileBackground- 函数" class="headerlink" title="rewriteAppendOnlyFileBackground 函数"></a>rewriteAppendOnlyFileBackground 函数</h4><p> 接着上面的逻辑，server  <code>fork</code> 出一个子进程，两个进程分别做各有不同的处理，下面先看父进程的一些主要处理（代码有删减）。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">rewriteAppendOnlyFileBackground</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     ...
     <span class="hljs-keyword">if</span> ((childpid = fork()) == <span class="hljs-number">0</span>) &#123;
@@ -345,8 +340,7 @@ error:
 &#125;</code></pre></div>
 <p>也就是说，在后台有子进程做 aofrewrite 或 rdb 时，就不要做 dict rehash 了。现在大多数操作系统都采用 <strong> 写时复制（copy-on-write）来优化子进程的使用效率</strong>，所以在子进程存在期间，应该避免不必要的内存写入，否则会引起大量的内存 copy，影响性能。COW 的知识可以参考文档 《<a target="_blank" rel="noopener" href="https://juejin.im/post/5bd96bcaf265da396b72f855">Copy On Write 机制了解一下</a>》。</p>
 <p>另外，<strong>server.aof_selected_db</strong> 置为 -1，是为了在子进程进行数据库扫描时插入 select 命令，以便选择正确的数据库。</p>
-<p>####aofRewriteBufferAppend 函数</p>
-<p>在上一篇博客中说过，在 <code>feedAppendOnlyFile</code> 函数 append 写命令时，如果当前有子进程在做 aofrewrite 时，需要将写命令写到 <strong>server.aof_rewrite_buf_blocks</strong> 中一份。该变量是一个链表，其中每个节点最大 10MB。</p>
+<h4 id="aofRewriteBufferAppend- 函数"><a href="#aofRewriteBufferAppend- 函数" class="headerlink" title="aofRewriteBufferAppend 函数"></a>aofRewriteBufferAppend 函数 </h4><p> 在上一篇博客中说过，在 <code>feedAppendOnlyFile</code> 函数 append 写命令时，如果当前有子进程在做 aofrewrite 时，需要将写命令写到 <strong>server.aof_rewrite_buf_blocks</strong> 中一份。该变量是一个链表，其中每个节点最大 10MB。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">feedAppendOnlyFile</span><span class="hljs-params">(struct redisCommand *cmd, <span class="hljs-keyword">int</span> dictid, robj **argv, <span class="hljs-keyword">int</span> argc)</span> </span>&#123;
     ...
     <span class="hljs-keyword">if</span> (server.aof_child_pid != <span class="hljs-number">-1</span>)
@@ -391,8 +385,7 @@ error:
 &#125;</code></pre></div>
 <p>当子进程告诉父进程不要发数据（<strong>server.aof_stop_sending_diff = 1</strong>）或者 <strong>server.aof_rewrite_buf_blocks</strong> 为空时，删除写事件。</p>
 <p>否则，往 pipe1 中写入数据，然后写入的数据从 <strong>server.aof_rewrite_buf_blocks</strong> 删掉。</p>
-<h3 id="子进程处理逻辑">子进程处理逻辑</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">rewriteAppendOnlyFileBackground</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+<h3 id="子进程处理逻辑"><a href="# 子进程处理逻辑" class="headerlink" title="子进程处理逻辑"></a>子进程处理逻辑</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">rewriteAppendOnlyFileBackground</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     ...
     <span class="hljs-keyword">char</span> tmpfile[<span class="hljs-number">256</span>];
     closeListeningSockets(<span class="hljs-number">0</span>);               <span class="hljs-comment">/* child 关闭不必要的 socket */</span>
@@ -512,8 +505,7 @@ error:
 &#125;</code></pre></div>
 <p>最后再读取一次 pipe 中的数据，将子进程进行 aofrewrite 期间，<strong>aof_child_diff</strong> 从父进程累积的数据刷盘，最后进行 <code>rename</code> 系统调用。</p>
 <p>经过以上的逻辑处理，server 交给子进程的 aofrewrite 工作就完成了，最终得到一个文件 <strong>temp-rewriteaof-bg-<pid>.aof</strong>，成功返回 0，否则返回 1。</p>
-<h3 id="父进程的收尾工作">父进程的收尾工作</h3>
-<p>子进程在执行完 aofrewrite 后退出，父进程 <code>wait3</code> 到子进程的退出状态后，进行 aofrewrite 的收尾工作。在 <code>serverCron</code> 函数里，有如下逻辑，</p>
+<h3 id="父进程的收尾工作"><a href="# 父进程的收尾工作" class="headerlink" title="父进程的收尾工作"></a>父进程的收尾工作 </h3><p> 子进程在执行完 aofrewrite 后退出，父进程 <code>wait3</code> 到子进程的退出状态后，进行 aofrewrite 的收尾工作。在 <code>serverCron</code> 函数里，有如下逻辑，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">serverCron</span><span class="hljs-params">(struct aeEventLoop *eventLoop, <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> id, <span class="hljs-keyword">void</span> *clientData)</span> </span>&#123;
     ...
     <span class="hljs-keyword">if</span> ((pid = wait3(&amp;statloc,WNOHANG,<span class="hljs-literal">NULL</span>)) != <span class="hljs-number">0</span>) &#123; <span class="hljs-comment">/* wait3 等待所有子进程 */</span>
@@ -618,12 +610,10 @@ error:
     ...
 &#125;</code></pre></div>
 <p>以上， 父进程就完成了收尾工作，写命令就 <code>write</code> 到 newfd 了。</p>
-<h3 id="时序图">时序图</h3>
-<p>可以将以上父子进程的交互整理出时序图如下，</p>
+<h3 id="时序图"><a href="# 时序图" class="headerlink" title="时序图"></a>时序图 </h3><p> 可以将以上父子进程的交互整理出时序图如下，</p>
 <p><img src="http://ww1.sinaimg.cn/large/71ca8e3cly1fznp1jin66j20kk0jh77k.jpg" srcset="/img/loading.gif" alt=""></p>
 <p>上图参考 <a target="_blank" rel="noopener" href="http://mysql.taobao.org/monthly/2018/12/06/">Redis · 原理介绍 · 利用管道优化 aofrewrite</a></p>
-<h2 id="何时重写">何时重写</h2>
-<p>有两个时刻可以触发 AOF 重写。</p>
+<h2 id="何时重写"><a href="# 何时重写" class="headerlink" title="何时重写"></a>何时重写 </h2><p> 有两个时刻可以触发 AOF 重写。</p>
 <p>【1】手动执行 <code>BGREWRITEAOF</code> 命令。</p>
 <p>【2】自动执行，在 <code>serverCron</code> 函数中根据一定逻辑进行判定。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">serverCron</span><span class="hljs-params">(struct aeEventLoop *eventLoop, <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> id, <span class="hljs-keyword">void</span> *clientData)</span> </span>&#123;
@@ -641,8 +631,7 @@ error:
      &#125;
 &#125;</code></pre></div>
 <p>也就是说 AOF 文件大小超过了 <strong>server.aof_rewrite_min_size</strong>，并且增长率大于 <strong>server.aof_rewrite_perc</strong> 时就会触发，增长率计算的基数 <strong>server.aof_rewrite_base_size</strong> 是上次 aofrewrite 结束后 AOF 文件的大小。</p>
-<h2 id="附录">附录</h2>
-<p>几个解释。</p>
+<h2 id="附录"><a href="# 附录" class="headerlink" title="附录"></a>附录 </h2><p> 几个解释。</p>
 <blockquote>
 <p><strong>阻塞模式 </strong> 下，进程或是线程执行到这些函数时必须等待某个事件的发生，如果事件没有发生，进程或线程就被阻塞(死等在被阻塞的地方)，函数不会立即返回。</p>
 <p><strong>非阻塞 non-block 模式 </strong> 下，进程或线程执行此函数时不必非要等待事件的发生，一旦执行肯定返回，以返回值的不同来反映函数的执行情况，如果事件发生则与阻塞方式相同，若事件没有发生则返回一个代码来告知事件未发生，而进程或线程继续执行，所以非阻塞模式效率较高。</p>

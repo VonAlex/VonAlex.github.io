@@ -245,18 +245,11 @@
               </p>
             
             <div class="markdown-body" id="post-body">
-              <p>对一些经常用到的 shell 命令做简要的总结，方便日后查阅。</p>
-<!--more---->
-<h3 id="tcpdump">tcpdump</h3>
-<p><strong>tcpdump</strong> 命令用来保存和记录网络流量，即抓包工具。你可以用它来观察网络上发生了什么，并可用来解决各种各样的问题，包括和网络通信无关的问题。</p>
-<p>Tcpdump 中的关键字主要有以下几种<br>
-1. 关于类型的关键字主要包括：host、net、port。如果没有指定类型，缺省的类型是 host.<br>
-2. 关于确定传输方向的关键字主要包括：src、dst、dst or src、 dst and src。如果没有指明方向关键字，则缺省是 src or dst 关键字<br>
-3. 关于协议的关键字，主要包括 ip、arp、rarp、tcp、udp、icmp 等类型。如果没有指定任何协议，则 tcpdump 将会监听所有协议的信息包。<br>
-4. 其他重要的关键字：gateway, broadcast, less, greater。<br>
-5. 三种逻辑运算: 取非运算是’not ’ ，’! ‘；与运算是’and’，’&amp;&amp;’; 或运算 是’or’，‘││’。多条件时可以用括号，但是要用转义。</p>
-<p>** 注意：** 该工具使用 <strong>sudo</strong> 权限去执行！</p>
-<h4 id="常用参数解析">常用参数解析</h4>
+              <p>对一些经常用到的 shell 命令做简要的总结，方便日后查阅。<br><!--more----></p>
+<h3 id="tcpdump"><a href="#tcpdump" class="headerlink" title="tcpdump"></a>tcpdump</h3><p><strong>tcpdump</strong> 命令用来保存和记录网络流量，即抓包工具。你可以用它来观察网络上发生了什么，并可用来解决各种各样的问题，包括和网络通信无关的问题。</p>
+<p>Tcpdump 中的关键字主要有以下几种<br>1. 关于类型的关键字主要包括：host、net、port。如果没有指定类型，缺省的类型是 host.<br>2. 关于确定传输方向的关键字主要包括：src、dst、dst or src、 dst and src。如果没有指明方向关键字，则缺省是 src or dst 关键字<br>3. 关于协议的关键字，主要包括 ip、arp、rarp、tcp、udp、icmp 等类型。如果没有指定任何协议，则 tcpdump 将会监听所有协议的信息包。<br>4. 其他重要的关键字：gateway, broadcast, less, greater。<br>5. 三种逻辑运算: 取非运算是’not ‘ ，’! ‘；与运算是’and’，’&amp;&amp;’; 或运算 是’or’，’││’。多条件时可以用括号，但是要用转义。</p>
+<p><strong>注意：</strong>该工具使用 <strong>sudo</strong> 权限去执行！</p>
+<h4 id="常用参数解析"><a href="# 常用参数解析" class="headerlink" title="常用参数解析"></a>常用参数解析</h4><div class="table-container">
 <table>
 <thead>
 <tr>
@@ -319,16 +312,15 @@
 </tr>
 </tbody>
 </table>
+</div>
 <p>更多详细参数可以参考<a target="_blank" rel="noopener" href="http://www.ha97.com/4550.html">Linux 抓包工具 tcpdump 详解</a></p>
-<h4 id="举个栗子">举个栗子</h4>
-<div class="hljs"><pre><code class="hljs routeros">tcpdump -w /tmp/data -s0 -i eth0<span class="hljs-built_in"> port </span>3000 <span class="hljs-keyword">and</span> host 127.0.0.1</code></pre></div>
+<h4 id="举个栗子"><a href="# 举个栗子" class="headerlink" title="举个栗子"></a>举个栗子</h4><div class="hljs"><pre><code class="hljs routeros">tcpdump -w /tmp/data -s0 -i eth0<span class="hljs-built_in"> port </span>3000 <span class="hljs-keyword">and</span> host 127.0.0.1</code></pre></div>
 <p>截获流经 eth0 网口，3000 端口，并且主机地址为 127.0.0.1 收到的和发出的所有的完整（不截断）数据包，并将这些数据包保存在 /tmp/data 文件中。</p>
 <div class="hljs"><pre><code class="hljs lsl">tcpdump &#x27;host <span class="hljs-number">210.27</span><span class="hljs-number">.48</span><span class="hljs-number">.1</span> and (<span class="hljs-number">210.27</span><span class="hljs-number">.48</span><span class="hljs-number">.2</span> or <span class="hljs-number">210.27</span><span class="hljs-number">.48</span><span class="hljs-number">.3</span>)&#x27;</code></pre></div>
 <p>截获主机 210.27.48.1 和主机 210.27.48.2 或 210.27.48.3 的通信数据包。</p>
 <div class="hljs"><pre><code class="hljs routeros">tcpdump<span class="hljs-built_in"> ip </span>host 210.27.48.1 <span class="hljs-keyword">and</span> ! 210.27.48.2</code></pre></div>
 <p>获取主机 210.27.48.1 除了和主机 210.27.48.2 之外所有主机通信的 ip 包</p>
-<h4 id="数据包解析">数据包解析</h4>
-<p>抓到的数据包都会有一个类型标识：</p>
+<h4 id="数据包解析"><a href="# 数据包解析" class="headerlink" title="数据包解析"></a>数据包解析 </h4><p> 抓到的数据包都会有一个类型标识：</p>
 <ul>
 <li>[S] – SYN (开始连接)</li>
 <li>[S.] - SYN-ACK 数据包</li>
@@ -338,9 +330,8 @@
 <li>[R] – RST (重启连接)</li>
 </ul>
 <p>其他很容易弄懂，暂不解释。</p>
-<h3 id="strace">strace</h3>
-<p><strong>strace</strong> 常用来跟踪进程执行时的系统调用和所接收的信号。 在 Linux 世界，进程不能直接访问硬件设备，当进程需要访问硬件设备 (比如读取磁盘文件，接收网络数据等等) 时，必须由用户态模式切换至内核态模式，通过系统调用访问硬件设备。strace 可以跟踪到一个进程产生的系统调用, 包括参数，返回值，执行消耗的时间。</p>
-<h4 id="常用参数解析 -2">常用参数解析</h4>
+<h3 id="strace"><a href="#strace" class="headerlink" title="strace"></a>strace</h3><p><strong>strace</strong> 常用来跟踪进程执行时的系统调用和所接收的信号。 在 Linux 世界，进程不能直接访问硬件设备，当进程需要访问硬件设备 (比如读取磁盘文件，接收网络数据等等) 时，必须由用户态模式切换至内核态模式，通过系统调用访问硬件设备。strace 可以跟踪到一个进程产生的系统调用, 包括参数，返回值，执行消耗的时间。</p>
+<h4 id="常用参数解析 -1"><a href="# 常用参数解析 -1" class="headerlink" title="常用参数解析"></a>常用参数解析</h4><div class="table-container">
 <table>
 <thead>
 <tr>
@@ -379,11 +370,11 @@
 </tr>
 </tbody>
 </table>
-<h3 id="lsof">lsof</h3>
-<blockquote>
+</div>
+<h3 id="lsof"><a href="#lsof" class="headerlink" title="lsof"></a>lsof</h3><blockquote>
 <p>lsof（list open files）是一个查看当前系统文件的工具。在 linux 环境下，任何事物都以文件的形式存在，通过文件不仅仅可以访问常规数据，还可以访问网络连接和硬件。如传输控制协议 (TCP) 和用户数据报协议 (UDP) 套接字等，系统在后台都为该应用程序分配了一个文件描述符，该文件描述符提供了大量关于这个应用程序本身的信息。</p>
 </blockquote>
-<h4 id="常用参数解析 -3">常用参数解析</h4>
+<h4 id="常用参数解析 -2"><a href="# 常用参数解析 -2" class="headerlink" title="常用参数解析"></a>常用参数解析</h4><div class="table-container">
 <table>
 <thead>
 <tr>
@@ -426,8 +417,8 @@
 </tr>
 </tbody>
 </table>
-<h4 id="输出解析">输出解析</h4>
-<ul>
+</div>
+<h4 id="输出解析"><a href="# 输出解析" class="headerlink" title="输出解析"></a>输出解析</h4><ul>
 <li>COMMAND：进程的名称</li>
 <li>PID：进程标识符</li>
 <li>PPID：父进程标识符（需要指定 -R 参数）</li>
@@ -440,26 +431,18 @@
 <li>NODE：索引节点（文件在磁盘上的标识）</li>
 <li>NAME：打开文件的确切名称</li>
 </ul>
-<p>一般在标准输出、标准错误、标准输入后还跟着文件状态模式：r、w、u 等<br>
-（1）u：表示该文件被打开并处于读取 / 写入模式<br>
-（2）r：表示该文件被打开并处于只读模式<br>
-（3）w：表示该文件被打开并处于只写模式<br>
-（4）空格：表示该文件的状态模式为 unknow，且没有锁定<br>
-（5）-：表示该文件的状态模式为 unknow，且被锁定</p>
+<p>一般在标准输出、标准错误、标准输入后还跟着文件状态模式：r、w、u 等<br>（1）u：表示该文件被打开并处于读取 / 写入模式<br>（2）r：表示该文件被打开并处于只读模式<br>（3）w：表示该文件被打开并处于只写模式<br>（4）空格：表示该文件的状态模式为 unknow，且没有锁定<br>（5）-：表示该文件的状态模式为 unknow，且被锁定</p>
 <p>更多参数解析请参考<a target="_blank" rel="noopener" href="http://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/lsof.html">lsof 一切皆文件</a></p>
-<h4 id="举个栗子 -2">举个栗子</h4>
-<div class="hljs"><pre><code class="hljs shell">lsof /bin/bash -u username</code></pre></div>
+<h4 id="举个栗子 -1"><a href="# 举个栗子 -1" class="headerlink" title="举个栗子"></a>举个栗子</h4><div class="hljs"><pre><code class="hljs shell">lsof /bin/bash -u username</code></pre></div>
 <p>列出与 <code>/bin/bash</code> 文件相关的，且 <code>username</code> 用户打开的进程</p>
 <div class="hljs"><pre><code class="hljs shell">lsof -p 1223 -i tcp:8000 -n -P</code></pre></div>
 <p>列出 1223 进程在 8000 端口打开的 tcp 连接，地址和端口保留数字，不做转换</p>
 <div class="hljs"><pre><code class="hljs shell">lsof -d 2-3</code></pre></div>
 <p>根据文件描述列出对应的文件信息</p>
-<h3 id="pidof">pidof</h3>
-<p>pidof 用于找出正在运行的程序的进程 PID（用空格分割），程序可以是一个二进制执行程序，也可以是一个 shell 脚本。</p>
+<h3 id="pidof"><a href="#pidof" class="headerlink" title="pidof"></a>pidof</h3><p>pidof 用于找出正在运行的程序的进程 PID（用空格分割），程序可以是一个二进制执行程序，也可以是一个 shell 脚本。</p>
 <p>-s 参数只列出一个</p>
-<h3 id="tr">tr</h3>
-<p>tr 用来从标准输入中通过替换或删除操作进行字符转换.</p>
-<h4 id="常用参数">常用参数</h4>
+<h3 id="tr"><a href="#tr" class="headerlink" title="tr"></a>tr</h3><p> tr 用来从标准输入中通过替换或删除操作进行字符转换.</p>
+<h4 id="常用参数"><a href="# 常用参数" class="headerlink" title="常用参数"></a>常用参数</h4><div class="table-container">
 <table>
 <thead>
 <tr>
@@ -478,16 +461,15 @@
 </tr>
 </tbody>
 </table>
-<h4 id="举个栗子 -3">举个栗子</h4>
-<div class="hljs"><pre><code class="hljs shell">echo &quot;HELLO WORLD&quot; | tr &#x27;A-Z&#x27; &#x27;a-z&#x27;</code></pre></div>
+</div>
+<h4 id="举个栗子 -2"><a href="# 举个栗子 -2" class="headerlink" title="举个栗子"></a>举个栗子</h4><div class="hljs"><pre><code class="hljs shell">echo &quot;HELLO WORLD&quot; | tr &#x27;A-Z&#x27; &#x27;a-z&#x27;</code></pre></div>
 <p>将大写字母转换成小写字母</p>
 <div class="hljs"><pre><code class="hljs shell">echo &quot;hello 123 world 456&quot; | tr -d &#x27;0-9&#x27;</code></pre></div>
-<p>从字符串中删除数字</p>
+<p> 从字符串中删除数字</p>
  <div class="hljs"><pre><code class="hljs shell">echo &quot;hello world&quot; | tr &quot; &quot; ,</code></pre></div>
-<p>空格换成逗号</p>
+<p> 空格换成逗号</p>
 <p><span style="font-size:20px;"><strong>To be continued…</strong></span></p>
-<h3 id="参考">参考</h3>
-<ol>
+<h3 id="参考"><a href="# 参考" class="headerlink" title="参考"></a>参考</h3><ol>
 <li><a target="_blank" rel="noopener" href="http://blog.csdn.net/hzhsan/article/details/43445787">tcpdump 参数解析及使用详解</a></li>
 <li><a target="_blank" rel="noopener" href="http://blog.jobbole.com/91631/">一份快速实用的 tcpdump 命令参考手册</a></li>
 </ol>

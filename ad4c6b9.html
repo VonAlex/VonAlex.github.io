@@ -245,23 +245,16 @@
               </p>
             
             <div class="markdown-body" id="post-body">
-              <p>使用 python 写爬虫的人，应该都听过 beautifulsoup4 这个包，用来解析 HTML 很方便。现在介绍一个类似于 beautifulsoup4 的 java 第三方库，功能类似。jsoup 是一个解析 HTML 的第三方 java 库，它提供了一套非常方便的 API，可使用 DOM，CSS 以及类 jQuery 的操作方法来取出和操作数据。</p>
-<a id="more"></a>
-<h2 id="简介">简介</h2>
-<p>jsoup 是一个解析 HTML 的第三方 java 库，它提供了一套非常方便的 API，可使用 DOM，CSS 以及类 jQuery 的操作方法来取出和操作数据。<br>
-<strong>jsoup 这个包类似与 python 中流行的 HTML 解析包 Beautifulsoup4。</strong><br>
-jsoup 实现了 WHATWG HTML5 规范，能够与现代浏览器解析成相同的 DOM。其解析器能够尽最大可能从你提供的 HTML 文档来创建一个干净的解析结果，无论 HTML 的格式是否完整。比如它可以处理：没有关闭的标签，比如：</p>
+              <p>使用 python 写爬虫的人，应该都听过 beautifulsoup4 这个包，用来解析 HTML 很方便。现在介绍一个类似于 beautifulsoup4 的 java 第三方库，功能类似。jsoup 是一个解析 HTML 的第三方 java 库，它提供了一套非常方便的 API，可使用 DOM，CSS 以及类 jQuery 的操作方法来取出和操作数据。<br><a id="more"></a></p>
+<h2 id="简介"><a href="# 简介" class="headerlink" title="简介"></a>简介</h2><p>jsoup 是一个解析 HTML 的第三方 java 库，它提供了一套非常方便的 API，可使用 DOM，CSS 以及类 jQuery 的操作方法来取出和操作数据。<br><strong>jsoup 这个包类似与 python 中流行的 HTML 解析包 Beautifulsoup4。</strong><br>jsoup 实现了 WHATWG HTML5 规范，能够与现代浏览器解析成相同的 DOM。其解析器能够尽最大可能从你提供的 HTML 文档来创建一个干净的解析结果，无论 HTML 的格式是否完整。比如它可以处理：没有关闭的标签，比如：</p>
 <div class="hljs"><pre><code class="hljs html"><span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Lorem <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Ipsum parses to <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Lorem<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span> <span class="hljs-tag">&lt;<span class="hljs-name">p</span>&gt;</span>Ipsum<span class="hljs-tag">&lt;/<span class="hljs-name">p</span>&gt;</span></code></pre></div>
-<p>隐式标签，创建可靠的文档结构（html 标签包含 head 和 body，在 head 只出现恰当的元素）。<br>
-<strong>官网地址 </strong><a target="_blank" rel="noopener" href="https://jsoup.org/"> 在这里 </a>， 对应的中文文档<a target="_blank" rel="noopener" href="http://www.open-open.com/jsoup/parsing-a-document.htm"> 在这里 </a>，以及 jar 包的<a target="_blank" rel="noopener" href="https://jsoup.org/download"> 下载地址</a>。</p>
-<h2 id="一个文档的对象模型">一个文档的对象模型</h2>
-<ul>
+<p>隐式标签，创建可靠的文档结构（html 标签包含 head 和 body，在 head 只出现恰当的元素）。<br><strong>官网地址 </strong><a target="_blank" rel="noopener" href="https://jsoup.org/"> 在这里 </a>， 对应的中文文档<a target="_blank" rel="noopener" href="http://www.open-open.com/jsoup/parsing-a-document.htm"> 在这里 </a>，以及 jar 包的<a target="_blank" rel="noopener" href="https://jsoup.org/download"> 下载地址</a>。</p>
+<h2 id="一个文档的对象模型"><a href="# 一个文档的对象模型" class="headerlink" title="一个文档的对象模型"></a>一个文档的对象模型</h2><ul>
 <li>文档由多个 <strong>Elements</strong> 和<strong>TextNodes</strong>组成 ;</li>
 <li>其继承结构如下：<strong>Document</strong>继承 <strong>Element</strong> 继承 <strong>Node</strong>, <strong>TextNode</strong> 继承 <strong>Node</strong>.</li>
 <li>一个 Element 包含一个子节点集合，并拥有一个父 Element。他们还提供了一个唯一的子元素过滤列表。</li>
 </ul>
-<h2 id="获取 -Document- 对象">获取 Document 对象</h2>
-<p>jsoup 可以从包括字符串、URL 地址以及本地文件来加载 HTML 文档，并生成 Document 对象实例。</p>
+<h2 id="获取 -Document- 对象"><a href="# 获取 -Document- 对象" class="headerlink" title="获取 Document 对象"></a>获取 Document 对象</h2><p>jsoup 可以从包括字符串、URL 地址以及本地文件来加载 HTML 文档，并生成 Document 对象实例。</p>
 <div class="hljs"><pre><code class="hljs java"><span class="hljs-comment">// (1)从字符串中获取</span>
 String html = <span class="hljs-string">&quot;&lt;html&gt;&lt;head&gt;&lt;title&gt;First parse&lt;/title&gt;&lt;/head&gt;&quot;</span>
   + <span class="hljs-string">&quot;&lt;body&gt;&lt;p&gt;Parsed HTML into a doc.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;&quot;</span>;
@@ -287,20 +280,16 @@ Document doc = Jsoup.parse(input,<span class="hljs-string">&quot;UTF-8&quot;</sp
 <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Document <span class="hljs-title">parse</span><span class="hljs-params">(URL url,  <span class="hljs-keyword">int</span> timeoutMillis)</span> <span class="hljs-keyword">throws</span> IOException</span>
 <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Document <span class="hljs-title">parse</span><span class="hljs-params">(File in,  String charsetName)</span> <span class="hljs-keyword">throws</span> IOException</span>
 <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Document <span class="hljs-title">parse</span><span class="hljs-params">(InputStream in, String charsetName,  String baseUrl)</span>  <span class="hljs-keyword">throws</span> IOException</span></code></pre></div>
-<p><strong>parse</strong> 方法能够将输入的 HTML 解析为一个新的文档 (Document），只要解析的不是空字符串，就能返回一个结构合理的文档，其中包含(至少) 一个 head 和一个 body 元素。<br>
-上面的参数 <strong>baseUri</strong>的作用是，如果要解析的 html 中存在 <strong> 相对路径 </strong>，那么就根据这个参数变成<strong> 绝对路径</strong>, 如果不需要可以传入一个空字符串。</p>
-<p>** 注：** 通过 connect 方法来获得 html 源码，有的时候会遇到乱码的问题，这个时候该怎么办么？方法里有一个 parse 方法，传入参数 InputStream、charsetName 以及 baseUrl，所有可以这样解决：</p>
+<p><strong>parse</strong> 方法能够将输入的 HTML 解析为一个新的文档 (Document），只要解析的不是空字符串，就能返回一个结构合理的文档，其中包含 (至少) 一个 head 和一个 body 元素。<br> 上面的参数 <strong>baseUri</strong>的作用是，如果要解析的 html 中存在 <strong> 相对路径 </strong>，那么就根据这个参数变成<strong> 绝对路径</strong>, 如果不需要可以传入一个空字符串。</p>
+<p><strong>注：</strong>通过 connect 方法来获得 html 源码，有的时候会遇到乱码的问题，这个时候该怎么办么？方法里有一个 parse 方法，传入参数 InputStream、charsetName 以及 baseUrl，所有可以这样解决：</p>
 <div class="hljs"><pre><code class="hljs java">String url = <span class="hljs-string">&quot;http://xxxxxxx&quot;</span>;
 Document document = Jsoup.parse(<span class="hljs-keyword">new</span> URL(url).openStream(), <span class="hljs-string">&quot;GBK&quot;</span>, url);<span class="hljs-comment">// 以 gbk 编码为栗。</span></code></pre></div>
 <p><strong>Jsoup 的强项是解析 html，当然了，它能处理一些简单情况，遇到复杂的情形还是使用 httpClient 这个包吧，你值得拥有！</strong></p>
-<h2 id="解析并提取 -HTML- 元素">解析并提取 HTML 元素</h2>
-<h3 id="使用传统的操作 DOM 的方式">使用传统的操作 DOM 的方式</h3>
-<p>举个栗子</p>
+<h2 id="解析并提取 -HTML- 元素"><a href="# 解析并提取 -HTML- 元素" class="headerlink" title="解析并提取 HTML 元素"></a>解析并提取 HTML 元素 </h2><h3 id="使用传统的操作 DOM 的方式"><a href="# 使用传统的操作 DOM 的方式" class="headerlink" title="使用传统的操作 DOM 的方式"></a> 使用传统的操作 DOM 的方式 </h3><p> 举个栗子</p>
 <div class="hljs"><pre><code class="hljs java">Element content = doc.getElementById(<span class="hljs-string">&quot;content&quot;</span>);
 Elements links = content.getElementsByTag(<span class="hljs-string">&quot;a&quot;</span>);
 Elements mx = content.getElementsByClass(<span class="hljs-string">&quot;help&quot;</span>);</code></pre></div>
-<p><strong>注</strong>：doc 为 Document 对象。<br>
-还有写常用的方法，比如</p>
+<p><strong>注 </strong>：doc 为 Document 对象。<br> 还有写常用的方法，比如</p>
 <div class="hljs"><pre><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> Elements <span class="hljs-title">getElementsByAttributeValue</span><span class="hljs-params">(String key,  String value)</span></span>
 <span class="hljs-function"><span class="hljs-keyword">public</span> Element <span class="hljs-title">attr</span><span class="hljs-params">(String attributeKey,  String attributeValue)</span></span>
 <span class="hljs-function"><span class="hljs-keyword">public</span> Elements <span class="hljs-title">getAllElements</span><span class="hljs-params">()</span></span>
@@ -313,9 +302,7 @@ Elements mx = content.getElementsByClass(<span class="hljs-string">&quot;help&qu
 <span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">title</span><span class="hljs-params">()</span></span>
 <span class="hljs-function"><span class="hljs-comment">// 获得某节点的 html，这个方法继承自 Node 类，所以 Element 类也有该方法</span></span>
 <span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">outerHtml</span><span class="hljs-params">()</span></span></code></pre></div>
-<h3 id="选择器">选择器</h3>
-<p>在元素检索方面，jsoup 的选择器简直无所不能。<br>
-jsoup 选择器很多，这里仅仅举出几个栗子，</p>
+<h3 id="选择器"><a href="# 选择器" class="headerlink" title="选择器"></a>选择器 </h3><p> 在元素检索方面，jsoup 的选择器简直无所不能。<br>jsoup 选择器很多，这里仅仅举出几个栗子，</p>
 <div class="hljs"><pre><code class="hljs java">Elements links = doc.select(<span class="hljs-string">&quot;a[href]&quot;</span>); <span class="hljs-comment">// 具有 href 属性的 a 标签</span>
 Elements pngs = doc.select(<span class="hljs-string">&quot;img[src$=.png]&quot;</span>);<span class="hljs-comment">// src 属性以.png 结尾的 img 标签</span>
 Element masthead = doc.select(<span class="hljs-string">&quot;div.masthead&quot;</span>).first();<span class="hljs-comment">// class 属性为 masthead 的 div 标签中的第一个</span>
@@ -333,32 +320,13 @@ ns|tag: 通过标签在命名空间查找元素，比如：可以用 fb|name 语
 [attr~&#x3D;regex]: 利用属性值匹配正则表达式来查找元素，比如： img[src~&#x3D;(?i)\.(png|jpe?g)]
 *: 这个符号将匹配所有元素</code></pre></div>
 <p>Selector 选择器组合使用</p>
-<p><code>el#id</code> 元素 +ID，比如： div#logo<br>
-<code>el.class</code> 元素 +class，比如： div.masthead<br>
-<code>el[attr]</code> 元素 +class，比如： a[href]<br>
-<code>任意组合</code> 比如：a[href].highlight<br>
-<code>ancestor child</code> 查找某个元素下子元素，比如：可以用.body p 查找在 &quot;body&quot; 元素下的所有 p 元素<br>
-<code>parent &gt; child</code> 查找某个父元素下的直接子元素，比如：可以用 div.content &gt; p 查找 p 元素，也可以用 body &gt; * 查找 body 标签下所有直接子元素<br>
-<code>siblingA + siblingB</code> 查找在 A 元素之前第一个同级元素 B，比如：div.head + div<br>
-<code>siblingA ~ siblingX</code> 查找 A 元素之前的同级 X 元素，比如：h1 ~ p<br>
-<code>el, el, el</code> 多个选择器组合，查找匹配任一选择器的唯一元素，例如：div.masthead, div.logo</p>
+<p><code>el#id</code> 元素 +ID，比如： div#logo<br><code>el.class</code> 元素 +class，比如： div.masthead<br><code>el[attr]</code> 元素 +class，比如： a[href]<br><code>任意组合</code> 比如：a[href].highlight<br><code>ancestor child</code> 查找某个元素下子元素，比如：可以用.body p 查找在”body”元素下的所有 p 元素<br><code>parent &gt; child</code> 查找某个父元素下的直接子元素，比如：可以用 div.content &gt; p 查找 p 元素，也可以用 body &gt; * 查找 body 标签下所有直接子元素<br><code>siblingA + siblingB</code> 查找在 A 元素之前第一个同级元素 B，比如：div.head + div<br><code>siblingA ~ siblingX</code> 查找 A 元素之前的同级 X 元素，比如：h1 ~ p<br><code>el, el, el</code> 多个选择器组合，查找匹配任一选择器的唯一元素，例如：div.masthead, div.logo</p>
 <p>伪选择器 selectors</p>
-<p><code>:lt(n)</code> 查找哪些元素的同级索引值（它的位置在 DOM 树中是相对于它的父节点）小于 n，比如：td:lt(3) 表示小于三列的元素<br>
-<code>:gt(n)</code>查找哪些元素的同级索引值大于 n，比如： div p:gt(2)表示哪些 div 中有包含 2 个以上的 p 元素<br>
-<code>:eq(n)</code> 查找哪些元素的同级索引值与 n 相等，比如：form input:eq(1)表示包含一个 input 标签的 Form 元素<br>
-<code>:has(seletor)</code> 查找匹配选择器包含元素的元素，比如：div:has§表示哪些 div 包含了 p 元素<br>
-<code>:not(selector)</code> 查找与选择器不匹配的元素，比如： div:not(.logo) 表示不包含 class=logo 元素的所有 div 列表<br>
-<code>:contains(text)</code> 查找包含给定文本的元素，搜索不区分大不写，比如： p:contains(jsoup)<br>
-<code>:containsOwn(text)</code> 查找直接包含给定文本的元素<br>
-<code>:matches(regex)</code> 查找哪些元素的文本匹配指定的正则表达式，比如：div:matches((?i)login)<br>
-<code>:matchesOwn(regex)</code> 查找自身包含文本匹配指定正则表达式的元素</p>
-<p><strong>注：</strong> 上述伪选择器索引是从 0 开始的，也就是说第一个元素索引值为 0，第二个元素 index 为 1 等。<br>
-对于 Elements 的来历，看这里</p>
+<p><code>:lt(n)</code> 查找哪些元素的同级索引值（它的位置在 DOM 树中是相对于它的父节点）小于 n，比如：td:lt(3) 表示小于三列的元素 <br><code>:gt(n)</code> 查找哪些元素的同级索引值大于 n，比如： div p:gt(2)表示哪些 div 中有包含 2 个以上的 p 元素 <br><code>:eq(n)</code> 查找哪些元素的同级索引值与 n 相等，比如：form input:eq(1) 表示包含一个 input 标签的 Form 元素 <br><code>:has(seletor)</code> 查找匹配选择器包含元素的元素，比如：div:has(p) 表示哪些 div 包含了 p 元素<br><code>:not(selector)</code> 查找与选择器不匹配的元素，比如： div:not(.logo) 表示不包含 class=logo 元素的所有 div 列表<br><code>:contains(text)</code> 查找包含给定文本的元素，搜索不区分大不写，比如： p:contains(jsoup)<br><code>:containsOwn(text)</code> 查找直接包含给定文本的元素<br><code>:matches(regex)</code> 查找哪些元素的文本匹配指定的正则表达式，比如：div:matches((?i)login)<br><code>:matchesOwn(regex)</code> 查找自身包含文本匹配指定正则表达式的元素</p>
+<p><strong>注：</strong> 上述伪选择器索引是从 0 开始的，也就是说第一个元素索引值为 0，第二个元素 index 为 1 等。<br>对于 Elements 的来历，看这里</p>
 <div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Elements</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">ArrayList</span>&lt;<span class="hljs-title">Element</span>&gt;</span></code></pre></div>
-<p>另外，可以查看 <a target="_blank" rel="noopener" href="https://jsoup.org/apidocs/org/jsoup/select/Selector.html">Selector API</a> 参考来了解更详细的内容<br>
-可以看出，jsoup 使用跟 jQuery 一模一样的选择器对元素进行检索，以上的检索方法如果换成是其他的 HTML 解释器，至少都需要很多行代码，而 jsoup 只需要一行代码即可完成。</p>
-<h2 id="修改获取数据">修改获取数据</h2>
-<div class="hljs"><pre><code class="hljs java"> <span class="hljs-comment">// 为所有链接增加 rel=nofollow 属性</span>
+<p>另外，可以查看 <a target="_blank" rel="noopener" href="https://jsoup.org/apidocs/org/jsoup/select/Selector.html">Selector API</a> 参考来了解更详细的内容 <br> 可以看出，jsoup 使用跟 jQuery 一模一样的选择器对元素进行检索，以上的检索方法如果换成是其他的 HTML 解释器，至少都需要很多行代码，而 jsoup 只需要一行代码即可完成。</p>
+<h2 id="修改获取数据"><a href="# 修改获取数据" class="headerlink" title="修改获取数据"></a>修改获取数据</h2><div class="hljs"><pre><code class="hljs java"> <span class="hljs-comment">// 为所有链接增加 rel=nofollow 属性</span>
 doc.select(<span class="hljs-string">&quot;div.comments a&quot;</span>).attr(<span class="hljs-string">&quot;rel&quot;</span>, <span class="hljs-string">&quot;nofollow&quot;</span>);
  <span class="hljs-comment">// 为所有链接增加 class=mylinkclass 属性</span>
 doc.select(<span class="hljs-string">&quot;div.comments a&quot;</span>).addClass(<span class="hljs-string">&quot;mylinkclass&quot;</span>);
@@ -368,8 +336,7 @@ doc.select(<span class="hljs-string">&quot;img&quot;</span>).removeAttr(<span cl
 doc.select(<span class="hljs-string">&quot;input[type=text]&quot;</span>).val(<span class="hljs-string">&quot;&quot;</span>);
 <span class="hljs-comment">// 获得 rel 属性的值</span>
 doc.select(<span class="hljs-string">&quot;div.comments a&quot;</span>).attr(<span class="hljs-string">&quot;rel&quot;</span>);</code></pre></div>
-<h2 id="参考">参考</h2>
-<ol>
+<h2 id="参考"><a href="# 参考" class="headerlink" title="参考"></a>参考</h2><ol>
 <li><a target="_blank" rel="noopener" href="https://www.ibm.com/developerworks/cn/java/j-lo-jsouphtml/">使用 jsoup 对 HTML 文档进行解析和操作</a></li>
 <li><a target="_blank" rel="noopener" href="https://jsoup.org/apidocs/">jsoup 1.9.2 API</a></li>
 </ol>

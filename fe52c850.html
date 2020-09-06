@@ -247,14 +247,12 @@
             <div class="markdown-body" id="post-body">
               <p><strong>Dstat</strong> 是一个多样化的资源统计工具。<a target="_blank" rel="noopener" href="http://dag.wiee.rs/home-made/dstat/">官网 </a> 上是这么说的，感受一下：</p>
 <blockquote>
-<p>Dstat is a versatile replacement for vmstat, iostat, netstat and ifstat. Dstat overcomes some of their limitations and adds some extra features, more counters and flexibility. Dstat is handy for monitoring systems during performance tuning tests, benchmarks or troubleshooting.<br>
-Dstat allows you to view all of your system resources in real-time, you can eg. compare disk utilization in combination with interrupts from your IDE controller, or compare the network bandwidth numbers directly with the disk throughput (in the same interval).</p>
+<p>Dstat is a versatile replacement for vmstat, iostat, netstat and ifstat. Dstat overcomes some of their limitations and adds some extra features, more counters and flexibility. Dstat is handy for monitoring systems during performance tuning tests, benchmarks or troubleshooting.<br>Dstat allows you to view all of your system resources in real-time, you can eg. compare disk utilization in combination with interrupts from your IDE controller, or compare the network bandwidth numbers directly with the disk throughput (in the same interval).</p>
 </blockquote>
 <!--more---->
 <p>dstat 将以列表的形式为你提供选项信息并清晰地告诉你是在何种幅度和单位显示输出。这样更好地避免了信息混乱和误报。更重要的是，它可以让你更容易编写插件来收集你想要的数据信息，以从未有过的方式进行扩展。</p>
 <p>Dstat 的默认输出是专门为人们实时查看而设计的，不过你也可以将详细信息通过 CSV 输出到一个文件，并导入到 Gnumeric 或者 Excel 生成表格中。</p>
-<h3 id="特点">特点</h3>
-<ul>
+<h3 id="特点"><a href="# 特点" class="headerlink" title="特点"></a>特点</h3><ul>
 <li>Combines <strong>vmstat</strong>, <strong>iostat</strong>, <strong>ifstat</strong>, <strong>netstat</strong> information and more</li>
 <li>Shows stats in exactly the same timeframe</li>
 <li>Enable/order counters as they make most sense during analysis/troubleshooting</li>
@@ -271,21 +269,17 @@ Dstat allows you to view all of your system resources in real-time, you can eg. 
 <li>Allows to export CSV output, which can be imported in Gnumeric and Excel to make graphs</li>
 </ul>
 <p>以上的特点是从官网扒下来的，可以参考一下。</p>
-<h3 id="安装">安装</h3>
-<p>centos 可以直接使用如下命令安装：</p>
+<h3 id="安装"><a href="# 安装" class="headerlink" title="安装"></a>安装</h3><p>centos 可以直接使用如下命令安装：</p>
 <div class="hljs"><pre><code class="hljs cmake">yum <span class="hljs-keyword">install</span> dstat</code></pre></div>
-<h3 id="外部插件">外部插件</h3>
-<div class="hljs"><pre><code class="hljs shell">[root@pandora ~]# dstat --list
+<h3 id="外部插件"><a href="# 外部插件" class="headerlink" title="外部插件"></a>外部插件</h3><div class="hljs"><pre><code class="hljs shell">[root@pandora ~]# dstat --list
 internal:
 trueaio, cpu, cpu24, disk, disk24, disk24old, epoch, fs, int, int24, io, ipc, load, lock, mem, net, page, page24, proc, raw, socket, swap, swapold, sys, tcp, time, udp, unix, vm
 /usr/share/dstat:
 truebattery, battery-remain, cpufreq, dbus, disk-util, fan, freespace, gpfs, gpfs-ops, helloworld, innodb-buffer, innodb-io, innodb-ops, lustre, memcache-hits, mysql-io, mysql-keys, mysql5-cmds,
 truemysql5-conn, mysql5-io, mysql5-keys, net-packets, nfs3, nfs3-ops, nfsd3, nfsd3-ops, ntp, postfix, power, proc-count, rpc, rpcd, sendmail, snooze, thermal, top-bio, top-cpu, top-cputime, top-cputime-avg,
 truetop-io, top-latency, top-latency-avg, top-mem, top-oom, utmp, vm-memctl, vmk-hba, vmk-int, vmk-nic, vz-cpu, vz-io, vz-ubc, wifi</code></pre></div>
-<p>通过 <code>dstat --list</code> 可以查看 dstat 能使用的所有参数，其中上面 internal 是 dstat 本身自带的一些监控参数，下面 <code>/usr/share/dstat</code>中是 dstat 的插件，这些插件可以扩展 dstat 的功能，如可以监控电源（battery）、mysql 等。<br>
-下面这些插件并不是都可以直接使用的，有的还依赖其他包，如想监控 mysql，必须要装 python 连接 mysql 的一些包。</p>
-<h3 id="用例">用例</h3>
-<p>用法可以用 <code>-h</code> 选项看下，或者 <code>man dstat</code> 查一下。我执行了一下，大概是这样的：</p>
+<p>通过 <code>dstat --list</code> 可以查看 dstat 能使用的所有参数，其中上面 internal 是 dstat 本身自带的一些监控参数，下面 <code>/usr/share/dstat</code>中是 dstat 的插件，这些插件可以扩展 dstat 的功能，如可以监控电源（battery）、mysql 等。<br>下面这些插件并不是都可以直接使用的，有的还依赖其他包，如想监控 mysql，必须要装 python 连接 mysql 的一些包。</p>
+<h3 id="用例"><a href="# 用例" class="headerlink" title="用例"></a>用例 </h3><p> 用法可以用 <code>-h</code> 选项看下，或者 <code>man dstat</code> 查一下。我执行了一下，大概是这样的：</p>
 <div class="hljs"><pre><code class="hljs shell">[root@pandora ~]# dstat -h
 Usage: dstat [-afv] [options..] [delay [count]]
 Versatile tool for generating system resource statistics
@@ -348,25 +342,9 @@ usr sys idl wai hiq siq| read  writ| recv  send|  in   out | int   csw
   4   3  93   0   0   0|   0  3632k|6040B 4520B|   0   100k|  32k   55k
   4   3  93   0   0   0|4096B 3832k|3274B 1574B|   0    72k|  30k   50k
   4   3  93   0   0   0|   0  3644k|3404B 1654B|   0   120k|  33k   57k</code></pre></div>
-<p>可以看到的统计项有以下几个：<br>
-<code>-c</code> 选项。CPU 状态：从左到右依次是用户 / 系统 / 空闲部分的 cpu 占比，wait，硬 / 软中断次数。<br>
-<code>-d</code> 选项。磁盘状态：磁盘的读写操作，这一栏显示磁盘的读、写总数。<br>
-<code>-n</code> 选项。网络状态：网络设备发送和接受的数据。<br>
-<code>-g</code> 选项。页面状态：系统的分页活动，分页指的是一种内存管理技术用于查找系统场景，一个较大的分页表明系统正在使用大量的交换空间，或者说内存非常分散，大多数情况下你都希望看到 page in（换入）和 page out（换出）的值是 0。<br>
-<code>-y</code> 选项。系统统计：中断（int）和上下文切换（csw）数量。较高的值通常表示大量的进程造成拥塞，需要对 CPU 进行关注。</p>
-<h3 id="常用选项">常用选项</h3>
-<p><code>--socket</code> 显示常用的 socket 统计<br>
-<code>--tcp</code> 显示常用的 TCP 统计<br>
-<code>--mem</code> 显示内存使用率<br>
-<code>--io</code> 显示 I/O 统计<br>
-<code>--int</code> 显示终端统计</p>
-<p><code>--disk-util</code> 显示某一时间磁盘的忙碌状况<br>
-<code>--freespace</code> 显示当前磁盘空间使用率<br>
-<code>--proc-count</code> 显示正在运行的程序数量<br>
-<code>--top-bio</code> 指出块 I/O 最大的进程<br>
-<code>--top-cpu</code> 图形化显示 CPU 占用最大的进程<br>
-<code>--top-io</code> 显示正常 I/O 最大的进程<br>
-<code>--top-mem</code> 显示占用最多内存的进程</p>
+<p>可以看到的统计项有以下几个：<br><code>-c</code> 选项。CPU 状态：从左到右依次是用户 / 系统 / 空闲部分的 cpu 占比，wait，硬 / 软中断次数。<br><code>-d</code> 选项。磁盘状态：磁盘的读写操作，这一栏显示磁盘的读、写总数。<br><code>-n</code> 选项。网络状态：网络设备发送和接受的数据。<br><code>-g</code> 选项。页面状态：系统的分页活动，分页指的是一种内存管理技术用于查找系统场景，一个较大的分页表明系统正在使用大量的交换空间，或者说内存非常分散，大多数情况下你都希望看到 page in（换入）和 page out（换出）的值是 0。<br><code>-y</code> 选项。系统统计：中断（int）和上下文切换（csw）数量。较高的值通常表示大量的进程造成拥塞，需要对 CPU 进行关注。</p>
+<h3 id="常用选项"><a href="# 常用选项" class="headerlink" title="常用选项"></a>常用选项</h3><p><code>--socket</code> 显示常用的 socket 统计<br><code>--tcp</code> 显示常用的 TCP 统计<br><code>--mem</code> 显示内存使用率<br><code>--io</code> 显示 I/O 统计<br><code>--int</code> 显示终端统计</p>
+<p><code>--disk-util</code> 显示某一时间磁盘的忙碌状况<br><code>--freespace</code> 显示当前磁盘空间使用率<br><code>--proc-count</code> 显示正在运行的程序数量<br><code>--top-bio</code> 指出块 I/O 最大的进程<br><code>--top-cpu</code> 图形化显示 CPU 占用最大的进程<br><code>--top-io</code> 显示正常 I/O 最大的进程<br><code>--top-mem</code> 显示占用最多内存的进程</p>
 <p>一个可能的输出如下：</p>
 <div class="hljs"><pre><code class="hljs shell">[root@pandora ~]# dstat --tcp --io --top-cpu --top-io --mem --top-mem
 ----tcp-sockets---- --io/total- -most-expensive- ----most-expensive---- ------memory-usage----- --most-expensive-

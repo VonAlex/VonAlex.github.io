@@ -246,82 +246,75 @@
             
             <div class="markdown-body" id="post-body">
               <blockquote>
-<p> 链表提供了高效的节点重排能力，以及顺序性的节点访问方式，并且可以通过增删节点来灵活地调整链表的长度。</p>
+<p>链表提供了高效的节点重排能力，以及顺序性的节点访问方式，并且可以通过增删节点来灵活地调整链表的长度。</p>
 </blockquote>
-<p> 链表是一种非常常见的数据结构。由于 redis 使用的 C 语言并没有这种数据结构，因此，作者在 redis 对这一数据结构进行了实现。redis 的链表实现为双向链表，主要用在实现列表键、发布订阅、保存多客户端状态、服务器模块，订阅模块和保存输入命令等方面，使用较广。</p>
+<p>链表是一种非常常见的数据结构。由于 redis 使用的 C 语言并没有这种数据结构，因此，作者在 redis 对这一数据结构进行了实现。redis 的链表实现为双向链表，主要用在实现列表键、发布订阅、保存多客户端状态、服务器模块，订阅模块和保存输入命令等方面，使用较广。</p>
 <!--more---->
 <p>redis 源码中关于 adlist 的部分，主要在 <code>adlist.h</code> 和 <code>adlist.c</code> 这两个文件中。</p>
-<h3 id="adlist- 的定义">adlist 的定义 </h3>
-<p> 首先在 <code>adlist.h</code> 中找到定义 </p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// list 节点 </span>
+<h3 id="adlist- 的定义"><a href="#adlist- 的定义" class="headerlink" title="adlist 的定义"></a>adlist 的定义 </h3><p> 首先在 <code>adlist.h</code> 中找到定义</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// list 节点</span>
 <span class="hljs-keyword">typedef</span> <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">listNode</span> &#123;</span>
-    <span class="hljs-comment">// 前驱节点 </span>
+    <span class="hljs-comment">// 前驱节点</span>
     <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">listNode</span> *<span class="hljs-title">prev</span>;</span>
-    <span class="hljs-comment">// 后继节点 </span>
+    <span class="hljs-comment">// 后继节点</span>
     <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">listNode</span> *<span class="hljs-title">next</span>;</span>
-    <span class="hljs-comment">// 节点值 </span>
+    <span class="hljs-comment">// 节点值</span>
     <span class="hljs-keyword">void</span> *value;
 &#125; listNode;
 
-<span class="hljs-comment">// redis 双链表实现 </span>
+<span class="hljs-comment">// redis 双链表实现</span>
 <span class="hljs-keyword">typedef</span> <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">list</span> &#123;</span>
-    listNode *head;                      <span class="hljs-comment">// 表头指针 </span>
-    listNode *tail;                      <span class="hljs-comment">// 表尾指针 </span>
-    <span class="hljs-keyword">void</span> *(*dup)(<span class="hljs-keyword">void</span> *ptr);             <span class="hljs-comment">// 节点值复制函数 </span>
+    listNode *head;                      <span class="hljs-comment">// 表头指针</span>
+    listNode *tail;                      <span class="hljs-comment">// 表尾指针</span>
+    <span class="hljs-keyword">void</span> *(*dup)(<span class="hljs-keyword">void</span> *ptr);             <span class="hljs-comment">// 节点值复制函数</span>
     <span class="hljs-keyword">void</span> (*<span class="hljs-built_in">free</span>)(<span class="hljs-keyword">void</span> *ptr);             <span class="hljs-comment">// 节点值释放函数（函数指针）</span>
-    <span class="hljs-keyword">int</span> (*match)(<span class="hljs-keyword">void</span> *ptr, <span class="hljs-keyword">void</span> *key);  <span class="hljs-comment">// 节点值对比函数 </span>
-    <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> len;                   <span class="hljs-comment">// 链表包含的节点数量 </span>
+    <span class="hljs-keyword">int</span> (*match)(<span class="hljs-keyword">void</span> *ptr, <span class="hljs-keyword">void</span> *key);  <span class="hljs-comment">// 节点值对比函数</span>
+    <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> len;                   <span class="hljs-comment">// 链表包含的节点数量</span>
 &#125; <span class="hljs-built_in">list</span>;
 </code></pre></div>
-<p> 可以发现，这就是一个无环双向链表。<br>
-<code>list</code> 结构中带有一个 <code>len</code> 的变量，可以将获取链表长度的时间复杂度从 O(n) 降到 O(1)。<br>
-<code>head</code> 指针和 <code>tail</code> 指针让给我们可以快速的找到链表的头尾，时间复杂度都是 O(1)。<br>
-三个函数指针，让我们可以对链表有更灵活的操作，使用起来也更加方便。</p>
-<p> 当需要进行链表迭代时，可以使用如下函数：</p>
+<p>可以发现，这就是一个无环双向链表。<br><code>list</code> 结构中带有一个 <code>len</code> 的变量，可以将获取链表长度的时间复杂度从 O(n) 降到 O(1)。<br><code>head</code> 指针和 <code>tail</code> 指针让给我们可以快速的找到链表的头尾，时间复杂度都是 O(1)。<br>三个函数指针，让我们可以对链表有更灵活的操作，使用起来也更加方便。</p>
+<p>当需要进行链表迭代时，可以使用如下函数：</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">typedef</span> <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">listIter</span> &#123;</span>
-    listNode *next; <span class="hljs-comment">// 指向下一个节点 </span>
-    <span class="hljs-keyword">int</span> direction;  <span class="hljs-comment">// 迭代器，正向反向 </span>
+    listNode *next; <span class="hljs-comment">// 指向下一个节点</span>
+    <span class="hljs-keyword">int</span> direction;  <span class="hljs-comment">// 迭代器，正向反向</span>
 &#125; listIter;</code></pre></div>
 <p><code>direction</code> 决定了遍历的方向，可正向可反向。</p>
-<h3 id="adlist- 宏定义">adlist 宏定义 </h3>
-<p> 这部分定义了一些获取 <code>list</code> 结构的宏，简化操作。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listLength(l) ((l)-&gt;len)                    <span class="hljs-comment">// 获取 list 中包含的 node 数量 </span></span>
-<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listFirst(l) ((l)-&gt;head)                    <span class="hljs-comment">// 获取 list 头节点指针 </span></span>
-<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listLast(l) ((l)-&gt;tail)                     <span class="hljs-comment">// 获取 list 尾节点指针 </span></span>
-<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listPrevNode(n) ((n)-&gt;prev)                 <span class="hljs-comment">// 获取当前节点的前驱节点 </span></span>
-<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listNextNode(n) ((n)-&gt;next)                 <span class="hljs-comment">// 获得当前节点的后继节点 </span></span>
+<h3 id="adlist- 宏定义"><a href="#adlist- 宏定义" class="headerlink" title="adlist 宏定义"></a>adlist 宏定义 </h3><p> 这部分定义了一些获取 <code>list</code> 结构的宏，简化操作。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listLength(l) ((l)-&gt;len)                    <span class="hljs-comment">// 获取 list 中包含的 node 数量</span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listFirst(l) ((l)-&gt;head)                    <span class="hljs-comment">// 获取 list 头节点指针</span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listLast(l) ((l)-&gt;tail)                     <span class="hljs-comment">// 获取 list 尾节点指针</span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listPrevNode(n) ((n)-&gt;prev)                 <span class="hljs-comment">// 获取当前节点的前驱节点</span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listNextNode(n) ((n)-&gt;next)                 <span class="hljs-comment">// 获得当前节点的后继节点</span></span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listNodeValue(n) ((n)-&gt;value)</span>
 
-<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listSetDupMethod(l,m) ((l)-&gt;dup = (m))      <span class="hljs-comment">// 指定节点复制函数 </span></span>
-<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listSetFreeMethod(l,m) ((l)-&gt;free = (m))    <span class="hljs-comment">// 指定节点释放函数 </span></span>
-<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listSetMatchMethod(l,m) ((l)-&gt;match = (m))  <span class="hljs-comment">// 指定节点的比较函数 </span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listSetDupMethod(l,m) ((l)-&gt;dup = (m))      <span class="hljs-comment">// 指定节点复制函数</span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listSetFreeMethod(l,m) ((l)-&gt;free = (m))    <span class="hljs-comment">// 指定节点释放函数</span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listSetMatchMethod(l,m) ((l)-&gt;match = (m))  <span class="hljs-comment">// 指定节点的比较函数</span></span>
 
-<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listGetDupMethod(l) ((l)-&gt;dup)   <span class="hljs-comment">// 获得节点复制函数 </span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listGetDupMethod(l) ((l)-&gt;dup)   <span class="hljs-comment">// 获得节点复制函数</span></span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listGetFree(l) ((l)-&gt;free)</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> listGetMatchMethod(l) ((l)-&gt;match)</span></code></pre></div>
-<h3 id="adlist- 函数">adlist 函数 </h3>
-<p> 这部分定义了一些双向链表的常用操作。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listCreate</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span></span>; <span class="hljs-comment">// 创建一个不包含任何节点的新链表 </span>
-<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listRelease</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>)</span></span>; <span class="hljs-comment">// 释放给定链表，以及链表中的所有节点 </span>
+<h3 id="adlist- 函数"><a href="#adlist- 函数" class="headerlink" title="adlist 函数"></a>adlist 函数 </h3><p> 这部分定义了一些双向链表的常用操作。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listCreate</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span></span>; <span class="hljs-comment">// 创建一个不包含任何节点的新链表</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listRelease</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>)</span></span>; <span class="hljs-comment">// 释放给定链表，以及链表中的所有节点</span>
 
-<span class="hljs-comment">// CRUD 操作 </span>
-<span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listAddNodeHead</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">void</span> *value)</span></span>;  <span class="hljs-comment">// 头部插入节点 </span>
-<span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listAddNodeTail</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">void</span> *value)</span></span>;  <span class="hljs-comment">// 尾部插入节点 </span>
-<span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listInsertNode</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, listNode *old_node, <span class="hljs-keyword">void</span> *value, <span class="hljs-keyword">int</span> after)</span></span>; <span class="hljs-comment">// 中间某个位置插入节点 </span>
-<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listDelNode</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, listNode *node)</span></span>; <span class="hljs-comment">// O(N) 删除指定节点 </span>
+<span class="hljs-comment">// CRUD 操作</span>
+<span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listAddNodeHead</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">void</span> *value)</span></span>;  <span class="hljs-comment">// 头部插入节点</span>
+<span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listAddNodeTail</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">void</span> *value)</span></span>;  <span class="hljs-comment">// 尾部插入节点</span>
+<span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listInsertNode</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, listNode *old_node, <span class="hljs-keyword">void</span> *value, <span class="hljs-keyword">int</span> after)</span></span>; <span class="hljs-comment">// 中间某个位置插入节点</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listDelNode</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, listNode *node)</span></span>; <span class="hljs-comment">// O(N) 删除指定节点</span>
 
-<span class="hljs-function">listIter *<span class="hljs-title">listGetIterator</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">int</span> direction)</span></span>; <span class="hljs-comment">// 获取指定迭代器 </span>
-<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listReleaseIterator</span><span class="hljs-params">(listIter *iter)</span></span>;   <span class="hljs-comment">// 释放迭代器 </span>
-<span class="hljs-function">listNode *<span class="hljs-title">listNext</span><span class="hljs-params">(listIter *iter)</span></span>; <span class="hljs-comment">// 迭代下一个节点 </span>
+<span class="hljs-function">listIter *<span class="hljs-title">listGetIterator</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">int</span> direction)</span></span>; <span class="hljs-comment">// 获取指定迭代器</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listReleaseIterator</span><span class="hljs-params">(listIter *iter)</span></span>;   <span class="hljs-comment">// 释放迭代器</span>
+<span class="hljs-function">listNode *<span class="hljs-title">listNext</span><span class="hljs-params">(listIter *iter)</span></span>; <span class="hljs-comment">// 迭代下一个节点</span>
 
-<span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listDup</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *orig)</span></span>; <span class="hljs-comment">// 链表复制 </span>
-<span class="hljs-function">listNode *<span class="hljs-title">listSearchKey</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">void</span> *key)</span></span>; <span class="hljs-comment">// O(N) 按 key 找节点 </span>
+<span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listDup</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *orig)</span></span>; <span class="hljs-comment">// 链表复制</span>
+<span class="hljs-function">listNode *<span class="hljs-title">listSearchKey</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">void</span> *key)</span></span>; <span class="hljs-comment">// O(N) 按 key 找节点</span>
 <span class="hljs-function">listNode *<span class="hljs-title">listIndex</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">long</span> index)</span></span>;  <span class="hljs-comment">// O(N)</span>
-<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listRewind</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, listIter *li)</span></span>; <span class="hljs-comment">// 重置为正向迭代器 </span>
-<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listRewindTail</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, listIter *li)</span></span>; <span class="hljs-comment">// 重置为逆向迭代器 </span>
-<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listRotate</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>)</span></span>; <span class="hljs-comment">// 链表旋转 </span></code></pre></div>
-<h4 id="创建 -adlist"> 创建 adlist</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listCreate</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span></span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listRewind</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, listIter *li)</span></span>; <span class="hljs-comment">// 重置为正向迭代器</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listRewindTail</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, listIter *li)</span></span>; <span class="hljs-comment">// 重置为逆向迭代器</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listRotate</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>)</span></span>; <span class="hljs-comment">// 链表旋转</span></code></pre></div>
+<h4 id="创建 -adlist"><a href="# 创建 -adlist" class="headerlink" title="创建 adlist"></a>创建 adlist</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listCreate</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span></span>
 <span class="hljs-function"></span>&#123;
     <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">list</span> *<span class="hljs-title">list</span>;</span>
 
@@ -334,56 +327,53 @@
     <span class="hljs-built_in">list</span>-&gt;match = <span class="hljs-literal">NULL</span>;
     <span class="hljs-keyword">return</span> <span class="hljs-built_in">list</span>;
 &#125;</code></pre></div>
-<p> 创建一个空的 adlist 很简单，就是分配内存，初始化数据结构，而 <code>listRelease</code> 的释放链表过程与之相反，这个自不必多说。</p>
-<h4 id="adlist- 的 -CRUD- 操作">adlist 的 CRUD 操作 </h4>
-<p> 首先是插入数据，分三种情况：头部插入、中间插入和尾部插入。<br>
-(1) 头部插入 </p>
+<p>创建一个空的 adlist 很简单，就是分配内存，初始化数据结构，而 <code>listRelease</code> 的释放链表过程与之相反，这个自不必多说。</p>
+<h4 id="adlist- 的 -CRUD- 操作"><a href="#adlist- 的 -CRUD- 操作" class="headerlink" title="adlist 的 CRUD 操作"></a>adlist 的 CRUD 操作 </h4><p> 首先是插入数据，分三种情况：头部插入、中间插入和尾部插入。<br>(1) 头部插入</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 头部插入值 value</span>
 <span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listAddNodeHead</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">void</span> *value)</span></span>
 <span class="hljs-function"></span>&#123;
     listNode *node;
 
-    <span class="hljs-keyword">if</span> ((node = zmalloc(<span class="hljs-keyword">sizeof</span>(*node))) == <span class="hljs-literal">NULL</span>) <span class="hljs-comment">// 为新节点分配内存 </span>
+    <span class="hljs-keyword">if</span> ((node = zmalloc(<span class="hljs-keyword">sizeof</span>(*node))) == <span class="hljs-literal">NULL</span>) <span class="hljs-comment">// 为新节点分配内存</span>
         <span class="hljs-keyword">return</span> <span class="hljs-literal">NULL</span>;
     node-&gt;value = value;
-    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">list</span>-&gt;len == <span class="hljs-number">0</span>) &#123; <span class="hljs-comment">// 若之前的 list 为空，那么插入后就只有一个节点 </span>
+    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">list</span>-&gt;len == <span class="hljs-number">0</span>) &#123; <span class="hljs-comment">// 若之前的 list 为空，那么插入后就只有一个节点</span>
         <span class="hljs-built_in">list</span>-&gt;head = <span class="hljs-built_in">list</span>-&gt;tail = node;
         node-&gt;prev = node-&gt;next = <span class="hljs-literal">NULL</span>;
     &#125; <span class="hljs-keyword">else</span> &#123;
         node-&gt;prev = <span class="hljs-literal">NULL</span>;
         node-&gt;next = <span class="hljs-built_in">list</span>-&gt;head;
         <span class="hljs-built_in">list</span>-&gt;head-&gt;prev = node;
-        <span class="hljs-built_in">list</span>-&gt;head = node; <span class="hljs-comment">// 更新 list head 信息 </span>
+        <span class="hljs-built_in">list</span>-&gt;head = node; <span class="hljs-comment">// 更新 list head 信息</span>
     &#125;
-    <span class="hljs-built_in">list</span>-&gt;len++; <span class="hljs-comment">// 更新链表长度信息 </span>
+    <span class="hljs-built_in">list</span>-&gt;len++; <span class="hljs-comment">// 更新链表长度信息</span>
     <span class="hljs-keyword">return</span> <span class="hljs-built_in">list</span>;
 &#125;</code></pre></div>
-<p>（2）尾部插入节点类似，就不啰嗦了。<br>
-（3）中间插入 </p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 在 list 指定节点 old_node 后（after=1）或前插入一个节点 </span>
+<p>（2）尾部插入节点类似，就不啰嗦了。<br>（3）中间插入</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 在 list 指定节点 old_node 后（after=1）或前插入一个节点</span>
 <span class="hljs-function"><span class="hljs-built_in">list</span> *<span class="hljs-title">listInsertNode</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, listNode *old_node, <span class="hljs-keyword">void</span> *value, <span class="hljs-keyword">int</span> after)</span> </span>&#123;
     listNode *node;
 
-    <span class="hljs-keyword">if</span> ((node = zmalloc(<span class="hljs-keyword">sizeof</span>(*node))) == <span class="hljs-literal">NULL</span>) <span class="hljs-comment">// 为新节点分配内存 </span>
+    <span class="hljs-keyword">if</span> ((node = zmalloc(<span class="hljs-keyword">sizeof</span>(*node))) == <span class="hljs-literal">NULL</span>) <span class="hljs-comment">// 为新节点分配内存</span>
         <span class="hljs-keyword">return</span> <span class="hljs-literal">NULL</span>;
     node-&gt;value = value;
-    <span class="hljs-keyword">if</span> (after) &#123; <span class="hljs-comment">// 后 </span>
+    <span class="hljs-keyword">if</span> (after) &#123; <span class="hljs-comment">// 后</span>
 
-        <span class="hljs-comment">// 处理 node 节点的前后指向 </span>
+        <span class="hljs-comment">// 处理 node 节点的前后指向</span>
         node-&gt;prev = old_node;
         node-&gt;next = old_node-&gt;next;
-        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">list</span>-&gt;tail == old_node) &#123; <span class="hljs-comment">// node 成了尾节点，更新 list 信息 </span>
+        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">list</span>-&gt;tail == old_node) &#123; <span class="hljs-comment">// node 成了尾节点，更新 list 信息</span>
             <span class="hljs-built_in">list</span>-&gt;tail = node;
         &#125;
-    &#125; <span class="hljs-keyword">else</span> &#123; <span class="hljs-comment">// 前 </span>
+    &#125; <span class="hljs-keyword">else</span> &#123; <span class="hljs-comment">// 前</span>
         node-&gt;next = old_node;
         node-&gt;prev = old_node-&gt;prev;
-        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">list</span>-&gt;head == old_node) &#123; <span class="hljs-comment">// node 成了头节点，更新 list 信息 </span>
+        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">list</span>-&gt;head == old_node) &#123; <span class="hljs-comment">// node 成了头节点，更新 list 信息</span>
             <span class="hljs-built_in">list</span>-&gt;head = node;
         &#125;
     &#125;
 
-    <span class="hljs-comment">// 处理 node 相邻两个节点的指向 </span>
+    <span class="hljs-comment">// 处理 node 相邻两个节点的指向</span>
     <span class="hljs-keyword">if</span> (node-&gt;prev != <span class="hljs-literal">NULL</span>) &#123;
         node-&gt;prev-&gt;next = node;
     &#125;
@@ -393,32 +383,32 @@
     <span class="hljs-built_in">list</span>-&gt;len++;
     <span class="hljs-keyword">return</span> <span class="hljs-built_in">list</span>;
 &#125;</code></pre></div>
-<p> 然后是删除操作。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 从 list 中删除 node 节点 </span>
+<p>然后是删除操作。</p>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 从 list 中删除 node 节点</span>
 <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listDelNode</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, listNode *node)</span></span>
 <span class="hljs-function"></span>&#123;
-    <span class="hljs-keyword">if</span> (node-&gt;prev) <span class="hljs-comment">// 是否有前驱节点，即判断要删除的节点是否为头节点 </span>
+    <span class="hljs-keyword">if</span> (node-&gt;prev) <span class="hljs-comment">// 是否有前驱节点，即判断要删除的节点是否为头节点</span>
         node-&gt;prev-&gt;next = node-&gt;next;
     <span class="hljs-keyword">else</span>
-        <span class="hljs-built_in">list</span>-&gt;head = node-&gt;next; <span class="hljs-comment">// 更新 list 的头结点指向 </span>
-    <span class="hljs-keyword">if</span> (node-&gt;next) <span class="hljs-comment">// 是否有后继节点，即判断要删除的节点是否为尾节点 </span>
+        <span class="hljs-built_in">list</span>-&gt;head = node-&gt;next; <span class="hljs-comment">// 更新 list 的头结点指向</span>
+    <span class="hljs-keyword">if</span> (node-&gt;next) <span class="hljs-comment">// 是否有后继节点，即判断要删除的节点是否为尾节点</span>
         node-&gt;next-&gt;prev = node-&gt;prev;
     <span class="hljs-keyword">else</span>
         <span class="hljs-built_in">list</span>-&gt;tail = node-&gt;prev;
     <span class="hljs-keyword">if</span> (<span class="hljs-built_in">list</span>-&gt;<span class="hljs-built_in">free</span>) <span class="hljs-built_in">list</span>-&gt;<span class="hljs-built_in">free</span>(node-&gt;value);
     zfree(node);
-    <span class="hljs-built_in">list</span>-&gt;len--; <span class="hljs-comment">// 更新节点数量信息 </span>
+    <span class="hljs-built_in">list</span>-&gt;len--; <span class="hljs-comment">// 更新节点数量信息</span>
 &#125;</code></pre></div>
-<p> 最后是查找。</p>
+<p>最后是查找。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 从 list 中查找 key</span>
 <span class="hljs-function">listNode *<span class="hljs-title">listSearchKey</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">void</span> *key)</span></span>
 <span class="hljs-function"></span>&#123;
     listIter iter;
     listNode *node;
 
-    listRewind(<span class="hljs-built_in">list</span>, &amp;iter); <span class="hljs-comment">// 获得正向遍历器，并从头开始遍历 </span>
+    listRewind(<span class="hljs-built_in">list</span>, &amp;iter); <span class="hljs-comment">// 获得正向遍历器，并从头开始遍历</span>
     <span class="hljs-keyword">while</span>((node = listNext(&amp;iter)) != <span class="hljs-literal">NULL</span>) &#123;
-        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">list</span>-&gt;match) &#123; <span class="hljs-comment">// list 中有指定的比较器 </span>
+        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">list</span>-&gt;match) &#123; <span class="hljs-comment">// list 中有指定的比较器</span>
             <span class="hljs-keyword">if</span> (<span class="hljs-built_in">list</span>-&gt;match(node-&gt;value, key)) &#123;
                 <span class="hljs-keyword">return</span> node;
             &#125;
@@ -430,21 +420,20 @@
     &#125;
     <span class="hljs-keyword">return</span> <span class="hljs-literal">NULL</span>;
 &#125;</code></pre></div>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 获得 list 中第 index 个节点，index 为负数表示从尾部倒序往前找 </span>
+<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 获得 list 中第 index 个节点，index 为负数表示从尾部倒序往前找</span>
 <span class="hljs-function">listNode *<span class="hljs-title">listIndex</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">long</span> index)</span> </span>&#123;
     listNode *n;
-    <span class="hljs-keyword">if</span> (index &lt; <span class="hljs-number">0</span>) &#123; <span class="hljs-comment">// 从尾部查找 </span>
+    <span class="hljs-keyword">if</span> (index &lt; <span class="hljs-number">0</span>) &#123; <span class="hljs-comment">// 从尾部查找</span>
         index = (-index)<span class="hljs-number">-1</span>;
         n = <span class="hljs-built_in">list</span>-&gt;tail;
-        <span class="hljs-keyword">while</span>(index-- &amp;&amp; n) n = n-&gt;prev; <span class="hljs-comment">// 往前遍历 </span>
+        <span class="hljs-keyword">while</span>(index-- &amp;&amp; n) n = n-&gt;prev; <span class="hljs-comment">// 往前遍历</span>
     &#125; <span class="hljs-keyword">else</span> &#123;
         n = <span class="hljs-built_in">list</span>-&gt;head;
-        <span class="hljs-keyword">while</span>(index-- &amp;&amp; n) n = n-&gt;next; <span class="hljs-comment">// 往后遍历 </span>
+        <span class="hljs-keyword">while</span>(index-- &amp;&amp; n) n = n-&gt;next; <span class="hljs-comment">// 往后遍历</span>
     &#125;
     <span class="hljs-keyword">return</span> n;
 &#125;</code></pre></div>
-<h4 id="其他"> 其他 </h4>
-<p> 迭代器实现如下：</p>
+<h4 id="其他"><a href="# 其他" class="headerlink" title="其他"></a>其他 </h4><p> 迭代器实现如下：</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function">listIter *<span class="hljs-title">listGetIterator</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>, <span class="hljs-keyword">int</span> direction)</span></span>
 <span class="hljs-function"></span>&#123;
     listIter *iter;
@@ -454,12 +443,12 @@
         iter-&gt;next = <span class="hljs-built_in">list</span>-&gt;head;
     <span class="hljs-keyword">else</span>
         iter-&gt;next = <span class="hljs-built_in">list</span>-&gt;tail;
-    iter-&gt;direction = direction; <span class="hljs-comment">// 迭代器方向 </span>
+    iter-&gt;direction = direction; <span class="hljs-comment">// 迭代器方向</span>
     <span class="hljs-keyword">return</span> iter;
 &#125;</code></pre></div>
-<p> 另外，一个旋转 list 的操作，实现效果将 1 → 2 → 3 → 4 变成 4 → 1 → 2 → 3</p>
+<p>另外，一个旋转 list 的操作，实现效果将 1 → 2 → 3 → 4 变成 4 → 1 → 2 → 3</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">listRotate</span><span class="hljs-params">(<span class="hljs-built_in">list</span> *<span class="hljs-built_in">list</span>)</span> </span>&#123;
-    listNode *tail = <span class="hljs-built_in">list</span>-&gt;tail;<span class="hljs-comment">// 取尾节点 </span>
+    listNode *tail = <span class="hljs-built_in">list</span>-&gt;tail;<span class="hljs-comment">// 取尾节点</span>
 
     <span class="hljs-keyword">if</span> (listLength(<span class="hljs-built_in">list</span>) &lt;= <span class="hljs-number">1</span>) <span class="hljs-keyword">return</span>; <span class="hljs-comment">// 1 个节点不需要 rotate</span>
 
@@ -475,8 +464,7 @@
     <span class="hljs-built_in">list</span>-&gt;head = tail; <span class="hljs-comment">// 更新 list 的新 head</span>
 &#125;
 </code></pre></div>
-<h3 id="总结"> 总结 </h3>
-<p>adlist 其实就是把双向链表的基本操作实现了一遍，看了一遍相当于复习了一遍（之前面试总问这些，哈哈），不过作者设计的很巧，值得学习。</p>
+<h3 id="总结"><a href="# 总结" class="headerlink" title="总结"></a>总结</h3><p>adlist 其实就是把双向链表的基本操作实现了一遍，看了一遍相当于复习了一遍（之前面试总问这些，哈哈），不过作者设计的很巧，值得学习。</p>
 
             </div>
             <hr>

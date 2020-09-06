@@ -247,14 +247,11 @@
             <div class="markdown-body" id="post-body">
               <p>在上一篇文章，主要介绍了主从复制流程中 slave 的状态机流转，本篇文章中，将做相应的 master 逻辑的相关分析。</p>
 <!--more---->
-<h2 id="主从建链与握手阶段">主从建链与握手阶段</h2>
-<blockquote>
+<h2 id="主从建链与握手阶段"><a href="# 主从建链与握手阶段" class="headerlink" title="主从建链与握手阶段"></a>主从建链与握手阶段</h2><blockquote>
 <p>slave 在向 master 发起 TCP 建链，以及复制握手过程中，master 一直把 slave 当成一个普通的 client 来处理。也就是说，不为 slave 保存状态，只是收到 slave 发来的命令进而处理并回复而已。</p>
 </blockquote>
-<h3 id="PING- 命令处理">PING 命令处理</h3>
-<p>握手过程中，首先 slave 会发过来一个 PING 命令，master 使用 <strong>pingCommand</strong> 函数来进行处理。回复字符串 <strong>+PONG</strong>，还是权限错误，视情况而定。</p>
-<h3 id="AUTH- 命令处理">AUTH 命令处理</h3>
-<p>可能会有一个鉴权过程，master 收到 slave 发来 AUTH 命令，使用 <strong>authCommand</strong> 函数进行处理，代码大概如下，</p>
+<h3 id="PING- 命令处理"><a href="#PING- 命令处理" class="headerlink" title="PING 命令处理"></a>PING 命令处理 </h3><p> 握手过程中，首先 slave 会发过来一个 PING 命令，master 使用 <strong>pingCommand</strong> 函数来进行处理。回复字符串 <strong>+PONG</strong>，还是权限错误，视情况而定。</p>
+<h3 id="AUTH- 命令处理"><a href="#AUTH- 命令处理" class="headerlink" title="AUTH 命令处理"></a>AUTH 命令处理 </h3><p> 可能会有一个鉴权过程，master 收到 slave 发来 AUTH 命令，使用 <strong>authCommand</strong> 函数进行处理，代码大概如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">authCommand</span><span class="hljs-params">(client *c)</span> </span>&#123;
     <span class="hljs-keyword">if</span> (!server.requirepass) &#123; <span class="hljs-comment">// 未设置 auth passwd</span>
         addReplyError(c,<span class="hljs-string">&quot;Client sent AUTH, but no password is set&quot;</span>);
@@ -267,8 +264,7 @@
     &#125;
 &#125;</code></pre></div>
 <p>client 的 <strong>authenticated</strong> 属性表明 server 是否设置了鉴权。</p>
-<h3 id="REPLCONF- 命令处理">REPLCONF 命令处理</h3>
-<p>接下来就是 REPLCONF 命令，相应处理函数为 <strong>replconfCommand</strong>，用于保存 slave 告知的端口号、地址和能力等。该函数代码逻辑基本如下，</p>
+<h3 id="REPLCONF- 命令处理"><a href="#REPLCONF- 命令处理" class="headerlink" title="REPLCONF 命令处理"></a>REPLCONF 命令处理 </h3><p> 接下来就是 REPLCONF 命令，相应处理函数为 <strong>replconfCommand</strong>，用于保存 slave 告知的端口号、地址和能力等。该函数代码逻辑基本如下，</p>
 <p>首先进行必要的参数校验，命令格式为 <code>REPLCONF &lt;option&gt; &lt;value&gt; &lt;option&gt; &lt;value&gt; ...</code>，可以看出，后面的参数值是成对出现的，加上 REPLCONF 本身，参数个数肯定是奇数个，那么偶数个就肯定是有问题的。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> ((c-&gt;argc % <span class="hljs-number">2</span>) == <span class="hljs-number">0</span>) &#123;
     <span class="hljs-comment">/* Number of arguments must be odd to make sure that every</span>
@@ -307,13 +303,10 @@
         <span class="hljs-keyword">return</span>;
     &#125;
 &#125;</code></pre></div>
-<h2 id="主从复制阶段">主从复制阶段</h2>
-<p>接下来，slave 会向 master 发送 SYNC/PSYNC 命令，请求进行完全重同步或者部分重同步。master 为 slave 保存的状态记录在 client 的 <strong>replstate</strong> 属性中。</p>
-<p>从 master 的角度看，slave 需要经历的如下状态：<strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> → <strong>SLAVE_REPL_WAIT_BGSAVE_END</strong> → <strong>SLAVE_REPL_SEND_BULK</strong> → <strong>SLAVE_REPL_ONLINE</strong>。状态转换图在前一篇文章开头画过，这里不做赘述。</p>
-<h3 id="SYNC-PSYNC- 命令处理">SYNC/PSYNC 命令处理</h3>
-<p>SYNC/PSYNC 命令的处理函数为 <strong>syncCommand</strong>。</p>
-<h4 id="前置 -check">前置 check</h4>
-<p>首先，需要做一些必要的 check。</p>
+<h2 id="主从复制阶段"><a href="# 主从复制阶段" class="headerlink" title="主从复制阶段"></a>主从复制阶段 </h2><p> 接下来，slave 会向 master 发送 SYNC/PSYNC 命令，请求进行完全重同步或者部分重同步。master 为 slave 保存的状态记录在 client 的 <strong>replstate</strong> 属性中。</p>
+<p> 从 master 的角度看，slave 需要经历的如下状态：<strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> → <strong>SLAVE_REPL_WAIT_BGSAVE_END</strong> → <strong>SLAVE_REPL_SEND_BULK</strong> → <strong>SLAVE_REPL_ONLINE</strong>。状态转换图在前一篇文章开头画过，这里不做赘述。</p>
+<h3 id="SYNC-PSYNC- 命令处理"><a href="#SYNC-PSYNC- 命令处理" class="headerlink" title="SYNC/PSYNC 命令处理"></a>SYNC/PSYNC 命令处理</h3><p>SYNC/PSYNC 命令的处理函数为 <strong>syncCommand</strong>。</p>
+<h4 id="前置 -check"><a href="# 前置 -check" class="headerlink" title="前置 check"></a>前置 check</h4><p>首先，需要做一些必要的 check。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* ignore SYNC if already slave or in monitor mode */</span>
 <span class="hljs-keyword">if</span> (c-&gt;flags &amp; CLIENT_SLAVE) <span class="hljs-keyword">return</span>;
 
@@ -335,8 +328,7 @@
     addReplyError(c,<span class="hljs-string">&quot;SYNC and PSYNC are invalid with pending output&quot;</span>);
     <span class="hljs-keyword">return</span>;
 &#125;</code></pre></div>
-<h4 id="完全重同步 -or- 部分重同步">完全重同步 or 部分重同步</h4>
-<p>下面就开始进入正题，SYNC/PSYNC 命令进行了区别对待。</p>
+<h4 id="完全重同步 -or- 部分重同步"><a href="# 完全重同步 -or- 部分重同步" class="headerlink" title="完全重同步 or 部分重同步"></a>完全重同步 or 部分重同步 </h4><p> 下面就开始进入正题，SYNC/PSYNC 命令进行了区别对待。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// slave 发来 psync 命令</span>
 <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="hljs-number">0</span>]-&gt;ptr,<span class="hljs-string">&quot;psync&quot;</span>)) &#123;
     <span class="hljs-keyword">if</span> (masterTryPartialResynchronization(c) == C_OK) &#123;
@@ -428,8 +420,7 @@ psync_len = addReplyReplicationBacklog(c,psync_offset);
 refreshGoodSlavesCount();
 <span class="hljs-keyword">return</span> C_OK; <span class="hljs-comment">/* The caller can return, no full resync needed. */</span></code></pre></div>
 <p><strong>addReplyReplicationBacklog</strong> 函数的逻辑也已经在前面讲过。</p>
-<h4 id="完全重同步过程">完全重同步过程</h4>
-<p>首先，一些变量的更新，将 <strong>replstate</strong> 更新为 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 状态。</p>
+<h4 id="完全重同步过程"><a href="# 完全重同步过程" class="headerlink" title="完全重同步过程"></a>完全重同步过程 </h4><p> 首先，一些变量的更新，将 <strong>replstate</strong> 更新为 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 状态。</p>
 <div class="hljs"><pre><code class="hljs c">server.stat_sync_full++;
 
 <span class="hljs-comment">/* Setup the slave as one waiting for BGSAVE to start. The following code</span>
@@ -475,8 +466,7 @@ listAddNodeTail(server.slaves,c);</code></pre></div>
         serverLog(LL_NOTICE,<span class="hljs-string">&quot;Can&#x27;t attach the slave to the current BGSAVE. Waiting for next BGSAVE for SYNC&quot;</span>);
     &#125;
 &#125;</code></pre></div>
-<p>代码中，在 master 所有 slave 中找到一个处于 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong> 状态的 slaveX。<br>
-将 slaveX 输出缓存内容 copy 一份给当前的 client，然后调用函数 <strong>replicationSetupSlaveForFullResync</strong>，将 client 状态设置为 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong>，并发送 <strong>+FULLRESYNC</strong> 回复，代码如下，</p>
+<p>代码中，在 master 所有 slave 中找到一个处于 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong> 状态的 slaveX。<br>将 slaveX 输出缓存内容 copy 一份给当前的 client，然后调用函数 <strong>replicationSetupSlaveForFullResync</strong>，将 client 状态设置为 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong>，并发送 <strong>+FULLRESYNC</strong> 回复，代码如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">replicationSetupSlaveForFullResync</span><span class="hljs-params">(client *slave, <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> offset)</span> </span>&#123;
     <span class="hljs-keyword">char</span> buf[<span class="hljs-number">128</span>];
     <span class="hljs-keyword">int</span> buflen;
@@ -565,9 +555,7 @@ listAddNodeTail(server.slaves,c);</code></pre></div>
     <span class="hljs-comment">// 尽管没有数据，但事实上，第一个字节的逻辑位置是 master_repl_offset 的下一个字节</span>
     server.repl_backlog_off = server.master_repl_offset+<span class="hljs-number">1</span>;
 &#125;</code></pre></div>
-<h4 id="执行 -bgsave- 操作">执行 bgsave 操作</h4>
-<p>接上一小节，bgsave 操作的处理函数为 <strong>startBgsaveForReplication</strong>。<br>
-首先根据传入的参数，针对有无磁盘化复制调用不同的处理函数，即，</p>
+<h4 id="执行 -bgsave- 操作"><a href="# 执行 -bgsave- 操作" class="headerlink" title="执行 bgsave 操作"></a>执行 bgsave 操作 </h4><p> 接上一小节，bgsave 操作的处理函数为 <strong>startBgsaveForReplication</strong>。<br>首先根据传入的参数，针对有无磁盘化复制调用不同的处理函数，即，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">int</span> retval;
 <span class="hljs-keyword">int</span> socket_target = server.repl_diskless_sync &amp;&amp; (mincapa &amp; SLAVE_CAPA_EOF);
 listIter li;
@@ -580,9 +568,7 @@ serverLog(LL_NOTICE,<span class="hljs-string">&quot;Starting BGSAVE for SYNC wit
     retval = rdbSaveToSlavesSockets();
 <span class="hljs-keyword">else</span>
     retval = rdbSaveBackground(server.rdb_filename);</code></pre></div>
-<p>参数 <strong>mincapa</strong>，表示 slave 的 &quot; 能力 &quot;，即是否能接受无硬盘复制的 rdb 数据。<br>
-如果选项<code>server.repl_diskless_sync</code> 为真，且 <strong>mincapa</strong> 中包含 <strong>SLAVE_CAPA_EOF</strong>，说明可以为该 slave 直接发送无硬盘复制的 rdb 数据，调用 <strong>rdbSaveToSlavesSockets</strong> 函数，在后台将 rdb 数据通过 socket 发送给所有状态为 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 的 slave。<br>
-否则，调用<strong>rdbSaveBackground</strong> 函数，在后台将 rdb 数据转储到本地文件。</p>
+<p>参数 <strong>mincapa</strong>，表示 slave 的”能力”，即是否能接受无硬盘复制的 rdb 数据。<br>如果选项 <code>server.repl_diskless_sync</code> 为真，且 <strong>mincapa</strong> 中包含 <strong>SLAVE_CAPA_EOF</strong>，说明可以为该 slave 直接发送无硬盘复制的 rdb 数据，调用 <strong>rdbSaveToSlavesSockets</strong> 函数，在后台将 rdb 数据通过 socket 发送给所有状态为 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 的 slave。<br> 否则，调用<strong>rdbSaveBackground</strong> 函数，在后台将 rdb 数据转储到本地文件。</p>
 <p>如果以上的 rdb 处理函数调用失败，从 slave 列表中删除处于 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong> 状态的 slave，并在 slave 中加入 <strong>CLIENT_CLOSE_AFTER_REPLY</strong> 标识，以便在回复错误消息后关闭连接。代码逻辑如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (retval == C_ERR) &#123;
     serverLog(LL_WARNING,<span class="hljs-string">&quot;BGSAVE for replication failed&quot;</span>);
@@ -615,8 +601,7 @@ serverLog(LL_NOTICE,<span class="hljs-string">&quot;Starting BGSAVE for SYNC wit
     &#125;
 &#125;</code></pre></div>
 <p>最后调用函数 <strong>replicationScriptCacheFlush</strong> 清空 lua 脚本缓存。</p>
-<h3 id="累积命令流过程">累积命令流过程</h3>
-<p>当 master 收到 client 发来的命令后，会调用 <strong>call</strong> 函数执行相应的命令处理函数。在代码中 <strong>PROPAGATE_REPL</strong> 标识表示需要将命令同步给 slave，有如下逻辑，</p>
+<h3 id="累积命令流过程"><a href="# 累积命令流过程" class="headerlink" title="累积命令流过程"></a>累积命令流过程 </h3><p> 当 master 收到 client 发来的命令后，会调用 <strong>call</strong> 函数执行相应的命令处理函数。在代码中 <strong>PROPAGATE_REPL</strong> 标识表示需要将命令同步给 slave，有如下逻辑，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">call</span><span class="hljs-params">(client *c, <span class="hljs-keyword">int</span> flags)</span> </span>&#123;
     ......
    <span class="hljs-comment">/* Propagate the command into the AOF and replication link */</span>
@@ -706,8 +691,7 @@ listRewind(server.slaves,&amp;li);
         addReplyBulk(slave,argv[j]);
 &#125;</code></pre></div>
 <p>向 slave 输出缓存追加命令流时，调用的是 addReply 类的函数。</p>
-<h2 id="bgsave- 收尾阶段">bgsave 收尾阶段</h2>
-<p>当完成 bgsave 后，无论是有无磁盘复制，都要调用 <strong>updateSlavesWaitingBgsave</strong> 函数进行最后的处理，主要是为了前面说过的 <strong> 被推迟的 bgsave</strong>。</p>
+<h2 id="bgsave- 收尾阶段"><a href="#bgsave- 收尾阶段" class="headerlink" title="bgsave 收尾阶段"></a>bgsave 收尾阶段 </h2><p> 当完成 bgsave 后，无论是有无磁盘复制，都要调用 <strong>updateSlavesWaitingBgsave</strong> 函数进行最后的处理，主要是为了前面说过的 <strong> 被推迟的 bgsave</strong>。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">updateSlavesWaitingBgsave</span><span class="hljs-params">(<span class="hljs-keyword">int</span> bgsaveerr, <span class="hljs-keyword">int</span> type)</span> </span>&#123;.....&#125;</code></pre></div>
 <p>遍历 slave 列表，如果 slave 的复制状态处于 <strong>SLAVE_STATE_WAIT_BGSAVE_START</strong>，那么调用 <strong>startBgsaveForReplication</strong> 函数，开始一次新的 bgsave。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (slave-&gt;replstate == SLAVE_STATE_WAIT_BGSAVE_START) &#123;
@@ -715,8 +699,7 @@ listRewind(server.slaves,&amp;li);
     mincapa = (mincapa == <span class="hljs-number">-1</span>) ? slave-&gt;slave_capa :
                                 (mincapa &amp; slave-&gt;slave_capa);</code></pre></div>
 <p>如果 slave 的复制状态处于 <strong>SLAVE_STATE_WAIT_BGSAVE_END</strong>，说明该 slave 正在等待 rdb 数据处理完成，此时需要根据有无磁盘化复制，区别对待处理。</p>
-<h3 id="无磁盘复制">无磁盘复制</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (type == RDB_CHILD_TYPE_SOCKET) &#123;
+<h3 id="无磁盘复制"><a href="# 无磁盘复制" class="headerlink" title="无磁盘复制"></a>无磁盘复制</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (type == RDB_CHILD_TYPE_SOCKET) &#123;
     serverLog(LL_NOTICE,
         <span class="hljs-string">&quot;Streamed RDB transfer with slave %s succeeded (socket). Waiting for REPLCONF ACK from slave to enable streaming&quot;</span>,
             replicationGetSlaveName(slave));
@@ -730,8 +713,7 @@ listRewind(server.slaves,&amp;li);
     slave-&gt;repl_put_online_on_ack = <span class="hljs-number">1</span>;
     slave-&gt;repl_ack_time = server.unixtime; <span class="hljs-comment">/* Timeout otherwise. */</span>
 &#125;</code></pre></div>
-<p>将 slave 的复制状态置为 <strong>SLAVE_STATE_ONLINE</strong>，属性 <strong>repl_put_online_on_ack</strong> 置为 1。<br>
-⚠ <strong>注意</strong>，在收到该 slave 第一个 <code>replconf ack &lt;offset&gt;</code> 命令之后，master 才真正调用 <strong>putSlaveOnline</strong> 函数将该 slave 置为 <strong>REDIS_REPL_ONLINE</strong> 状态，并且开始发送缓存的命令流。</p>
+<p>将 slave 的复制状态置为 <strong>SLAVE_STATE_ONLINE</strong>，属性 <strong>repl_put_online_on_ack</strong> 置为 1。<br>⚠ <strong>注意</strong>，在收到该 slave 第一个 <code>replconf ack &lt;offset&gt;</code> 命令之后，master 才真正调用 <strong>putSlaveOnline</strong> 函数将该 slave 置为 <strong>REDIS_REPL_ONLINE</strong> 状态，并且开始发送缓存的命令流。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">replconfCommand</span><span class="hljs-params">(client *c)</span> </span>&#123;
     .....
     <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[j]-&gt;ptr,<span class="hljs-string">&quot;ack&quot;</span>)) &#123;
@@ -760,13 +742,10 @@ listRewind(server.slaves,&amp;li);
     ......
 &#125;</code></pre></div>
 <p>之所以这样设计，与这两种复制方式有关。</p>
-<p>当使用 <strong> 有磁盘复制 </strong> 方式时，master 会先把 rdb 数据的长度以 <code>$&lt;len&gt;/r/n</code> 的格式发送给 slave，slave 在解析到 len 后，从 socket 中读取到特定长度的 rdb 数据。<br>
-当使用 <strong> 无磁盘复制 </strong> 方式时，master 预先无法获知 rdb 数据的长度，那 slave 如何判断 rdb 数据是否读完了呢？在发送 rdb 数据之前，master 会先以 <code>$EOF:&lt;40 bytes delimiter&gt;</code> 的格式发送一个 40 字节的魔数，当 rdb 数据发送完后，再次发送这个魔数，这样 slave 就可以检测到 rdb 数据发送结束了。</p>
-<p>如果 master 发送完 rdb 数据后，直接将 slave 状态置为 <strong>SLAVE_STATE_ONLINE</strong> ，接着发送缓存的命令流。<br>
-当采用 <strong> 无磁盘复制 </strong> 方式时，slave 最后读到的数据很有可能包含了命令流数据。因此，需要等到 slave 发送的第一个 <code>replconf ack &lt;offset&gt;</code> 命令之后，master 再把 slave 状态置为 <strong>SLAVE_STATE_ONLINE</strong>。</p>
+<p>当使用 <strong> 有磁盘复制 </strong> 方式时，master 会先把 rdb 数据的长度以 <code>$&lt;len&gt;/r/n</code> 的格式发送给 slave，slave 在解析到 len 后，从 socket 中读取到特定长度的 rdb 数据。<br>当使用 <strong> 无磁盘复制 </strong> 方式时，master 预先无法获知 rdb 数据的长度，那 slave 如何判断 rdb 数据是否读完了呢？在发送 rdb 数据之前，master 会先以 <code>$EOF:&lt;40 bytes delimiter&gt;</code> 的格式发送一个 40 字节的魔数，当 rdb 数据发送完后，再次发送这个魔数，这样 slave 就可以检测到 rdb 数据发送结束了。</p>
+<p>如果 master 发送完 rdb 数据后，直接将 slave 状态置为 <strong>SLAVE_STATE_ONLINE</strong> ，接着发送缓存的命令流。<br>当采用 <strong> 无磁盘复制 </strong> 方式时，slave 最后读到的数据很有可能包含了命令流数据。因此，需要等到 slave 发送的第一个 <code>replconf ack &lt;offset&gt;</code> 命令之后，master 再把 slave 状态置为 <strong>SLAVE_STATE_ONLINE</strong>。</p>
 <p>可以参考作者的解释 <a target="_blank" rel="noopener" href="https://github.com/antirez/redis/commit/bb7fea0d5ca7b3a53532338e8654e409014c1194">https://github.com/antirez/redis/commit/bb7fea0d5ca7b3a53532338e8654e409014c1194</a>。</p>
-<h3 id="有磁盘复制">有磁盘复制</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (bgsaveerr != C_OK) &#123;
+<h3 id="有磁盘复制"><a href="# 有磁盘复制" class="headerlink" title="有磁盘复制"></a>有磁盘复制</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (bgsaveerr != C_OK) &#123;
     freeClient(slave);
         serverLog(LL_WARNING,<span class="hljs-string">&quot;SYNC failed. BGSAVE child returned an error&quot;</span>);
         <span class="hljs-keyword">continue</span>;
@@ -790,9 +769,7 @@ aeDeleteFileEvent(server.el,slave-&gt;fd,AE_WRITABLE);
     freeClient(slave);
     <span class="hljs-keyword">continue</span>;
 &#125;</code></pre></div>
-<p>如果前面做 bgsave 出错了，那么这里会释放掉 client。<br>
-否则，打开生成的 rdb 文件，将 fd 保存到 <strong>repldbfd</strong> 属性中，状态置为 <strong>SLAVE_STATE_SEND_BULK</strong>，这表示要把 rdb 数据发送给 slave 了，将 rdb 大小写入 <strong>replpreamble</strong> 属性。<br>
-重新注册 slave 上的写事件，回调函数为 <strong>sendBulkToSlave</strong>，该函数做以下分析，</p>
+<p>如果前面做 bgsave 出错了，那么这里会释放掉 client。<br>否则，打开生成的 rdb 文件，将 fd 保存到 <strong>repldbfd</strong> 属性中，状态置为 <strong>SLAVE_STATE_SEND_BULK</strong>，这表示要把 rdb 数据发送给 slave 了，将 rdb 大小写入 <strong>replpreamble</strong> 属性。<br>重新注册 slave 上的写事件，回调函数为 <strong>sendBulkToSlave</strong>，该函数做以下分析，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* Before sending the RDB file, we send the preamble as configured by the</span>
 <span class="hljs-comment"> * replication process. Currently the preamble is just the bulk count of</span>
 <span class="hljs-comment"> * the file in the form &quot;$&lt;length&gt;\r\n&quot;. */</span>
@@ -814,9 +791,7 @@ aeDeleteFileEvent(server.el,slave-&gt;fd,AE_WRITABLE);
         <span class="hljs-keyword">return</span>;
     &#125;
 &#125;</code></pre></div>
-<p>如果 <strong>replpreamble</strong> 属性不为空，说明是第一次触发该回调，那么先把这个 rdb 数据的长度信息发送给 slave。<br>
-否则，进入发送实际 rdb 数据阶段。从 rdb 文件中读取数据，然后发送给 slave，代码中使用 repldboff 属性记录累积发送过多少数据。<br>
-默认一次发送的数据量为 <strong>PROTO_IOBUF_LEN</strong>，大小为 16K。</p>
+<p>如果 <strong>replpreamble</strong> 属性不为空，说明是第一次触发该回调，那么先把这个 rdb 数据的长度信息发送给 slave。<br>否则，进入发送实际 rdb 数据阶段。从 rdb 文件中读取数据，然后发送给 slave，代码中使用 repldboff 属性记录累积发送过多少数据。<br>默认一次发送的数据量为 <strong>PROTO_IOBUF_LEN</strong>，大小为 16K。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* If the preamble was already transfered, send the RDB bulk data. */</span>
 lseek(slave-&gt;repldbfd,slave-&gt;repldboff,SEEK_SET);
 buflen = read(slave-&gt;repldbfd,buf,PROTO_IOBUF_LEN); <span class="hljs-comment">// 读 16k 数据</span>
@@ -858,8 +833,7 @@ server.stat_net_output_bytes += nwritten;</code></pre></div>
     serverLog(LL_NOTICE,<span class="hljs-string">&quot;Synchronization with slave %s succeeded&quot;</span>,
         replicationGetSlaveName(slave));
 &#125;</code></pre></div>
-<p>设置 slave 属性 **repl_put_online_on_ack ** 为 0，表示该 <strong>slave 已完成初始同步，接下来进入命令传播阶段</strong>。<br>
-最后，调用 <strong>refreshGoodSlavesCount</strong> 函数，更新当前状态正常的 slave 数量。</p>
+<p>设置 slave 属性 <strong>repl_put_online_on_ack </strong> 为 0，表示该 <strong>slave 已完成初始同步，接下来进入命令传播阶段 </strong>。<br> 最后，调用 <strong>refreshGoodSlavesCount</strong> 函数，更新当前状态正常的 slave 数量。</p>
 <hr>
 <p>到此，主从复制过程中 master 的逻辑就已经讲完了。</p>
 

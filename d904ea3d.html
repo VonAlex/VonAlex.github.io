@@ -249,39 +249,27 @@
 <p>curl 命令是一个利用 URL 规则在命令行下工作的文件传输工具。它支持文件的上传和下载，所以是综合传输工具，但按传统，习惯称 curl 为下载工具。它支持包括 HTTP、HTTPS、ftp 等众多协议，还支持 POST、cookies、认证、从指定偏移处下载部分文件、用户代理字符串、限速、文件大小、进度条等特征。做网页处理流程和数据检索自动化，curl 可以助一臂之力。</p>
 </blockquote>
 <a id="more"></a>
-<h2 id="常用选项"> 常用选项 </h2>
-<h3 id="抓取页面信息"><strong> 抓取页面信息 </strong></h3>
-<p><code>-o</code> 将文件保存为命令行中指定的文件名的文件中 <br>
-<code>-O</code> 使用 URL 中默认的文件名保存文件到本地 </p>
+<h2 id="常用选项"><a href="# 常用选项" class="headerlink" title="常用选项"></a>常用选项 </h2><h3 id="抓取页面信息"><a href="# 抓取页面信息" class="headerlink" title="抓取页面信息"></a><strong> 抓取页面信息</strong></h3><p><code>-o</code> 将文件保存为命令行中指定的文件名的文件中<br><code>-O</code> 使用 URL 中默认的文件名保存文件到本地</p>
 <div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta"> #</span><span class="bash"> 将文件下载到本地并命名为 mygettext.html</span>
 curl -o mygettext.html http://www.gnu.org/software/gettext/manual/gettext.html
 
-<span class="hljs-meta">#</span><span class="bash"> 将文件保存到本地并命名为 gettext.html，后面的 url 可以写正则 </span>
+<span class="hljs-meta">#</span><span class="bash"> 将文件保存到本地并命名为 gettext.html，后面的 url 可以写正则</span>
 curl -O http://www.gnu.org/software/gettext/manual/gettext.html
 
-<span class="hljs-meta">#</span><span class="bash"> -O -O 可以同时下载多个文件 </span>
-<span class="hljs-meta">#</span><span class="bash"> 不加这个选项会直接打印到标准输出 </span></code></pre></div>
-<h3 id="网页重定向"> 网页重定向 </h3>
-<p> 有些网页，比如 <code>www.sina.com</code>, 发生了跳转，直接 curl 的话无法获得网页源码，这时需要加 <code>-L</code> 选项 </p>
-<div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta">#</span><span class="bash"> 遇到重定向时，使用该选项可以将请求重定向到新的地址上 </span>
+<span class="hljs-meta">#</span><span class="bash"> -O -O 可以同时下载多个文件</span>
+<span class="hljs-meta">#</span><span class="bash"> 不加这个选项会直接打印到标准输出</span></code></pre></div>
+<h3 id="网页重定向"><a href="# 网页重定向" class="headerlink" title="网页重定向"></a>网页重定向 </h3><p> 有些网页，比如 <code>www.sina.com</code>, 发生了跳转，直接 curl 的话无法获得网页源码，这时需要加 <code>-L</code> 选项</p>
+<div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta">#</span><span class="bash"> 遇到重定向时，使用该选项可以将请求重定向到新的地址上</span>
 curl -L www.sina.com</code></pre></div>
-<h3 id="断点续传"> 断点续传 </h3>
-<p> 当 curl 网页时中途终端，可以使用 <code>-C</code> 选项来接着已经完成的下载，已经下载过的文件不会被重新下载。</p>
-<div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta">#</span><span class="bash"> 当文件在下载完成之前结束该进程 </span>
+<h3 id="断点续传"><a href="# 断点续传" class="headerlink" title="断点续传"></a>断点续传 </h3><p> 当 curl 网页时中途终端，可以使用 <code>-C</code> 选项来接着已经完成的下载，已经下载过的文件不会被重新下载。</p>
+<div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta">#</span><span class="bash"> 当文件在下载完成之前结束该进程</span>
 <span class="hljs-meta">$</span><span class="bash"> curl -O http://www.gnu.org/software/gettext/manual/gettext.html</span>
 <span class="hljs-meta">#</span><span class="bash"><span class="hljs-comment">#############             20.1%</span></span>
 
 <span class="hljs-meta">$</span><span class="bash"> curl -C -O http://www.gnu.org/software/gettext/manual/gettext.html</span>
 <span class="hljs-meta">#</span><span class="bash"><span class="hljs-comment">##############            21.1%</span></span></code></pre></div>
-<h3 id="获得请求信息或通信过程"> 获得请求信息或通信过程 </h3>
-<p><code>-i</code> 显示 http response 的头信息，连同网页代码一起。<br>
-<code>-I/--head</code> 只显示 response 头部信息。<br>
-<code>-v</code> 显示一次 http 通信的整个过程，包括端口连接和 http request 头信息。<br>
-或者使用下面的命令获得更详细的通信过程：<br>
-<code>curl --trace output.txt www.sina.com</code></p>
-<h3 id="发送表单信息"> 发送表单信息 </h3>
-<p> 对于 <strong>GET</strong> 方法，由于参数数据在 url 上，因此，可以直接 curl，这也是 curl 默认方法。<br>
-对于其他方法，则需要使用 <code>-X</code> 选项进行指定，如 POST、DELETE 等。</p>
+<h3 id="获得请求信息或通信过程"><a href="# 获得请求信息或通信过程" class="headerlink" title="获得请求信息或通信过程"></a>获得请求信息或通信过程 </h3><p><code>-i</code> 显示 http response 的头信息，连同网页代码一起。<br><code>-I/--head</code> 只显示 response 头部信息。<br><code>-v</code> 显示一次 http 通信的整个过程，包括端口连接和 http request 头信息。<br> 或者使用下面的命令获得更详细的通信过程：<br><code>curl --trace output.txt www.sina.com</code></p>
+<h3 id="发送表单信息"><a href="# 发送表单信息" class="headerlink" title="发送表单信息"></a>发送表单信息 </h3><p> 对于 <strong>GET</strong> 方法，由于参数数据在 url 上，因此，可以直接 curl，这也是 curl 默认方法。<br>对于其他方法，则需要使用 <code>-X</code> 选项进行指定，如 POST、DELETE 等。</p>
 <div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta">$</span><span class="bash"> curl -X POST --data <span class="hljs-string">&quot;data=xxx&quot;</span> example.com</span></code></pre></div>
 <p><code>--data</code> 等同于 <code>-d</code>，有以下几种用法：</p>
 <div class="hljs"><pre><code class="hljs shell">-d @file # 将提交的参数放在文件里
@@ -289,41 +277,30 @@ curl -L www.sina.com</code></pre></div>
 --data &quot;string&quot;
 --data-ascii &quot;string&quot;
 --data-binary &quot;string&quot;
---data-urlencode &quot;string # 含有特殊符号的需要进行 url 编码 </code></pre></div>
-<h3 id="伪造头部信息"> 伪造头部信息 </h3>
-<p><code>-e/--referer &lt;url&gt;</code> 选项可以伪造来源网址。</p>
-<div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta">#</span><span class="bash"> 假装是从 http://www.google.com 页面跳转到目的页面的 </span>
+--data-urlencode &quot;string # 含有特殊符号的需要进行 url 编码</code></pre></div>
+<h3 id="伪造头部信息"><a href="# 伪造头部信息" class="headerlink" title="伪造头部信息"></a>伪造头部信息</h3><p><code>-e/--referer &lt;url&gt;</code> 选项可以伪造来源网址。</p>
+<div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta">#</span><span class="bash"> 假装是从 http://www.google.com 页面跳转到目的页面的</span>
 <span class="hljs-meta">$</span><span class="bash"> curl --referer http://www.google.com http://man.linuxde.net</span></code></pre></div>
 <p><code>-A/--user-agent &lt;string&gt;</code> 选项可以伪造 UA。</p>
 <div class="hljs"><pre><code class="hljs shell">curl URL -A &quot;Mozilla/5.0&quot;</code></pre></div>
-<p><code>-H/--header</code> 自定义头部信息 </p>
+<p><code>-H/--header</code> 自定义头部信息</p>
 <div class="hljs"><pre><code class="hljs shell">curl -H &quot;Host:man.linuxde.net&quot; -H &quot;accept-language:zh-cn&quot; &lt;url&gt;</code></pre></div>
-<p><code>-x/--proxy &lt;host[:port]&gt;</code> 设置代理 </p>
-<h3 id="设置 -cookie"> 设置 cookie</h3>
-<p><code>-b/--cookie &lt;name=val/file&gt;</code> 选项用来设置 cookie 或者从指定文件中读取 cookie 信息发起 http 请求。</p>
+<p><code>-x/--proxy &lt;host[:port]&gt;</code> 设置代理</p>
+<h3 id="设置 -cookie"><a href="# 设置 -cookie" class="headerlink" title="设置 cookie"></a>设置 cookie</h3><p><code>-b/--cookie &lt;name=val/file&gt;</code> 选项用来设置 cookie 或者从指定文件中读取 cookie 信息发起 http 请求。</p>
 <div class="hljs"><pre><code class="hljs shell"><span class="hljs-meta">$</span><span class="bash"> curl --cookie <span class="hljs-string">&quot;name=xxx;pass=xxx&quot;</span> www.example.com</span></code></pre></div>
 <p><code>-c/--cookie-jar &lt;file&gt;</code> 选项可以将 cookies 保存到指定文件。</p>
-<h3 id="用户认证"> 用户认证 </h3>
-<p><code>-u/--user &lt;user[:password]&gt;</code> 进行 http/ftp 的认证 </p>
+<h3 id="用户认证"><a href="# 用户认证" class="headerlink" title="用户认证"></a>用户认证</h3><p><code>-u/--user &lt;user[:password]&gt;</code> 进行 http/ftp 的认证</p>
 <blockquote>
-<p> 下载文件 </p>
+<p>下载文件</p>
+<p>$ curl -u name:password www.example.com</p>
+<p>$ curl -O ftp://name:passwd@ip:port/demo/curtain/bbstudy_files/style.css<br>上传文件</p>
+<p>$ curl -T test.sql ftp://name:passwd@ip:port/demo/curtain/bbstudy_files/</p>
 </blockquote>
-<p>$ curl -u name:password <a target="_blank" rel="noopener" href="http://www.example.com">www.example.com</a></p>
-<blockquote></blockquote>
-<p>$ curl -O <a href="ftp://name:passwd@ip">ftp://name:passwd@ip</a>:port/demo/curtain/bbstudy_files/style.css</p>
-<blockquote>
-<p> 上传文件 </p>
-</blockquote>
-<p>$ curl -T test.sql <a href="ftp://name:passwd@ip">ftp://name:passwd@ip</a>:port/demo/curtain/bbstudy_files/</p>
-<h3 id="限速与限额"> 限速与限额 </h3>
-<p><code>--limit-rate &lt;rate&gt; </code> 选项设置传输速度 </p>
+<h3 id="限速与限额"><a href="# 限速与限额" class="headerlink" title="限速与限额"></a>限速与限额</h3><p> <code>--limit-rate &lt;rate&gt;</code> 选项设置传输速度</p>
 <div class="hljs"><pre><code class="hljs shell">curl URL --limit-rate 50k</code></pre></div>
-<p><code>--max-filesize &lt;bytes&gt;</code> 选项设置最大下载的文件总量 </p>
+<p> <code>--max-filesize &lt;bytes&gt;</code> 选项设置最大下载的文件总量</p>
  <div class="hljs"><pre><code class="hljs shell">curl URL --max-filesize bytes</code></pre></div>
-<h2 id="参考"> 参考 </h2>
-<p>【1】 <a target="_blank" rel="noopener" href="http://aiezu.com/article/linux_curl_command.html">Linux curl 命令详解 </a><br>
-【2】<a target="_blank" rel="noopener" href="http://blog.51yip.com/linux/1049.html">linux curl 命令详解，以及实例 </a><br>
-【3】<a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2011/09/curl.html">curl 网站开发指南 </a></p>
+<h2 id="参考"><a href="# 参考" class="headerlink" title="参考"></a>参考</h2><p>【1】 <a target="_blank" rel="noopener" href="http://aiezu.com/article/linux_curl_command.html">Linux curl 命令详解</a><br>【2】<a target="_blank" rel="noopener" href="http://blog.51yip.com/linux/1049.html">linux curl 命令详解，以及实例</a><br>【3】<a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2011/09/curl.html">curl 网站开发指南</a></p>
 
             </div>
             <hr>

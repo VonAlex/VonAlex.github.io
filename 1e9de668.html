@@ -245,40 +245,29 @@
               </p>
             
             <div class="markdown-body" id="post-body">
-              <p>命令行参数常用来为命令行程序指定选项。比如在 <code>wc -l </code> 命令中 <code>-l</code> 就是命令行参数。</p>
-<p>golang 提供了 flag 包来支持基本的命令行参数解析。</p>
-<a id="more"></a>
-<h3 id="命令行语法">命令行语法</h3>
-<p>命令行语法如下：</p>
+              <p>命令行参数常用来为命令行程序指定选项。比如在 <code>wc -l</code> 命令中 <code>-l</code> 就是命令行参数。</p>
+<p>golang 提供了 flag 包来支持基本的命令行参数解析。<br><a id="more"></a></p>
+<h3 id="命令行语法"><a href="# 命令行语法" class="headerlink" title="命令行语法"></a>命令行语法 </h3><p> 命令行语法如下：</p>
 <div class="hljs"><pre><code class="hljs go">-flag
 -flag=x
 -flag x  <span class="hljs-comment">// non-boolean flags only</span></code></pre></div>
-<h3 id="基本用法">基本用法</h3>
-<h4 id="定义 -flag- 参数">定义 flag 参数</h4>
-<p><strong>方法一</strong>：<br>
-通过 <code>flag.Xxx()</code> 方法返回一个相应的指针，举几个栗子：</p>
+<h3 id="基本用法"><a href="# 基本用法" class="headerlink" title="基本用法"></a>基本用法 </h3><h4 id="定义 -flag- 参数"><a href="# 定义 -flag- 参数" class="headerlink" title="定义 flag 参数"></a> 定义 flag 参数 </h4><p><strong> 方法一 </strong>：<br> 通过 <code>flag.Xxx()</code> 方法返回一个相应的指针，举几个栗子：</p>
 <div class="hljs"><pre><code class="hljs go">wordPtr := flag.String(<span class="hljs-string">&quot;word&quot;</span>, <span class="hljs-string">&quot;foo&quot;</span>, <span class="hljs-string">&quot;a string&quot;</span>)
 numbPtr := flag.Int(<span class="hljs-string">&quot;numb&quot;</span>, <span class="hljs-number">42</span>, <span class="hljs-string">&quot;an int&quot;</span>)
 boolPtr := flag.Bool(<span class="hljs-string">&quot;fork&quot;</span>, <span class="hljs-literal">false</span>, <span class="hljs-string">&quot;a bool&quot;</span>)</code></pre></div>
 <p>使用形式为 <code>flag.Type(name, defValue, usage)</code></p>
-<p><strong>方法二</strong>：<br>
-通过 <code>flag.XxxVar()</code> 方法将 flag 绑定到一个变量，该种方式返回值类型，举个栗子：</p>
+<p><strong>方法二 </strong>：<br> 通过 <code>flag.XxxVar()</code> 方法将 flag 绑定到一个变量，该种方式返回值类型，举个栗子：</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">var</span> svar <span class="hljs-keyword">string</span>
 flag.StringVar(&amp;svar, <span class="hljs-string">&quot;svar&quot;</span>, <span class="hljs-string">&quot;bar&quot;</span>, <span class="hljs-string">&quot;a string var&quot;</span>)</code></pre></div>
-<p>使用形式为 <code>flag.TypeVar(&amp;flagvar, name, defValue, usage)</code><br>
-<strong>方法三</strong>：<br>
-通过 <code>flag.Var()</code> 绑定自定义类型，自定义类型需要实现 <code>Value</code> 接口 (<code>Receives</code> 必须为指针)，</p>
+<p>使用形式为 <code>flag.TypeVar(&amp;flagvar, name, defValue, usage)</code><br><strong>方法三 </strong>：<br> 通过 <code>flag.Var()</code> 绑定自定义类型，自定义类型需要实现 <code>Value</code> 接口 (<code>Receives</code> 必须为指针)，</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> Value <span class="hljs-keyword">interface</span> &#123;
         String() <span class="hljs-keyword">string</span>
         Set(<span class="hljs-keyword">string</span>) error
 &#125;</code></pre></div>
 <p>使用方式是 <code>flag.Var(&amp;flagvar, name, usage)</code></p>
-<h4 id="解析">解析</h4>
-<p>调用 <code>flag.Parse()</code> 解析命令行参数到定义的 flag</p>
-<h4 id="其他">其他</h4>
-<p>还可通过 <code>flag.Args()</code>, <code>flag.Arg(i)</code> 来获取非 flag 命令行参数</p>
-<h4 id="栗子">栗子</h4>
-<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">package</span> main
+<h4 id="解析"><a href="# 解析" class="headerlink" title="解析"></a>解析 </h4><p> 调用 <code>flag.Parse()</code> 解析命令行参数到定义的 flag</p>
+<h4 id="其他"><a href="# 其他" class="headerlink" title="其他"></a>其他 </h4><p> 还可通过 <code>flag.Args()</code>, <code>flag.Arg(i)</code> 来获取非 flag 命令行参数</p>
+<h4 id="栗子"><a href="# 栗子" class="headerlink" title="栗子"></a>栗子</h4><div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">package</span> main
 <span class="hljs-keyword">import</span> <span class="hljs-string">&quot;flag&quot;</span>
 <span class="hljs-keyword">import</span> <span class="hljs-string">&quot;fmt&quot;</span>
 <span class="hljs-keyword">import</span> <span class="hljs-string">&quot;strconv&quot;</span>
@@ -326,8 +315,7 @@ Usage of ./command-line-flags:
  -name=<span class="hljs-string">&quot;lyh&quot;</span>: user<span class="hljs-string">&#x27;s name</span>
 <span class="hljs-string"> -pop=0.0: popularity</span>
 <span class="hljs-string"> -vip=true: is a vip user</span></code></pre></div>
-<h3 id="参考">参考</h3>
-<ol>
+<h3 id="参考"><a href="# 参考" class="headerlink" title="参考"></a>参考</h3><ol>
 <li><a target="_blank" rel="noopener" href="http://faberliu.github.io/2014/11/12/Golang-flag%E5%8C%85%E4%BD%BF%E7%94%A8%E8%AF%A6%E8%A7%A3-%E4%B8%80/">Golang flag 包使用详解(一)</a></li>
 <li><a target="_blank" rel="noopener" href="https://gobyexample.com/command-line-flags">Go by Example: Command-Line Flags</a></li>
 <li><a target="_blank" rel="noopener" href="https://www.teakki.com/p/57df64d9da84a0c4533815ee">Go 语言中使用 flag 包对命令行进行参数解析的方法</a></li>

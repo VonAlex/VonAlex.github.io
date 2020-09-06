@@ -247,8 +247,7 @@
             <div class="markdown-body" id="post-body">
               <p>除了 RDB 持久化功能之外，Redis 还提供了 AOF（Append Only File）持久化功能。与 RDB 持久化通过保存数据库中的键值对来记录数据库状态不同，AOF 持久化是通过保存 Redis 服务器所执行的写命令来记录数据库状态的。</p>
 <!--more---->
-<h2 id="简介">简介</h2>
-<p>AOF 文件中记录了 Redis 服务器所执行的写命令，以此来保存数据库的状态。AOF 文件本质上是一个 redo log，通过它可以恢复数据库状态。</p>
+<h2 id="简介"><a href="# 简介" class="headerlink" title="简介"></a>简介</h2><p>AOF 文件中记录了 Redis 服务器所执行的写命令，以此来保存数据库的状态。AOF 文件本质上是一个 redo log，通过它可以恢复数据库状态。</p>
 <p>随着执行命令的增多，AOF 文件的大小会不断增大，这会导致几个问题，比如，磁盘占用增加，重启加载过慢等。因此， Redis 提供了 AOF 重写机制来控制 AOF 文件大小，下面会细说。</p>
 <p>AOF 文件中写入的所有命令以 Redis 的命令请求协议格式去保存，即 <a target="_blank" rel="noopener" href="http://redisdoc.com/topic/protocol.html">RESP</a> 格式。</p>
 <p>有两种方式可以实现 AOF 功能的开关，如下，</p>
@@ -256,9 +255,7 @@
 <li>在 redis 配置文件 <strong>redis.conf</strong> 中有配置项 appendonly， yes 打开 AOF 功能，no 关闭 AOF 功能。</li>
 <li>使用客户端命令<code>config set appendonly yes/no</code> 。</li>
 </ul>
-<h2 id="server- 相关变量">server 相关变量</h2>
-<p>与 AOF 相关的 server 成员变量很多，这里只选择几个进行简要说明。先看后面的章节，之后再回头看本章节，也是个不错的主意。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">int</span> aof_state;                  <span class="hljs-comment">/* AOF_(ON|OFF|WAIT_REWRITE) */</span>
+<h2 id="server- 相关变量"><a href="#server- 相关变量" class="headerlink" title="server 相关变量"></a>server 相关变量 </h2><p> 与 AOF 相关的 server 成员变量很多，这里只选择几个进行简要说明。先看后面的章节，之后再回头看本章节，也是个不错的主意。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">int</span> aof_state;                  <span class="hljs-comment">/* AOF_(ON|OFF|WAIT_REWRITE) */</span>
 <span class="hljs-keyword">int</span> aof_fsync;                  <span class="hljs-comment">/* Kind of fsync() policy */</span>
 <span class="hljs-keyword">char</span> *aof_filename;             <span class="hljs-comment">/* Name of the AOF file */</span>
 <span class="hljs-keyword">int</span> aof_no_fsync_on_rewrite;    <span class="hljs-comment">/* Don&#x27;t fsync if a rewrite is in prog. */</span>
@@ -281,20 +278,14 @@ sds aof_buf;                   <span class="hljs-comment">/* AOF buffer, written
 <span class="hljs-keyword">int</span> aof_rewrite_incremental_fsync;<span class="hljs-comment">/* fsync incrementally while rewriting? */</span>
 <span class="hljs-keyword">int</span> aof_last_write_status;        <span class="hljs-comment">/* C_OK or C_ERR */</span>
 <span class="hljs-keyword">int</span> aof_last_write_errno;         <span class="hljs-comment">/* Valid if aof_last_write_status is ERR */</span>
-<span class="hljs-keyword">int</span> aof_load_truncated;           <span class="hljs-comment">/* Don&#x27;t stop on unexpected AOF EOF. */</span></code></pre></div>
-<h3 id="aof-fsync">aof_fsync</h3>
-<p>表示 AOF 刷盘策略，后面会细说</p>
-<h3 id="aof-child-pid">aof_child_pid</h3>
-<p>由于 aofrewrite 是个耗时操作，因此会 fork 一个子进程去做这件事， aof_child_pid 就标识了子进程的 pid。</p>
-<h3 id="aof-buf">aof_buf</h3>
-<p>该变量保存着所有等待写入到 AOF 文件的协议文本。</p>
-<h3 id="aof-rewrite-buf-blocks">aof_rewrite_buf_blocks</h3>
-<p>该变量用来保存 aofrewrite 期间，server 处理过的需要写入 AOF 文件的协议文本。这个变量采用 list 结构，是考虑到分配到一个非常大的空间并不总是可能的，也可能产生大量的复制工作。</p>
-<h3 id="aof-rewrite-scheduled">aof_rewrite_scheduled</h3>
-<p>可取值有 0 和 1。</p>
+<span class="hljs-keyword">int</span> aof_load_truncated;           <span class="hljs-comment">/* Don&#x27;t stop on unexpected AOF EOF. */</span></code></pre></div></p>
+<h3 id="aof-fsync"><a href="#aof-fsync" class="headerlink" title="aof_fsync"></a>aof_fsync</h3><p>表示 AOF 刷盘策略，后面会细说</p>
+<h3 id="aof-child-pid"><a href="#aof-child-pid" class="headerlink" title="aof_child_pid"></a>aof_child_pid</h3><p>由于 aofrewrite 是个耗时操作，因此会 fork 一个子进程去做这件事， aof_child_pid 就标识了子进程的 pid。</p>
+<h3 id="aof-buf"><a href="#aof-buf" class="headerlink" title="aof_buf"></a>aof_buf</h3><p>该变量保存着所有等待写入到 AOF 文件的协议文本。</p>
+<h3 id="aof-rewrite-buf-blocks"><a href="#aof-rewrite-buf-blocks" class="headerlink" title="aof_rewrite_buf_blocks"></a>aof_rewrite_buf_blocks</h3><p>该变量用来保存 aofrewrite 期间，server 处理过的需要写入 AOF 文件的协议文本。这个变量采用 list 结构，是考虑到分配到一个非常大的空间并不总是可能的，也可能产生大量的复制工作。</p>
+<h3 id="aof-rewrite-scheduled"><a href="#aof-rewrite-scheduled" class="headerlink" title="aof_rewrite_scheduled"></a>aof_rewrite_scheduled</h3><p>可取值有 0 和 1。</p>
 <p>取 1 时，表示此时有子进程正在做 aofrewrite 操作，本次任务后延，等到 <code>serverCron</code> 执行时，合适的情况再执行。或者是执行了 <code>config set appendonly yes</code>, 想把 AOF 功能打开，此时执行的 aofrewrite 失败了，aof_state 仍然处于 <strong>AOF_WAIT_REWRITE</strong> 状态，此时 <strong>aof_rewrite_scheduled</strong> 也会置为 1，等下次再执行 aofrewrite。</p>
-<h3 id="aof-state">aof_state</h3>
-<p>表示 AOF 功能现在的状态，可取值如下，</p>
+<h3 id="aof-state"><a href="#aof-state" class="headerlink" title="aof_state"></a>aof_state</h3><p>表示 AOF 功能现在的状态，可取值如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> AOF_OFF 0             <span class="hljs-comment">/* AOF is off */</span></span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> AOF_ON 1              <span class="hljs-comment">/* AOF is on */</span></span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> AOF_WAIT_REWRITE 2    <span class="hljs-comment">/* AOF waits rewrite to start appending */</span></span></code></pre></div>
@@ -337,13 +328,9 @@ server.aof_state = AOF_WAIT_REWRITE;</code></pre></div>
 <p>AOF 状态刚打开，尚未完成第一次 aofrewrite，也即，一边 Child 进程数据库中现有数据还未写进 AOF 文件，另一边 Parent 进程仍然持续处理 client 请求，于是，Parent 进程在指定的数据刷盘策略下，将 <strong>aof_buf</strong>  刷盘。如果这时宕机了，当 server 重启后，加载 AOF 文件，在内存中塞入数据，实际上对于用户来说，这部分数据算是脏数据了，因为 AOF 并没有成功打开，未开启 AOF 状态时，数据都在内存中，宕机后，数据会全部丢掉。增加这个中间状态就是为了应对这种情况。所以， <strong>AOF_WAIT_REWRITE</strong> 状态存在的时间范围起始于 <code>startAppendOnly</code> ，到完成第一次 aofrewrite 后切成 <strong>AOF_ON</strong> 。aofrewrite 后再发生宕机，丢失的数据就少多了。</p>
 <p><strong>这只是我个人的理解，不一定正确，欢迎大家斧正。</strong></p>
 <p>另外，如果开启了 AOF，在 redis 启动 加载 AOF 文件时，<strong>aof_state</strong> 也会暂时设置成 <strong>AOF_OFF</strong>，加载完毕之后设置为 <strong>AOF_ON</strong>。</p>
-<h3 id="aof-pipe">aof_pipe_*</h3>
-<p>为了提高 aofrewrite 效率，Redis 通过在父子进程间建立管道，把 aofrewrite 期间的写命令通过管道同步给子进程，追加写盘的操作也就转交给了子进程。aof_pipe_* 变量就是这部分会用到的管道。</p>
-<h2 id="AOF- 持久化">AOF 持久化</h2>
-<h3 id="命令追加">命令追加</h3>
-<p>AOF 功能开启后，每次导致数据库状态发生变化的命令都会经过 <strong> 函数</strong> <code>feedAppendOnlyFile</code> 累积到 <strong>aof_buf</strong> 变量中。如果后台有正在执行的 aofrewrite 任务，还会写一份数据到 <strong>aof_rewrite_buf_blocks</strong> 变量中。</p>
-<h4 id="feedAppendOnlyFile- 函数">feedAppendOnlyFile 函数</h4>
-<p>在该函数中，首先要将数据库切换到当前数据库（ <strong>aof_selected_db</strong> 更新），在 buf 中插入一条 <strong>SELECT</strong> 命令。</p>
+<h3 id="aofpipe"><a href="#aofpipe" class="headerlink" title="aofpipe*"></a>aof<em>pipe</em>*</h3><p>为了提高 aofrewrite 效率，Redis 通过在父子进程间建立管道，把 aofrewrite 期间的写命令通过管道同步给子进程，追加写盘的操作也就转交给了子进程。aof<em>pipe</em>* 变量就是这部分会用到的管道。</p>
+<h2 id="AOF- 持久化"><a href="#AOF- 持久化" class="headerlink" title="AOF 持久化"></a>AOF 持久化 </h2><h3 id="命令追加"><a href="# 命令追加" class="headerlink" title="命令追加"></a> 命令追加 </h3><p>AOF 功能开启后，每次导致数据库状态发生变化的命令都会经过<strong> 函数</strong> <code>feedAppendOnlyFile</code> 累积到 <strong>aof_buf</strong> 变量中。如果后台有正在执行的 aofrewrite 任务，还会写一份数据到 <strong>aof_rewrite_buf_blocks</strong> 变量中。</p>
+<h4 id="feedAppendOnlyFile- 函数"><a href="#feedAppendOnlyFile- 函数" class="headerlink" title="feedAppendOnlyFile 函数"></a>feedAppendOnlyFile 函数 </h4><p> 在该函数中，首先要将数据库切换到当前数据库（ <strong>aof_selected_db</strong> 更新），在 buf 中插入一条 <strong>SELECT</strong> 命令。</p>
 <div class="hljs"><pre><code class="hljs c">sds buf = sdsempty();
 <span class="hljs-keyword">if</span> (dictid != server.aof_selected_db) &#123;
     <span class="hljs-keyword">char</span> seldb[<span class="hljs-number">64</span>];
@@ -361,8 +348,7 @@ buf = catAppendOnlyGenericCommand(buf,<span class="hljs-number">3</span>,tmpargv
 decrRefCount(tmpargv[<span class="hljs-number">0</span>]);
 buf = catAppendOnlyExpireAtCommand(buf,cmd,argv[<span class="hljs-number">1</span>],argv[<span class="hljs-number">2</span>]);</code></pre></div>
 <p>【2】普通命令，直接调用函数 <code>catAppendOnlyGenericCommand</code> 进行协议文本 buf 组装。</p>
-<h4 id="catAppendOnlyExpireAtCommand- 函数">catAppendOnlyExpireAtCommand 函数</h4>
-<p>该函数其实就是将所有与过期时间相关的命令转成 <strong>PEXPIREAT</strong> 命令，细化到毫秒。最后调用普通命令组装 buf 函数 <code>catAppendOnlyGenericCommand</code>。</p>
+<h4 id="catAppendOnlyExpireAtCommand- 函数"><a href="#catAppendOnlyExpireAtCommand- 函数" class="headerlink" title="catAppendOnlyExpireAtCommand 函数"></a>catAppendOnlyExpireAtCommand 函数 </h4><p> 该函数其实就是将所有与过期时间相关的命令转成 <strong>PEXPIREAT</strong> 命令，细化到毫秒。最后调用普通命令组装 buf 函数 <code>catAppendOnlyGenericCommand</code>。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 构建 PEXPIREAT 命令</span>
 argv[<span class="hljs-number">0</span>] = createStringObject(<span class="hljs-string">&quot;PEXPIREAT&quot;</span>,<span class="hljs-number">9</span>);
 argv[<span class="hljs-number">1</span>] = key;
@@ -370,8 +356,7 @@ argv[<span class="hljs-number">2</span>] = createStringObjectFromLongLong(when);
 
 <span class="hljs-comment">// 调用 aof 公共函数</span>
 buf = catAppendOnlyGenericCommand(buf, <span class="hljs-number">3</span>, argv);</code></pre></div>
-<h4 id="catAppendOnlyGenericCommand- 函数">catAppendOnlyGenericCommand 函数</h4>
-<p>该函数用来把 redis 命令转换成 RESP 协议文本。</p>
+<h4 id="catAppendOnlyGenericCommand- 函数"><a href="#catAppendOnlyGenericCommand- 函数" class="headerlink" title="catAppendOnlyGenericCommand 函数"></a>catAppendOnlyGenericCommand 函数 </h4><p> 该函数用来把 redis 命令转换成 RESP 协议文本。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function">sds <span class="hljs-title">catAppendOnlyGenericCommand</span><span class="hljs-params">(sds dst, <span class="hljs-keyword">int</span> argc, robj **argv)</span> </span>&#123;
     <span class="hljs-keyword">char</span> buf[<span class="hljs-number">32</span>];
     <span class="hljs-keyword">int</span> len, j;
@@ -398,8 +383,7 @@ buf = catAppendOnlyGenericCommand(buf, <span class="hljs-number">3</span>, argv)
     <span class="hljs-keyword">return</span> dst;
 &#125;</code></pre></div>
 <p>可以看到，定义了一个 buf 数组，反复使用，通过 len 精确控制 append 到 dst 后的长度。</p>
-<h4 id="aofRewriteBufferAppend- 函数">aofRewriteBufferAppend 函数</h4>
-<p><strong>aof_rewrite_buf_blocks</strong> 变量是一个 list 结构，其中每一个元素都是一个大小为 10M 的 block</p>
+<h4 id="aofRewriteBufferAppend- 函数"><a href="#aofRewriteBufferAppend- 函数" class="headerlink" title="aofRewriteBufferAppend 函数"></a>aofRewriteBufferAppend 函数</h4><p><strong>aof_rewrite_buf_blocks</strong> 变量是一个 list 结构，其中每一个元素都是一个大小为 10M 的 block</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> AOF_RW_BUF_BLOCK_SIZE (1024*1024*10)    <span class="hljs-comment">/* 10 MB per block */</span></span>
 <span class="hljs-keyword">typedef</span> <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">aofrwblock</span> &#123;</span>
     <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">long</span> used, <span class="hljs-built_in">free</span>;
@@ -437,10 +421,8 @@ aofrwblock *block = ln ? ln-&gt;value : <span class="hljs-literal">NULL</span>;
                       AE_WRITABLE, aofChildWriteDiffData, <span class="hljs-literal">NULL</span>);
 &#125;</code></pre></div>
 <p>这个属于 aof 重写的逻辑，后面章节会细说，这里先留个心。</p>
-<h4 id="何时进行命令追加">何时进行命令追加</h4>
-<p>也就是说，什么时候会调用<code>feedAppendOnlyFile</code> 呢？有以下两个时机。</p>
-<h5 id="propagate- 函数">propagate 函数</h5>
-<p>大家都知道，Redis 中命令执行的流程，即 <code>processCommand</code> -&gt; <code>call</code> 。在 <code>call</code> 函数中会把某些命令写入 AOF 文件。如何判断某个命令是否需要写入 AOF 呢？</p>
+<h4 id="何时进行命令追加"><a href="# 何时进行命令追加" class="headerlink" title="何时进行命令追加"></a>何时进行命令追加 </h4><p> 也就是说，什么时候会调用<code>feedAppendOnlyFile</code> 呢？有以下两个时机。</p>
+<h5 id="propagate- 函数"><a href="#propagate- 函数" class="headerlink" title="propagate 函数"></a>propagate 函数 </h5><p> 大家都知道，Redis 中命令执行的流程，即 <code>processCommand</code> -&gt; <code>call</code> 。在 <code>call</code> 函数中会把某些命令写入 AOF 文件。如何判断某个命令是否需要写入 AOF 呢？</p>
 <p>在 server 结构体中维持了一个 <strong>dirty</strong> 计数器，<strong>dirty</strong> 记录的是服务器状态进行了多少次修改，每次做完 save/bgsave 执行完成后，会将 <strong>dirty</strong> 清 0，而使得服务器状态修改的命令一般都需要写入 AOF 文件和主从同步（排除某些特殊情况）。</p>
 <div class="hljs"><pre><code class="hljs c">dirty = server.dirty;
 c-&gt;cmd-&gt;proc(c);
@@ -457,8 +439,7 @@ dirty = server.dirty-dirty;
     <span class="hljs-keyword">if</span> (flags &amp; PROPAGATE_REPL)
         replicationFeedSlaves(server.slaves,dbid,argv,argc);
 &#125;</code></pre></div>
-<h5 id="propagateExpire- 函数">propagateExpire 函数</h5>
-<p>当内存中带有过期时间的 key 过期时，会向 AOF 写入 <strong>del</strong> 命令。</p>
+<h5 id="propagateExpire- 函数"><a href="#propagateExpire- 函数" class="headerlink" title="propagateExpire 函数"></a>propagateExpire 函数 </h5><p> 当内存中带有过期时间的 key 过期时，会向 AOF 写入 <strong>del</strong> 命令。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">propagateExpire</span><span class="hljs-params">(redisDb *db, robj *key)</span> </span>&#123;
     ...
     <span class="hljs-keyword">if</span> (server.aof_state != AOF_OFF)
@@ -467,24 +448,19 @@ dirty = server.dirty-dirty;
     ...
 &#125;</code></pre></div>
 <p><code>propagateExpire</code> 函数在一些检查 key 是否过期时会调用。</p>
-<h3 id="文件的写入与同步">文件的写入与同步</h3>
-<p>上一步中，将需要写入 AOF 文件的数据先写到了 <strong>aof_buf</strong>  变量中，那么，接下来说一下如何将 <strong>aof_buf</strong> 的内容写进 AOF 文件。</p>
-<h4 id="同步策略">同步策略</h4>
-<blockquote>
+<h3 id="文件的写入与同步"><a href="# 文件的写入与同步" class="headerlink" title="文件的写入与同步"></a>文件的写入与同步 </h3><p> 上一步中，将需要写入 AOF 文件的数据先写到了 <strong>aof_buf</strong>  变量中，那么，接下来说一下如何将 <strong>aof_buf</strong> 的内容写进 AOF 文件。</p>
+<h4 id="同步策略"><a href="# 同步策略" class="headerlink" title="同步策略"></a>同步策略</h4><blockquote>
 <p>为了提高文件的写入效率，在现代操作系统中，当用户调用 <code>write</code>  函数试，将一些数据写入到文件的时候，操作系统通常会将写入的数据保存在一个内存缓冲区里，等到缓冲区的空间被填满，或者超过了指定的时限后，才真正地将缓冲区中的数据写入磁盘。</p>
 <p>这种做法虽然提高了效率，但也为写入数据带来了安全问题，因为如果计算机宕机，那么保存在内存缓冲区里面的写入数据将会丢失。</p>
 <p>为此，系统提供了  <code>fsync</code> 和 <code>fdatasync</code> 两个同步函数，它们可以强制让操作系统立即将缓存区中的数据写入到硬盘里面，从而确保写入数据的安全性。</p>
 </blockquote>
 <p>要知道，这两个系统调用函数都是阻塞式的，针对如何协调文件写入与同步的关系，该版本 Redis 支持 3 种同步策略，可在配置文件中使用 <strong>appendfsync</strong> 项进行配置，有如下取值，</p>
 <ul>
-<li>
-<p>always。每次有新命令追加到  AOF 文件 时就执行一次同步，, 安全性最高，但是性能影响最大。</p>
+<li><p>always。每次有新命令追加到  AOF 文件 时就执行一次同步，, 安全性最高，但是性能影响最大。</p>
 </li>
-<li>
-<p>everysec。每秒执行一次同步。宕机只会丢失一秒钟的命令。这算是一个折中方案。</p>
+<li><p>everysec。每秒执行一次同步。宕机只会丢失一秒钟的命令。这算是一个折中方案。</p>
 </li>
-<li>
-<p>no。将数据同步操作完全交由操作系统处理，性能最好，但是数据可靠性最差。宕机将丢失同步 AOF 文件后的所有写命令。</p>
+<li><p>no。将数据同步操作完全交由操作系统处理，性能最好，但是数据可靠性最差。宕机将丢失同步 AOF 文件后的所有写命令。</p>
 </li>
 </ul>
 <p>在 Redis 源码中， 当程序运行在 Linux 系统上时，执行的是 <code>fdatasync</code> 函数，而在其他系统上，则会执行 <code>fsync</code> 函数，即，</p>
@@ -494,10 +470,8 @@ dirty = server.dirty-dirty;
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> aof_fsync fsync</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span></code></pre></div>
 <p><strong>注</strong>：以下叙述均以 <code>fsync</code> 代称。</p>
-<h4 id="如何写入文件">如何写入文件</h4>
-<p>写入文件的逻辑在 <code>flushAppendOnlyFile</code> 函数中实现。下面分两部分来看主要代码。</p>
-<h5 id="文件写入 -，write- 系统调用">文件写入 **，<code>write</code> ** 系统调用</h5>
-<div class="hljs"><pre><code class="hljs c">...
+<h4 id="如何写入文件"><a href="# 如何写入文件" class="headerlink" title="如何写入文件"></a>如何写入文件 </h4><p> 写入文件的逻辑在 <code>flushAppendOnlyFile</code> 函数中实现。下面分两部分来看主要代码。</p>
+<h5 id="文件写入，write- 系统调用"><a href="# 文件写入，write- 系统调用" class="headerlink" title="文件写入，write 系统调用"></a>文件写入 <strong>，<code>write</code> </strong> 系统调用</h5><div class="hljs"><pre><code class="hljs c">...
 
 <span class="hljs-comment">// aof 缓存区内没有数据需要写入 disk，无需处理</span>
 <span class="hljs-keyword">if</span> (sdslen(server.aof_buf) == <span class="hljs-number">0</span>) <span class="hljs-keyword">return</span>;
@@ -537,8 +511,7 @@ server.aof_flush_postponed_start = <span class="hljs-number">0</span>;</code></p
 <p>对于 everysec 策略，如果有  <code>fsync</code>  在执行，那么本次  <code>write</code>  <strong>推迟 2 秒钟</strong>，等到下次在进入本函数时，如果推迟时间超过 2 秒，那么更新 <strong>aof_delayed_fsync</strong> 值（info 里可以查到），打印日志 ” <strong>Asynchronous AOF fsync is taking too long (disk is busy?). Writing the AOF buffer without waiting for fsync to complete, this may slow down Redis.</strong> “ ，之后进行 <code>write</code> 系统调用。当然了，系统也提供了 force 选项，去跳过这项是否要推迟 <code>write</code> 的检查。</p>
 <p><code>write</code> 之后，将 <strong>aof_flush_postponed_start</strong> 推迟开始计时值清零，迎接下次检查。</p>
 <p>所以说，AOF 执行 everysec 策略时，如果恰好有 <code>fsync</code> 在长时间的执行，Redis 意外关闭会丢失最多两秒的数据。如果  <code>fsync</code>  运行正常，只有当操作系统 crash 时才会造成最多 1 秒的数据丢失。</p>
-<h5 id="收尾工作，-write- 结果处理">收尾工作， <code>write</code> 结果处理</h5>
-<p><code>write</code> 调用结果可能是正常的，也可能是异常的，那么需要做不同的处理。首先主要看异常处理，</p>
+<h5 id="收尾工作，-write- 结果处理"><a href="# 收尾工作，-write- 结果处理" class="headerlink" title="收尾工作， write 结果处理"></a>收尾工作， <code>write</code> 结果处理</h5><p><code>write</code> 调用结果可能是正常的，也可能是异常的，那么需要做不同的处理。首先主要看异常处理，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (nwritten != (<span class="hljs-keyword">signed</span>)sdslen(server.aof_buf)) &#123;
     ...
     <span class="hljs-comment">/* Log the AOF write error and record the error code. */</span>
@@ -615,10 +588,8 @@ server.aof_current_size += nwritten; <span class="hljs-comment">// 正常 write�
 &#125;</code></pre></div>
 <p><strong>aof_buf</strong> 清空，然后根据不同策略进行同步。always 策略时，主动调用 <code>fsync</code>; everysec 策略，则创建 fsync bio 任务。</p>
 <p>另外，有配置项 no-appendfsync-on-rewrite 去决定，当子进程在做 aofrewrite/bgsave 时是否要进行 <code>fsync</code>。</p>
-<h4 id="何时进行文件写入">何时进行文件写入</h4>
-<p>也就是，什么时候会调用 <code>flushAppendOnlyFile</code> 函数，有以下三个时机。</p>
-<h5 id="beforeSleep- 函数">beforeSleep 函数</h5>
-<blockquote>
+<h4 id="何时进行文件写入"><a href="# 何时进行文件写入" class="headerlink" title="何时进行文件写入"></a>何时进行文件写入 </h4><p> 也就是，什么时候会调用 <code>flushAppendOnlyFile</code> 函数，有以下三个时机。</p>
+<h5 id="beforeSleep- 函数"><a href="#beforeSleep- 函数" class="headerlink" title="beforeSleep 函数"></a>beforeSleep 函数</h5><blockquote>
 <p>Redis 的服务器进程就是一个事件循环，这个循环中的文件事件负责接收客户端请求，以及向客户端发送命令回复，而时间事件则负责像 <code>serverCron</code> 函数这样需要定时运行的函数。</p>
 </blockquote>
 <p>对于 Redis 的事件机制可以参考我之前的文章 《<a target="_blank" rel="noopener" href="http://tech-happen.site/85f7b0b4.html">Redis 中的事件</a>》。</p>
@@ -630,8 +601,7 @@ server.aof_current_size += nwritten; <span class="hljs-comment">// 正常 write�
     ...
 &#125;</code></pre></div>
 <p>这里的调用是非强制写入（force = 0）。</p>
-<h5 id="serverCron- 函数">serverCron 函数</h5>
-<p>Redis 中的时间事件，定期执行  <code>serverCron</code> 函数（从 Redis 2.8 开始，用户可以通过修改  <strong>hz</strong>  选项来调整  <code>serverCron</code>的每秒执行次数），做一些杂事，比如更新服务器各项统计信息、关闭清理客户端、做 AOF 和 RDB 等。</p>
+<h5 id="serverCron- 函数"><a href="#serverCron- 函数" class="headerlink" title="serverCron 函数"></a>serverCron 函数 </h5><p>Redis 中的时间事件，定期执行  <code>serverCron</code> 函数（从 Redis 2.8 开始，用户可以通过修改  <strong>hz</strong>  选项来调整  <code>serverCron</code> 的每秒执行次数），做一些杂事，比如更新服务器各项统计信息、关闭清理客户端、做 AOF 和 RDB 等。</p>
 <div class="hljs"><pre><code class="hljs c">  <span class="hljs-comment">/* AOF postponed flush: Try at every cron cycle if the slow fsync completed. */</span>
 <span class="hljs-keyword">if</span> (server.aof_flush_postponed_start) flushAppendOnlyFile(<span class="hljs-number">0</span>);</code></pre></div>
 <p>如果上次 AOF 写入推迟了，那么再次尝试非强制写入。</p>
@@ -640,8 +610,7 @@ server.aof_current_size += nwritten; <span class="hljs-comment">// 正常 write�
         flushAppendOnlyFile(<span class="hljs-number">0</span>);
 &#125;</code></pre></div>
 <p>每秒钟检查，如果上次写入 AOF 文件失败了，再次尝试非强制写入。因为需要及时去处理 <code>aof_buf</code>，以及重置 AOF 写入状态的变量 <strong>aof_last_write_status</strong>，每秒做检查，这个频率是足够的。</p>
-<h5 id="stopAppendOnly- 函数">stopAppendOnly 函数</h5>
-<p>当 AOF 功能要关闭时，会调用 <code>stopAppendOnly</code> 函数，尝试一次强制写入，即尽最大努力去保存最多的数据。</p>
+<h5 id="stopAppendOnly- 函数"><a href="#stopAppendOnly- 函数" class="headerlink" title="stopAppendOnly 函数"></a>stopAppendOnly 函数 </h5><p> 当 AOF 功能要关闭时，会调用 <code>stopAppendOnly</code> 函数，尝试一次强制写入，即尽最大努力去保存最多的数据。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">stopAppendOnly</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     serverAssert(server.aof_state != AOF_OFF);
     flushAppendOnlyFile(<span class="hljs-number">1</span>);
@@ -649,8 +618,7 @@ server.aof_current_size += nwritten; <span class="hljs-comment">// 正常 write�
     close(server.aof_fd);
 &#125;</code></pre></div>
 <p>强制写入，并刷盘。</p>
-<h2 id="AOF- 文件载入">AOF 文件载入</h2>
-<p>当 Redis 服务器进程启动时，需要调用 <code>loadDataFromDisk</code> 函数去加载数据。</p>
+<h2 id="AOF- 文件载入"><a href="#AOF- 文件载入" class="headerlink" title="AOF 文件载入"></a>AOF 文件载入 </h2><p> 当 Redis 服务器进程启动时，需要调用 <code>loadDataFromDisk</code> 函数去加载数据。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">loadDataFromDisk</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
     <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> start = ustime();
     <span class="hljs-keyword">if</span> (server.aof_state == AOF_ON) &#123; <span class="hljs-comment">// 开启了 aof</span>
@@ -762,8 +730,7 @@ startLoading(fp);                <span class="hljs-comment">// 标记正在 load
 &#125;</code></pre></div>
 <p>上面这部分是加载 AOF 文件的关键，以 <code>SET keytest val</code> 命令对应的 AOF 文件内容 <code>*3\r\n$3\r\nSET\r\n$7\r\nkeytest\r\n$3\r\nval\r\n</code> 为例，可以更好地理解上面的逻辑。由于 AOF 文件中存储的数据与客户端发送的请求格式相同完全符合 Redis 的通信协议，因此 Redis Server 创建伪客户端 <strong>fakeClient</strong>，将解析后的 AOF 文件数据像客户端请求一样调用各种指令，<code>cmd-&gt;proc(fakeClient)</code>，将 AOF 文件中的数据重现到 Redis Server 数据库中。</p>
 <p>完成以上逻辑后，进行一些收尾工作，如改回 AOF 状态为 ON，释放伪客户端等，并处理一些异常情况，这里就不展开细讲了。</p>
-<h2 id="参考">参考</h2>
-<ol>
+<h2 id="参考"><a href="# 参考" class="headerlink" title="参考"></a>参考</h2><ol>
 <li><a target="_blank" rel="noopener" href="https://juejin.im/post/5bd96bcaf265da396b72f855">Copy On Write 机制了解一下</a></li>
 <li><a target="_blank" rel="noopener" href="http://mysql.taobao.org/monthly/2018/12/06/">Redis · 原理介绍 · 利用管道优化 aofrewrite</a></li>
 </ol>

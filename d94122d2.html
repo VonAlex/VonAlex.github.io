@@ -196,7 +196,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      736 字
+      735 字
     </span>
   
 
@@ -206,7 +206,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      8
+      7
        分钟
     </span>
   
@@ -246,34 +246,20 @@
             
             <div class="markdown-body" id="post-body">
               <blockquote>
-<p>Go 是 Google 开发的一种编译型，可并行化，并具有垃圾回收功能的编程语言。它具有脚本化的语法，支持多种编程范式。Go 最给力的地方就是原生的并发编程支持。<br>
-当然，缺点也是有的，语法糖没有 Python 和 Ruby 多，目前运行速度不及 C，但这正在改善。</p>
+<p>Go 是 Google 开发的一种编译型，可并行化，并具有垃圾回收功能的编程语言。它具有脚本化的语法，支持多种编程范式。Go 最给力的地方就是原生的并发编程支持。<br>当然，缺点也是有的，语法糖没有 Python 和 Ruby 多，目前运行速度不及 C，但这正在改善。</p>
 </blockquote>
 <!--more---->
 <p>Go 的安装包可以在 <a target="_blank" rel="noopener" href="https://golang.org/"> 官方网站 </a> 上下载, 不过需要梯子。所以，这里有一个 <a target="_blank" rel="noopener" href="http://www.golangtc.com/">golang 中国网站 </a> 提供了下载。</p>
 <p>​</p>
-<h2 id="几个环境变量">几个环境变量</h2>
-<p><code>GOROOT</code> =&gt; Go 的当前安装目录，一般为 <code>/usr/local/go</code><br>
-<code>GOPATH</code> =&gt; Go 的工作区的集合，以冒号做分割<br>
-<code>GOBIN</code> =&gt; 存放 Go 的可执行文件的目录<br>
-在修改 <code>PATH</code> 环境变量时，把 <code>$GOROOT/bin:$GOBIN</code> 最后加上。</p>
-<h2 id="工作区目录结构">工作区目录结构</h2>
-<p>项目工作区的文件目录树如下：</p>
+<h2 id="几个环境变量"><a href="# 几个环境变量" class="headerlink" title="几个环境变量"></a>几个环境变量 </h2><p><code>GOROOT</code> =&gt; Go 的当前安装目录，一般为 <code>/usr/local/go</code><br><code>GOPATH</code> =&gt; Go 的工作区的集合，以冒号做分割<br><code>GOBIN</code> =&gt; 存放 Go 的可执行文件的目录<br> 在修改 <code>PATH</code> 环境变量时，把 <code>$GOROOT/bin:$GOBIN</code> 最后加上。</p>
+<h2 id="工作区目录结构"><a href="# 工作区目录结构" class="headerlink" title="工作区目录结构"></a>工作区目录结构 </h2><p> 项目工作区的文件目录树如下：</p>
 <div class="hljs"><pre><code class="hljs go">├── bin 存放当前工作区中 <span class="hljs-keyword">go</span> 程序的可执行文件
 ├── pkg/ 平台相关目录 存放归档文件（以.a 为后缀）
 └── src 放源码文件</code></pre></div>
-<p><strong>注意：</strong><br>
-当环境变量 GOBIN 已有效设置时，这个目录就没意义了；<br>
-当 GOPATH 中包含多个工作区路径时，必须设置 GOBIN，否则无法成功安装 go 程序的可执行文件。</p>
-<h2 id="源码文件分类">源码文件分类</h2>
-<p>Go 源码文件以 <code>.go</code> 为后缀。<br>
-分为三类：命令源码文件、库源码文件和测试源码文件。</p>
-<p><strong>命令源码文件</strong>：声明自己属于 <code>main</code> 代码包，包含无参数声明和结果声明的 <code>main</code> 函数。被安装后，相应的可执行文件被存放到 GOBIN 指定的目录下，或者是当前工作区的 bin 目录下。<br>
-它其实是 Go 程序的入口。<br>
-<strong>库源码文件 </strong>：不具备上面两条性质的源码文件。被安装后，相应的归档文件被存放到<code> 当前工作区目录 /pkg/ 平台相关目录 /</code>下。<br>
-<strong>测试源码文件</strong>：不具备 2 个特征，但是以 <code>_test.go</code> 为后缀。</p>
-<h2 id="常用命令">常用命令</h2>
-<div class="hljs"><pre><code class="hljs haml">go run 接收一个命令源码文件或者若干个库源码文件为参数
+<p><strong>注意：</strong><br>当环境变量 GOBIN 已有效设置时，这个目录就没意义了；<br>当 GOPATH 中包含多个工作区路径时，必须设置 GOBIN，否则无法成功安装 go 程序的可执行文件。</p>
+<h2 id="源码文件分类"><a href="# 源码文件分类" class="headerlink" title="源码文件分类"></a>源码文件分类 </h2><p>Go 源码文件以 <code>.go</code> 为后缀。<br> 分为三类：命令源码文件、库源码文件和测试源码文件。</p>
+<p><strong>命令源码文件 </strong>：声明自己属于 <code>main</code> 代码包，包含无参数声明和结果声明的 <code>main</code> 函数。被安装后，相应的可执行文件被存放到 GOBIN 指定的目录下，或者是当前工作区的 bin 目录下。<br> 它其实是 Go 程序的入口。<br><strong>库源码文件 </strong>：不具备上面两条性质的源码文件。被安装后，相应的归档文件被存放到<code> 当前工作区目录 /pkg/ 平台相关目录 /</code>下。<br><strong>测试源码文件</strong>：不具备 2 个特征，但是以 <code>_test.go</code> 为后缀。</p>
+<h2 id="常用命令"><a href="# 常用命令" class="headerlink" title="常用命令"></a>常用命令</h2><div class="hljs"><pre><code class="hljs haml">go run 接收一个命令源码文件或者若干个库源码文件为参数
 
     -<span class="ruby">a 强制编译相关代码，无论是否最新</span>
 <span class="ruby">    -n 打印编译过程所需运行的命令，但不真正运行</span>

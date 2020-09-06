@@ -245,30 +245,21 @@
               </p>
             
             <div class="markdown-body" id="post-body">
-              <p>Golang Present 是 Golang 社群开发出來的一个简单工具，通过简单的语法可以制作 ppt（语法近似于 Markdown)。</p>
-<a id="more"></a>
-<h2 id="简介">简介</h2>
-<p>Golang 相关的技术幻灯片有多种格式，以 .ppt, .pdf 和 .slide 为主。<br>
-.slide 格式是随着 golang 诞生而出现的一种 present 格式，Go 核心开发成员似乎十分喜欢以这种格式分享 Go 语言。在 Golang 官方，几乎所有技术会议的 <a target="_blank" rel="noopener" href="https://talks.golang.org/">talk 幻灯片 </a> 均是以 <strong>.slide</strong> 形式提供的。<strong>.slide</strong> 文件通过 web 服务来进行查看，有一个名为 <code>present</code> 的工具可以在本地查看 <strong>.slide</strong> 文件。</p>
-<h2 id="安装">安装</h2>
-<div class="hljs"><pre><code class="hljs go"><span class="hljs-comment">// 下载</span>
+              <p>Golang Present 是 Golang 社群开发出來的一个简单工具，通过简单的语法可以制作 ppt（语法近似于 Markdown)。<br><a id="more"></a></p>
+<h2 id="简介"><a href="# 简介" class="headerlink" title="简介"></a>简介 </h2><p>Golang 相关的技术幻灯片有多种格式，以 .ppt, .pdf 和 .slide 为主。<br>.slide 格式是随着 golang 诞生而出现的一种 present 格式，Go 核心开发成员似乎十分喜欢以这种格式分享 Go 语言。在 Golang 官方，几乎所有技术会议的 <a target="_blank" rel="noopener" href="https://talks.golang.org/">talk 幻灯片</a> 均是以 <strong>.slide</strong> 形式提供的。<strong>.slide</strong> 文件通过 web 服务来进行查看，有一个名为 <code>present</code> 的工具可以在本地查看 <strong>.slide</strong> 文件。</p>
+<h2 id="安装"><a href="# 安装" class="headerlink" title="安装"></a>安装</h2><div class="hljs"><pre><code class="hljs go"><span class="hljs-comment">// 下载</span>
 <span class="hljs-keyword">go</span> get -u golang.org/x/tools/cmd/present
 <span class="hljs-comment">// 安装</span>
 <span class="hljs-keyword">go</span> install golang.org/x/tools/cmd/present</code></pre></div>
-<h2 id="使用">使用</h2>
-<p>在工作目录下, 执行 <code>present</code> 命令，启动一个服务器。<br>
-比如，我的工作目录是 <code>$GOPATH/src/github.com/golang/talks</code>, 启动服务后，出现下面的提示：</p>
+<h2 id="使用"><a href="# 使用" class="headerlink" title="使用"></a>使用 </h2><p> 在工作目录下, 执行 <code>present</code> 命令，启动一个服务器。<br>比如，我的工作目录是 <code>$GOPATH/src/github.com/golang/talks</code>, 启动服务后，出现下面的提示：</p>
 <div class="hljs"><pre><code class="hljs other">2017&#x2F;05&#x2F;13 22:21:21 Open your web browser and visit http:&#x2F;&#x2F;127.0.0.1:3999</code></pre></div>
-<p>这表明服务启动成功，然后就可以写 slide 文件了。<br>
-present 文件的语法可以在 <a target="_blank" rel="noopener" href="https://godoc.org/golang.org/x/tools/present"><strong>go doc</strong></a> 中查看</p>
-<p>** 题外话：** 由于某种原因的存在，有些代码使用 <code>go get</code> 无法获取到，这里比较推荐两个网站可能会比较好的解决这个痛点。</p>
+<p>这表明服务启动成功，然后就可以写 slide 文件了。<br>present 文件的语法可以在 <a target="_blank" rel="noopener" href="https://godoc.org/golang.org/x/tools/present"><strong>go doc</strong></a> 中查看</p>
+<p><strong>题外话：</strong>由于某种原因的存在，有些代码使用 <code>go get</code> 无法获取到，这里比较推荐两个网站可能会比较好的解决这个痛点。</p>
 <ul>
 <li><a target="_blank" rel="noopener" href="http://golangtc.com/download/package">golang 中国 </a> 提供的服务</li>
 <li><a target="_blank" rel="noopener" href="https://gopm.io/">go 语言包管理</a> 提供的服务</li>
 </ul>
-<h2 id="参考">参考</h2>
-<p><a target="_blank" rel="noopener" href="http://studygolang.com/articles/4703">Golang 技术幻灯片的查看方法</a><br>
-<a target="_blank" rel="noopener" href="http://www.th7.cn/Program/go/201612/1027068.shtml">[Golang] 來用 Golang Present 製造 Golang 專屬投影片</a></p>
+<h2 id="参考"><a href="# 参考" class="headerlink" title="参考"></a>参考</h2><p><a target="_blank" rel="noopener" href="http://studygolang.com/articles/4703">Golang 技术幻灯片的查看方法</a><br><a target="_blank" rel="noopener" href="http://www.th7.cn/Program/go/201612/1027068.shtml">[Golang] 來用 Golang Present 製造 Golang 專屬投影片</a></p>
 
             </div>
             <hr>

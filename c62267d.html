@@ -249,8 +249,7 @@
 <p>本文试图借着<code>cluster meet</code> 命令的实现来对其中的一些通信细节一探究竟。</p>
 <!--more---->
 <p>我们都知道，当 redis server 以 cluster mode 启动时，节点 B 想加入节点 A 所在的集群，只需要执行 <code>CLUSTER MEET ip port</code> 这个命令即可，通过  gossip  通信，最终 A 所在集群的其他节点也都会认识到 B。大概流程图如下：</p>
-<h2 id="cluster- 初始化">cluster 初始化</h2>
-<p>当  redis server  以 cluster mode 启动时，即配置文件中的 <code>cluster-enabled</code> 选项设置为 <code>true</code>，此时在服务启动时，会有一个 cluster 初始化的流程，这个在之前的文章 《<a target="_blank" rel="noopener" href="http://tech-happen.site/e74c6d55.html">Redis 启动流程</a>》中有提到过，即执行函数 <code>clusterInit</code>。在 cluster 中有三个数据结构很重要， <code>clusterState</code> 、 <code>clusterNode</code> 和 <code>clusterLink</code>。</p>
+<h2 id="cluster- 初始化"><a href="#cluster- 初始化" class="headerlink" title="cluster 初始化"></a>cluster 初始化 </h2><p> 当  redis server  以 cluster mode 启动时，即配置文件中的 <code>cluster-enabled</code> 选项设置为 <code>true</code>，此时在服务启动时，会有一个 cluster 初始化的流程，这个在之前的文章 《<a target="_blank" rel="noopener" href="http://tech-happen.site/e74c6d55.html">Redis 启动流程</a>》中有提到过，即执行函数 <code>clusterInit</code>。在 cluster 中有三个数据结构很重要， <code>clusterState</code> 、 <code>clusterNode</code> 和 <code>clusterLink</code>。</p>
 <p>每个节点都保存着一个 <code>clusterState</code> 结构，这个结构记录了在当前节点的视角下，集群目前所处的状态，即“我看到的世界是什么样子”。</p>
 <p>每个节点都会使用一个 <code>clusterNode</code> 结构来记录自己的状态， 并为集群中的所有其他节点（包括主节点和从节点）都创建一个相应的 <code>clusterNode</code> 结构， 以此来记录其他节点的状态。</p>
 <p><code>clusterNode</code> 结构的 <code>link</code> 属性是一个 <code>clusterLink</code> 结构， 该结构保存了连接节点所需的有关信息， 比如套接字描述符， 输入缓冲区和输出缓冲区。</p>
@@ -357,9 +356,7 @@ clusterCloseAllSlots(); <span class="hljs-comment">// Clear the migrating/import
     &#125;
 &#125;</code></pre></div>
 <p>最后是 reset mf 相关的参数。</p>
-<h2 id="CLUSTER-MEET">CLUSTER MEET</h2>
-<h3 id="一、A- 节点接收 -CLUSTER-MEET- 命令">一、A 节点接收 CLUSTER MEET 命令</h3>
-<p>A 节点在<code>cluster.c</code> -&gt; <code>clusterCommand</code> 函数中，接收到 <code>CLUSTER MEET</code> 命令，即</p>
+<h2 id="CLUSTER-MEET"><a href="#CLUSTER-MEET" class="headerlink" title="CLUSTER MEET"></a>CLUSTER MEET</h2><h3 id="一、A- 节点接收 -CLUSTER-MEET- 命令"><a href="# 一、A- 节点接收 -CLUSTER-MEET- 命令" class="headerlink" title="一、A 节点接收 CLUSTER MEET 命令"></a>一、A 节点接收 CLUSTER MEET 命令</h3><p>A 节点在<code>cluster.c</code> -&gt; <code>clusterCommand</code> 函数中，接收到 <code>CLUSTER MEET</code> 命令，即</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="hljs-number">1</span>]-&gt;ptr,<span class="hljs-string">&quot;meet&quot;</span>) &amp;&amp; c-&gt;argc == <span class="hljs-number">4</span>) &#123;
     <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> port;
 
@@ -420,8 +417,7 @@ clusterCloseAllSlots(); <span class="hljs-comment">// Clear the migrating/import
 &#125;</code></pre></div>
 <p>这个函数会首先进行一些 ip 和 port 的合理性检查，然后去遍历所看到的 nodes，这个 ip:port 对应的 node 是不是正处于 <code>CLUSTER_NODE_HANDSHAKE</code> 状态，是的话，就说明这是重复 meet，没必要往下走。之后，通过 <code>createClusterNode</code> 函数创建一个带有 <code>CLUSTER_NODE_HANDSHAKE|CLUSTER_NODE_MEET</code> 标记的节点，名字为一个 <strong> 随机 </strong> 的 40 字节字符串（因为此时对 A 来说，B 是一个陌生的节点，信息除了 ip 和 port，其他都不知道），通过 <code>clusterAddNode</code> 函数加到自己的 nodes 中。</p>
 <p>这个过程成功后，就返回给客户端 OK 了，其他事情需要通过 gossip 通信去做。</p>
-<h3 id="二、A- 节点发送 -MEET- 消息给 -B- 节点">二、A 节点发送 MEET 消息给 B 节点</h3>
-<p>A 节点在定时任务 <code>clusterCron</code> 中，会做一些事情。</p>
+<h3 id="二、A- 节点发送 -MEET- 消息给 -B- 节点"><a href="# 二、A- 节点发送 -MEET- 消息给 -B- 节点" class="headerlink" title="二、A 节点发送 MEET 消息给 B 节点"></a>二、A 节点发送 MEET 消息给 B 节点</h3><p>A 节点在定时任务 <code>clusterCron</code> 中，会做一些事情。</p>
 <div class="hljs"><pre><code class="hljs c">handshake_timeout = server.cluster_node_timeout;
 <span class="hljs-keyword">if</span> (handshake_timeout &lt; <span class="hljs-number">1000</span>) handshake_timeout = <span class="hljs-number">1000</span>;
 
@@ -466,8 +462,7 @@ di = dictGetSafeIterator(server.cluster-&gt;nodes); <span class="hljs-comment">/
 &#125;
 dictReleaseIterator(di);</code></pre></div>
 <p>可以看到，遍历自己看到的 nodes，当遍历到 B 节点时，由于 <code>node-&gt;link == NULL</code>，因此会监听 B 的启动端口号 +10000，即 gossip 通信端口，然后注册可读事件，处理函数为 <code>clusterReadHandler</code>。接着会发送 <strong>CLUSTER_NODE_MEET</strong> 消息给 B 节点，消除掉 B 节点的 <strong>meet</strong> 状态。</p>
-<h3 id="三、B- 节点处理 -A- 发来的 -MEET- 消息">三、B 节点处理 A 发来的 MEET  消息</h3>
-<p>当 B 节点接收到 A 节点发送 gossip 时，回调函数 <code>clusterAcceptHandler</code> 进行处理，然后会 accept 对端的 connect（B 作为 server，对端作为 client），注册可读事件，回调函数为 <code>clusterReadHandler</code>，基本逻辑如下，</p>
+<h3 id="三、B- 节点处理 -A- 发来的 -MEET- 消息"><a href="# 三、B- 节点处理 -A- 发来的 -MEET- 消息" class="headerlink" title="三、B 节点处理 A 发来的 MEET  消息"></a>三、B 节点处理 A 发来的 MEET  消息 </h3><p> 当 B 节点接收到 A 节点发送 gossip 时，回调函数 <code>clusterAcceptHandler</code> 进行处理，然后会 accept 对端的 connect（B 作为 server，对端作为 client），注册可读事件，回调函数为 <code>clusterReadHandler</code>，基本逻辑如下，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterAcceptHandler</span><span class="hljs-params">(aeEventLoop *el, <span class="hljs-keyword">int</span> fd, <span class="hljs-keyword">void</span> *privdata, <span class="hljs-keyword">int</span> mask)</span> </span>&#123;
     <span class="hljs-keyword">int</span> cport, cfd;
     <span class="hljs-keyword">int</span> max = MAX_CLUSTER_ACCEPTS_PER_CALL;
@@ -524,8 +519,7 @@ dictReleaseIterator(di);</code></pre></div>
 clusterSendPing(link,CLUSTERMSG_TYPE_PONG);</code></pre></div>
 <p>由于这时 B 节点还不认识 A 节点，因此 B 节点从自己的 nodes 中找 A 节点是找不到的，所以 sender 是空，因此会走进如上的这段逻辑。同样以随机的名字，CLUSTER_NODE_HANDSHAKE 为 flag 创建一个 node，加入自己的 nodes 中。</p>
 <p><strong>在这个逻辑末尾会给 A 节点回复一个 PONG 消息</strong>。</p>
-<h3 id="四、A- 节点处理 -B- 节点回复的 -PONG- 消息">四、A 节点处理 B 节点回复的 PONG 消息</h3>
-<p>同样是在 <code>clusterProcessPacket</code> 中处理 gossip 消息。</p>
+<h3 id="四、A- 节点处理 -B- 节点回复的 -PONG- 消息"><a href="# 四、A- 节点处理 -B- 节点回复的 -PONG- 消息" class="headerlink" title="四、A 节点处理 B 节点回复的 PONG 消息"></a>四、A 节点处理 B 节点回复的 PONG 消息 </h3><p> 同样是在 <code>clusterProcessPacket</code> 中处理 gossip 消息。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (type == CLUSTERMSG_TYPE_PING || type == CLUSTERMSG_TYPE_PONG || type == CLUSTERMSG_TYPE_MEET) &#123;
     ... ...
     <span class="hljs-keyword">if</span> (link-&gt;node) &#123;
@@ -538,19 +532,14 @@ clusterSendPing(link,CLUSTERMSG_TYPE_PONG);</code></pre></div>
         &#125;
 &#125;</code></pre></div>
 <p>这个时候 A 节点会根据 B 节点发来的消息，更正 A 节点 nodes 中关于 B 节点的名字，以及消除 <strong>handshake</strong> 状态。</p>
-<h3 id="五、B- 节点发送 -PING- 消息给 -A- 节点">五、B 节点发送 PING 消息给 A 节点</h3>
-<p>当 B 节点在做 <code>clusterCron</code> 时，发现自己看到的 A 节点中的 link 为空，即 <code>node-&gt;link == NULL</code>，这与上面讲的 A 节点给 B 节点发 MEET 消息类似，不过在 B 节点看了 A 节点没有 meet flag，因此发送的是 PING 消息。</p>
-<h3 id="六、A- 节点处理 -B- 节点发来的 -PING- 消息">六、A 节点处理 B 节点发来的 PING 消息</h3>
-<p>做一些逻辑，不过跟这次要讨论的事情无关，后面会详写。</p>
+<h3 id="五、B- 节点发送 -PING- 消息给 -A- 节点"><a href="# 五、B- 节点发送 -PING- 消息给 -A- 节点" class="headerlink" title="五、B 节点发送 PING 消息给 A 节点"></a>五、B 节点发送 PING 消息给 A 节点 </h3><p> 当 B 节点在做 <code>clusterCron</code> 时，发现自己看到的 A 节点中的 link 为空，即 <code>node-&gt;link == NULL</code>，这与上面讲的 A 节点给 B 节点发 MEET 消息类似，不过在 B 节点看了 A 节点没有 meet flag，因此发送的是 PING 消息。</p>
+<h3 id="六、A- 节点处理 -B- 节点发来的 -PING- 消息"><a href="# 六、A- 节点处理 -B- 节点发来的 -PING- 消息" class="headerlink" title="六、A 节点处理 B 节点发来的 PING 消息"></a>六、A 节点处理 B 节点发来的 PING 消息 </h3><p> 做一些逻辑，不过跟这次要讨论的事情无关，后面会详写。</p>
 <p><strong>对于 PING 和 MEET 消息，无论如何都是会回复一个 PONG 消息的</strong>。</p>
-<h3 id="七、B- 节点处理 -A- 节点回复的 -PONG- 消息">七、B 节点处理 A 节点回复的 PONG 消息</h3>
-<p>逻辑同上，将 B 节点的 nodes 中 A 节点的名字进行更正，然后去掉 A 节点的 handshake flag。</p>
-<h3 id="补充">补充</h3>
-<p>上面流程的 <strong> 第四步 </strong> 之后，在 A 看来 B 节点就已经是个完好的节点了，且建立了 A 到 B 的 link。实际上，上面的 <strong> 第五至七步 </strong> 是不确定的，可能存在如下并行逻辑，即，</p>
+<h3 id="七、B- 节点处理 -A- 节点回复的 -PONG- 消息"><a href="# 七、B- 节点处理 -A- 节点回复的 -PONG- 消息" class="headerlink" title="七、B 节点处理 A 节点回复的 PONG 消息"></a>七、B 节点处理 A 节点回复的 PONG 消息 </h3><p> 逻辑同上，将 B 节点的 nodes 中 A 节点的名字进行更正，然后去掉 A 节点的 handshake flag。</p>
+<h3 id="补充"><a href="# 补充" class="headerlink" title="补充"></a>补充 </h3><p> 上面流程的 <strong> 第四步 </strong> 之后，在 A 看来 B 节点就已经是个完好的节点了，且建立了 A 到 B 的 link。实际上，上面的 <strong> 第五至七步 </strong> 是不确定的，可能存在如下并行逻辑，即，</p>
 <p>A 节点恰好选中了 B 节点发送 PING 消息，当 B 节点接收到这个 PING 消息后，填充自己看到的 A 节点，消除掉 handshake 状态，但是此时 B 节点的 <code>server.cluster-&gt;nodes</code> 中到 A 节点的 link 仍然是空，即，没办法给 A 发 gossip 消息。</p>
 <p>这两个逻辑哪个先发生不一定，但是最终的状态都是，A 节点与 B 节点之间有两条 link，一条是 A 节点创建的到 B 节点的 link，一条是 B 节点创建的到 A 节点的 link。两个节点地位一样，可以同时给对方发信息，如果只保留一条 link 其实也是可以的，不过逻辑会复杂很多，不方便。</p>
-<h2 id="小结">小结</h2>
-<p>至此，一个 <code>cluster meet</code> 命令执行的完整过程就解释清楚了，画了一个流程图可以帮助更好的理解这个流程。</p>
+<h2 id="小结"><a href="# 小结" class="headerlink" title="小结"></a>小结 </h2><p> 至此，一个 <code>cluster meet</code> 命令执行的完整过程就解释清楚了，画了一个流程图可以帮助更好的理解这个流程。</p>
 <p><img src="http://ww1.sinaimg.cn/mw690/71ca8e3cly1fycksh2170j20pu0nbjst.jpg" srcset="/img/loading.gif" alt="cluster meet"></p>
 
             </div>

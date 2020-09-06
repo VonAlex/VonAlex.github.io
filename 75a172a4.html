@@ -250,11 +250,7 @@
 <a id="more"></a>
 <p>redis 没有直接使用 C 语言中传统的字符串表示，而是自己实现了一套名为简单动态字符串（simple dynamic string, SDS）的抽象类型，将其作为 redis 的默认字符串使用。实际上 redis 并没有完全抛弃 C 字符串，只是在这之上进行了进一步封装，使其获得更好的特性，比如二进制安全、动态扩展内存等，这也使得 SDS 可以兼容 C 字符串的 API。</p>
 <p>redis 源码中关于 sds 的部分，主要在 <code>sds.h</code> 和 <code>sds.c</code> 这两个文件中。</p>
-<h3 id="SDS- 的定义">SDS 的定义</h3>
-<p>首先在 <code>sds.h</code> 中找到了 sds 的定义</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">typedef</span> <span class="hljs-keyword">char</span> *sds;</code></pre></div>
-<p>这跟 C 字符串是一样的，但是真的这么简单吗？往下看，会有新的发现：</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 暂时未用到</span>
+<h3 id="SDS- 的定义"><a href="#SDS- 的定义" class="headerlink" title="SDS 的定义"></a>SDS 的定义 </h3><p> 首先在 <code>sds.h</code> 中找到了 sds 的定义 <br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">typedef</span> <span class="hljs-keyword">char</span> *sds;</code></pre></div><br> 这跟 C 字符串是一样的，但是真的这么简单吗？往下看，会有新的发现：<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 暂时未用到</span>
 <span class="hljs-class"><span class="hljs-keyword">struct</span> __<span class="hljs-title">attribute__</span> ((__<span class="hljs-title">packed__</span>)) <span class="hljs-title">sdshdr5</span> &#123;</span>
     <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> flags;
     <span class="hljs-keyword">char</span> buf[];
@@ -282,10 +278,7 @@
     <span class="hljs-keyword">uint64_t</span> alloc;
     <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> flags;
     <span class="hljs-keyword">char</span> buf[];
-&#125;;</code></pre></div>
-<p>到此，大概明白了，sds 采用一段连续的内存空间来存储动态字符串，即 <strong>header + str</strong> 的形式。<br>
-<code>__attribute__ ((packed))</code> 是为了让编译器以紧凑模式来分配内存。不对 struct 中的字段进行内存对齐，以此保证 header 和 sds 的数据部分紧紧的相邻，否则，不能按照固定的偏移来获取 flags 字段。<br>
-当定义了 <code>sds* s</code> 后，使用 <code>s[-1]</code> 就可以获得 flag 的值，这样就知道了这个 sds 属于哪种类型。</p>
+&#125;;</code></pre></div><br>到此，大概明白了，sds 采用一段连续的内存空间来存储动态字符串，即 <strong>header + str</strong> 的形式。<br><code>__attribute__ ((packed))</code> 是为了让编译器以紧凑模式来分配内存。不对 struct 中的字段进行内存对齐，以此保证 header 和 sds 的数据部分紧紧的相邻，否则，不能按照固定的偏移来获取 flags 字段。<br>当定义了 <code>sds* s</code> 后，使用 <code>s[-1]</code> 就可以获得 flag 的值，这样就知道了这个 sds 属于哪种类型。</p>
 <p>为了满足存储不同长度字符串的需求（为了节省内存），在宏定义中定义了五种 header（0~4）。</p>
 <p>下面解释一下 header 中各个字段的含义：</p>
 <ul>
@@ -294,13 +287,12 @@
 <li><strong>flags</strong>: 低三位表示 header 类型</li>
 <li><strong>buf</strong>: 柔性数组，表示一个长度动态的字符串</li>
 </ul>
-<p>柔性数组，只能定义在一个结构体的 <strong> 最后一个字段 </strong> 上。它在这里只是起到一个标记的作用，表示在 flags 字段后面是一个字符数组，或者说，它指明了紧跟在 flags 字段后面的这个字符数组在结构体中的偏移位置。<br>
-程序在为 header 分配内存的时候，<strong>buf[]</strong> 并不占用内存空间。如果计算 <code>sizeof(struct sdshdr16)</code>的值，<strong>那么结果是 5 个字节，其中没有 buf 字段</strong>.</p>
-<p><strong>注 </strong>：关于柔性数组的介绍，可以参考这篇博客 <a target="_blank" rel="noopener" href="http://blog.csdn.net/u013165704/article/details/53733412"> 结构体中使用柔性数组</a>。<br>
-下面画了一个内存简易图可以帮助理解：</p>
+<p>柔性数组，只能定义在一个结构体的 <strong> 最后一个字段 </strong> 上。它在这里只是起到一个标记的作用，表示在 flags 字段后面是一个字符数组，或者说，它指明了紧跟在 flags 字段后面的这个字符数组在结构体中的偏移位置。<br>程序在为 header 分配内存的时候，<strong>buf[]</strong> 并不占用内存空间。如果计算 <code>sizeof(struct sdshdr16)</code>的值，<strong>那么结果是 5 个字节，其中没有 buf 字段</strong>.</p>
+<p><strong>注 </strong>：关于柔性数组的介绍，可以参考这篇博客 <a target="_blank" rel="noopener" href="http://blog.csdn.net/u013165704/article/details/53733412"> 结构体中使用柔性数组 </a>。<br> 下面画了一个内存简易图可以帮助理解：</p>
 <center><img src="https://s1.ax1x.com/2018/10/28/icwIM9.jpg" srcset="/img/loading.gif" width="600"/></center>
-<h2 id="SDS- 宏定义">SDS 宏定义</h2>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// sds 类型</span>
+
+
+<h2 id="SDS- 宏定义"><a href="#SDS- 宏定义" class="headerlink" title="SDS 宏定义"></a>SDS 宏定义</h2><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// sds 类型</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> SDS_TYPE_5 0</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> SDS_TYPE_8 1</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> SDS_TYPE_16 2</span>
@@ -319,9 +311,7 @@
 
 <span class="hljs-comment">// SDS_TYPE_5 类型的 sds，低三位表示 sds type， 高五位表示 sds len</span>
 <span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> SDS_TYPE_5_LEN(f) ((f) &gt;&gt; SDS_TYPE_BITS)</span></code></pre></div>
-<h2 id="SDS- 函数">SDS 函数</h2>
-<h3 id="创建 -sds">创建 sds</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function">sds <span class="hljs-title">sdsnewlen</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *init, <span class="hljs-keyword">size_t</span> initlen)</span> </span>&#123;
+<h2 id="SDS- 函数"><a href="#SDS- 函数" class="headerlink" title="SDS 函数"></a>SDS 函数 </h2><h3 id="创建 -sds"><a href="# 创建 -sds" class="headerlink" title="创建 sds"></a> 创建 sds</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-function">sds <span class="hljs-title">sdsnewlen</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-keyword">void</span> *init, <span class="hljs-keyword">size_t</span> initlen)</span> </span>&#123;
     <span class="hljs-keyword">void</span> *sh;
     sds s;
     <span class="hljs-keyword">char</span> type = sdsReqType(initlen); <span class="hljs-comment">// 根据 initlen 判断需要以哪种类型的 sds 来存储 init</span>
@@ -376,16 +366,14 @@
     s[initlen] = <span class="hljs-string">&#x27;\0&#x27;</span>;<span class="hljs-comment">// 结束</span>
     <span class="hljs-keyword">return</span> s;
 &#125;</code></pre></div>
-<h3 id="释放 -sds">释放 sds</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> s_free zfree</span>
+<h3 id="释放 -sds"><a href="# 释放 -sds" class="headerlink" title="释放 sds"></a>释放 sds</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> s_free zfree</span>
 
 <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">sdsfree</span><span class="hljs-params">(sds s)</span> </span>&#123;
     <span class="hljs-keyword">if</span> (s == <span class="hljs-literal">NULL</span>)
         <span class="hljs-keyword">return</span>;
     s_free((<span class="hljs-keyword">char</span> *)s - sdsHdrSize(s[<span class="hljs-number">-1</span>]));
 &#125;</code></pre></div>
-<h3 id="扩展 -sds- 容量">扩展 sds 容量</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function">sds <span class="hljs-title">sdsMakeRoomFor</span><span class="hljs-params">(sds s, <span class="hljs-keyword">size_t</span> addlen)</span> </span>&#123;
+<h3 id="扩展 -sds- 容量"><a href="# 扩展 -sds- 容量" class="headerlink" title="扩展 sds 容量"></a>扩展 sds 容量</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-function">sds <span class="hljs-title">sdsMakeRoomFor</span><span class="hljs-params">(sds s, <span class="hljs-keyword">size_t</span> addlen)</span> </span>&#123;
     <span class="hljs-keyword">void</span> *sh, *newsh;
     <span class="hljs-keyword">size_t</span> avail = sdsavail(s); <span class="hljs-comment">// 当前 sds 剩余空间</span>
     <span class="hljs-keyword">size_t</span> len, newlen;
@@ -436,11 +424,8 @@
     sdssetalloc(s, newlen); <span class="hljs-comment">// 设置 sds 的 alloc 字段</span>
     <span class="hljs-keyword">return</span> s;
 &#125;</code></pre></div>
-<p>另外，redis 提供 <code>sds sdsRemoveFreeSpace(sds s);</code> 函数来回收 sds 空余空间。<br>
-redis 还提供了很多其他的函数，来方便 sds 的操作，这个可以自行查看 源码</p>
-<h2 id="参考">参考</h2>
-<p>【1】<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/24202316">Redis 源码剖析–动态字符串 SDS</a><br>
-【2】<a target="_blank" rel="noopener" href="http://blog.csdn.net/fusan2004/article/details/51817878">redis 之 sds</a></p>
+<p>另外，redis 提供 <code>sds sdsRemoveFreeSpace(sds s);</code> 函数来回收 sds 空余空间。<br>redis 还提供了很多其他的函数，来方便 sds 的操作，这个可以自行查看 源码</p>
+<h2 id="参考"><a href="# 参考" class="headerlink" title="参考"></a>参考</h2><p>【1】<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/24202316">Redis 源码剖析—动态字符串 SDS</a><br>【2】<a target="_blank" rel="noopener" href="http://blog.csdn.net/fusan2004/article/details/51817878">redis 之 sds</a></p>
 
             </div>
             <hr>

@@ -247,13 +247,10 @@
             <div class="markdown-body" id="post-body">
               <p>说说 redis 的启动流程。</p>
 <!--more---->
-<p>首先要找到 <strong> 启动函数</strong>，我们知道 C 程序从 <code>main</code> 函数开始，所以，就找到了“梦想”开始的地方 <code>server.c</code> -&gt; <code>main</code>。<br>
-这里主要讲启动过程中的主要部分，所以并不会一一涉及到。</p>
-<h2 id="大概启动流程">大概启动流程</h2>
-<h3 id="initServerConfig- 函数">initServerConfig 函数</h3>
-<p>整个代码中最重要的结构体莫过于 <code>struct redisServer server</code>，它以一个全局变量的形式出现。本函数主要是对它的成员进行赋值操作，这些成员基本上是可以通过 redis.conf 文件来配置。</p>
-<h4 id="大部分成员赋初值">大部分成员赋初值</h4>
-<p>比如：</p>
+<p>首先要找到 <strong> 启动函数 </strong>，我们知道 C 程序从 <code>main</code> 函数开始，所以，就找到了“梦想”开始的地方 <code>server.c</code> -&gt; <code>main</code>。<br> 这里主要讲启动过程中的主要部分，所以并不会一一涉及到。</p>
+<h2 id="大概启动流程"><a href="# 大概启动流程" class="headerlink" title="大概启动流程"></a>大概启动流程 </h2><h3 id="initServerConfig- 函数"><a href="#initServerConfig- 函数" class="headerlink" title="initServerConfig 函数"></a>initServerConfig 函数</h3><p> 整个代码中最重要的结构体莫过于 <code>struct redisServer server</code>，它以一个全局变量的形式出现。本函数主要是对它的成员进行赋值操作，这些成员基本上是可以通过 redis.conf 文件来配置。</p>
+<h4 id="大部分成员赋初值"><a href="# 大部分成员赋初值" class="headerlink" title="大部分成员赋初值"></a>大部分成员赋初值 </h4><p> 比如：</p>
+<div class="table-container">
 <table>
 <thead>
 <tr>
@@ -292,31 +289,25 @@
 </tr>
 </tbody>
 </table>
-<h4 id="默认 -rdb- 触发条件">默认 rdb 触发条件</h4>
-<div class="hljs"><pre><code class="hljs c">appendServerSaveParams(<span class="hljs-number">60</span> * <span class="hljs-number">60</span>,<span class="hljs-number">1</span>);  <span class="hljs-comment">/* save after 1 hour and 1 change */</span>
+</div>
+<h4 id="默认 -rdb- 触发条件"><a href="# 默认 -rdb- 触发条件" class="headerlink" title="默认 rdb 触发条件"></a>默认 rdb 触发条件</h4><div class="hljs"><pre><code class="hljs c">appendServerSaveParams(<span class="hljs-number">60</span> * <span class="hljs-number">60</span>,<span class="hljs-number">1</span>);  <span class="hljs-comment">/* save after 1 hour and 1 change */</span>
 appendServerSaveParams(<span class="hljs-number">300</span>,<span class="hljs-number">100</span>);    <span class="hljs-comment">/* save after 5 minutes and 100 changes */</span>
 appendServerSaveParams(<span class="hljs-number">60</span>,<span class="hljs-number">10000</span>);   <span class="hljs-comment">/* save after 1 minute and 10000 changes */</span></code></pre></div>
-<h4 id="Replication-related">Replication related</h4>
-<p>包含对 backlog 的相关设置。</p>
-<h4 id="Double-constants-initialization">Double constants initialization</h4>
-<p>浮点数据精度设置。</p>
-<h4 id="client-output-buffer-limit">client output buffer limit</h4>
-<p>一共有三种类型，如下：</p>
+<h4 id="Replication-related"><a href="#Replication-related" class="headerlink" title="Replication related"></a>Replication related</h4><p>包含对 backlog 的相关设置。</p>
+<h4 id="Double-constants-initialization"><a href="#Double-constants-initialization" class="headerlink" title="Double constants initialization"></a>Double constants initialization</h4><p>浮点数据精度设置。</p>
+<h4 id="client-output-buffer-limit"><a href="#client-output-buffer-limit" class="headerlink" title="client output buffer limit"></a>client output buffer limit</h4><p>一共有三种类型，如下：</p>
 <div class="hljs"><pre><code class="hljs c">clientBufferLimitsConfig clientBufferLimitsDefaults[CLIENT_TYPE_OBUF_COUNT] = &#123;
     &#123;<span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>&#125;,                         <span class="hljs-comment">/* normal */</span>
     &#123;<span class="hljs-number">1024</span>*<span class="hljs-number">1024</span>*<span class="hljs-number">256</span>, <span class="hljs-number">1024</span>*<span class="hljs-number">1024</span>*<span class="hljs-number">64</span>, <span class="hljs-number">60</span>&#125;, <span class="hljs-comment">/* slave */</span>
     &#123;<span class="hljs-number">1024</span>*<span class="hljs-number">1024</span>*<span class="hljs-number">32</span>, <span class="hljs-number">1024</span>*<span class="hljs-number">1024</span>*<span class="hljs-number">8</span>, <span class="hljs-number">60</span>&#125;    <span class="hljs-comment">/* pubsub */</span>
 &#125;;</code></pre></div>
-<h4 id="redis- 命令表">redis 命令表</h4>
-<p>初始化 redis 命令表放到 <code>server.commands</code>中，这主要是在 <code>populateCommandTable</code> 函数中完成的。</p>
+<h4 id="redis- 命令表"><a href="#redis- 命令表" class="headerlink" title="redis 命令表"></a>redis 命令表 </h4><p> 初始化 redis 命令表放到 <code>server.commands</code>中，这主要是在 <code>populateCommandTable</code> 函数中完成的。</p>
 <p><strong>注意 </strong>：考虑到在 redis.conf 配置文件中可以使用 rename-command 来对 Command 进行重命名（通常是为了安全考虑而禁用某些命令），因此命令表保存了<strong> 两份</strong>，即 <code>server.commands</code> 和 <code>server.orig_commands</code>。</p>
 <p>同时还对一些经常查询的命令单独提出来，分别放到以下变量中，</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">redisCommand</span> *<span class="hljs-title">delCommand</span>, *<span class="hljs-title">multiCommand</span>, *<span class="hljs-title">lpushCommand</span>, *<span class="hljs-title">lpopCommand</span>,</span>
 <span class="hljs-class">                    *<span class="hljs-title">rpopCommand</span>, *<span class="hljs-title">sremCommand</span>, *<span class="hljs-title">execCommand</span>;</span></code></pre></div>
-<h4 id="Slow-log">Slow log</h4>
-<p>默认时间为 <strong>10ms</strong>。</p>
-<h3 id="sentinel- 模式">sentinel 模式</h3>
-<p>以下方式进行该模式的开启：</p>
+<h4 id="Slow-log"><a href="#Slow-log" class="headerlink" title="Slow log"></a>Slow log</h4><p>默认时间为 <strong>10ms</strong>。</p>
+<h3 id="sentinel- 模式"><a href="#sentinel- 模式" class="headerlink" title="sentinel 模式"></a>sentinel 模式 </h3><p> 以下方式进行该模式的开启：</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">checkForSentinelMode</span><span class="hljs-params">(<span class="hljs-keyword">int</span> argc, <span class="hljs-keyword">char</span> **argv)</span> </span>&#123;
     <span class="hljs-keyword">int</span> j;
 
@@ -331,15 +322,12 @@ appendServerSaveParams(<span class="hljs-number">60</span>,<span class="hljs-num
     initSentinelConfig(); <span class="hljs-comment">// sentinel 默认端口 26379</span>
     initSentinel(); <span class="hljs-comment">// sentinel 变量赋初值</span>
 &#125;</code></pre></div>
-<h3 id="命令行参数解析并载入配置文件">命令行参数解析并载入配置文件</h3>
-<p>主要还是获得配置文件的 <strong> 绝对路径</strong> <code>server.configfile = getAbsolutePath(configfile)</code>。</p>
+<h3 id="命令行参数解析并载入配置文件"><a href="# 命令行参数解析并载入配置文件" class="headerlink" title="命令行参数解析并载入配置文件"></a>命令行参数解析并载入配置文件 </h3><p> 主要还是获得配置文件的 <strong> 绝对路径</strong> <code>server.configfile = getAbsolutePath(configfile)</code>。</p>
 <p>配置文件的载入有专门的函数</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">loadServerConfig</span><span class="hljs-params">(<span class="hljs-keyword">char</span> *filename, <span class="hljs-keyword">char</span> *options)</span></span>&#123;&#125;</code></pre></div>
 <p>载入配置文件后，会覆盖之前对于 server 的某些默认配置。实际上，当 redis-server 启动后，一些配置可以通过 <code>config get</code> 命令查看，也可以通过 <code>config set</code> 命令进行修改，修改后 <code>config rewrite</code> 刷盘。</p>
-<h3 id="initServer- 函数">initServer 函数</h3>
-<p>不同于 <code>initServerConfig</code> 函数，该函数主要初始化一些 redis-server 运行中的成员。</p>
-<h4 id="信号处理">信号处理</h4>
-<p>通过 redis 来复习下信号处理。</p>
+<h3 id="initServer- 函数"><a href="#initServer- 函数" class="headerlink" title="initServer 函数"></a>initServer 函数 </h3><p> 不同于 <code>initServerConfig</code> 函数，该函数主要初始化一些 redis-server 运行中的成员。</p>
+<h4 id="信号处理"><a href="# 信号处理" class="headerlink" title="信号处理"></a>信号处理 </h4><p> 通过 redis 来复习下信号处理。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 忽略 SIGHUP 和 SIGPIPE 信号</span>
 signal(SIGHUP, SIG_IGN);
 signal(SIGPIPE, SIG_IGN);</code></pre></div>
@@ -353,14 +341,12 @@ signal(SIGPIPE, SIG_IGN);</code></pre></div>
     <span class="hljs-keyword">return</span>;
 &#125;</code></pre></div>
 <p>主要是程序退出的善后工作。</p>
-<h4 id="系统日志">系统日志</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.syslog_enabled) &#123;
+<h4 id="系统日志"><a href="# 系统日志" class="headerlink" title="系统日志"></a>系统日志</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.syslog_enabled) &#123;
     openlog(server.syslog_ident, LOG_PID | LOG_NDELAY | LOG_NOWAIT,
             server.syslog_facility);
 &#125;</code></pre></div>
 <p>前提是使用到了系统的 rsyslog。</p>
-<h4 id="createSharedObjects- 函数">createSharedObjects 函数</h4>
-<p>该函数把一些常用的字符串保存起来，目的就是为了减少不断申请释放时 CPU 时间，内存碎片等等。</p>
+<h4 id="createSharedObjects- 函数"><a href="#createSharedObjects- 函数" class="headerlink" title="createSharedObjects 函数"></a>createSharedObjects 函数 </h4><p> 该函数把一些常用的字符串保存起来，目的就是为了减少不断申请释放时 CPU 时间，内存碎片等等。</p>
 <p>比如 <code>shared.ok = createObject(OBJ_STRING,sdsnew(&quot;+OK\r\n&quot;))</code>。</p>
 <p><strong>额外说明的是</strong>，这里还初始化了一个很大的共享数字对象，0 到 999。因此在设置 value 时可以使用这些数字可以减少内存的使用。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> OBJ_SHARED_INTEGERS 10000</span>
@@ -370,21 +356,16 @@ signal(SIGPIPE, SIG_IGN);</code></pre></div>
     shared.integers[j]-&gt;encoding = OBJ_ENCODING_INT;
 &#125;</code></pre></div>
 <p><code>struct sharedObjectsStruct shared</code> 也是一个全局变量。</p>
-<h4 id="adjustOpenFilesLimit- 函数">adjustOpenFilesLimit 函数</h4>
-<p>该函数根据配置文件中配置的最大 client 数量增大可以打开的最多文件数。</p>
-<h4 id="创建 -eventLoop">创建 eventLoop</h4>
-<div class="hljs"><pre><code class="hljs c">server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR)</code></pre></div>
+<h4 id="adjustOpenFilesLimit- 函数"><a href="#adjustOpenFilesLimit- 函数" class="headerlink" title="adjustOpenFilesLimit 函数"></a>adjustOpenFilesLimit 函数 </h4><p> 该函数根据配置文件中配置的最大 client 数量增大可以打开的最多文件数。</p>
+<h4 id="创建 -eventLoop"><a href="# 创建 -eventLoop" class="headerlink" title="创建 eventLoop"></a>创建 eventLoop</h4><div class="hljs"><pre><code class="hljs c">server.el = aeCreateEventLoop(server.maxclients+CONFIG_FDSET_INCR)</code></pre></div>
 <p>这里假设 io 多路复用使用的是 epoll，这也是用的最多的。</p>
-<h4 id="初始化数据库对象">初始化数据库对象</h4>
-<div class="hljs"><pre><code class="hljs c">server.db = zmalloc(<span class="hljs-keyword">sizeof</span>(redisDb)*server.dbnum);</code></pre></div>
+<h4 id="初始化数据库对象"><a href="# 初始化数据库对象" class="headerlink" title="初始化数据库对象"></a>初始化数据库对象</h4><div class="hljs"><pre><code class="hljs c">server.db = zmalloc(<span class="hljs-keyword">sizeof</span>(redisDb)*server.dbnum);</code></pre></div>
 <p>数据库对象 <code>struct redisDb</code>，有 16 个。</p>
-<h4 id="监听 -port- 端口">监听 port 端口</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.port != <span class="hljs-number">0</span> &amp;&amp;
+<h4 id="监听 -port- 端口"><a href="# 监听 -port- 端口" class="headerlink" title="监听 port 端口"></a>监听 port 端口</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.port != <span class="hljs-number">0</span> &amp;&amp;
     listenToPort(server.port,server.ipfd,&amp;server.ipfd_count) == C_ERR)
     <span class="hljs-built_in">exit</span>(<span class="hljs-number">1</span>);</code></pre></div>
 <p>监听 <code>server.port</code>，并把返回的 fd 存储在  <code>server.ipfd</code> 中，有报错就返回。</p>
-<h4 id="创建系统 -cron- 定时器">创建系统 cron 定时器</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span>(aeCreateTimeEvent(server.el, <span class="hljs-number">1</span>, serverCron, <span class="hljs-literal">NULL</span>, <span class="hljs-literal">NULL</span>) == AE_ERR) &#123;
+<h4 id="创建系统 -cron- 定时器"><a href="# 创建系统 -cron- 定时器" class="headerlink" title="创建系统 cron 定时器"></a>创建系统 cron 定时器</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span>(aeCreateTimeEvent(server.el, <span class="hljs-number">1</span>, serverCron, <span class="hljs-literal">NULL</span>, <span class="hljs-literal">NULL</span>) == AE_ERR) &#123;
     serverPanic(<span class="hljs-string">&quot;Can&#x27;t create the serverCron time event.&quot;</span>);
     <span class="hljs-built_in">exit</span>(<span class="hljs-number">1</span>);
 &#125;</code></pre></div>
@@ -403,8 +384,7 @@ signal(SIGPIPE, SIG_IGN);</code></pre></div>
         te-&gt;id = AE_DELETED_EVENT_ID;
     &#125;
 &#125;</code></pre></div>
-<h4 id="监听 - 接收用户请求">监听 / 接收用户请求</h4>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; server.ipfd_count; j++) &#123;
+<h4 id="监听 - 接收用户请求"><a href="# 监听 - 接收用户请求" class="headerlink" title="监听 / 接收用户请求"></a>监听 / 接收用户请求</h4><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; server.ipfd_count; j++) &#123;
     <span class="hljs-keyword">if</span> (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE, <span class="hljs-comment">// 监听可读事件</span>
                           acceptTcpHandler,<span class="hljs-literal">NULL</span>) == AE_ERR)
     &#123;
@@ -412,17 +392,14 @@ signal(SIGPIPE, SIG_IGN);</code></pre></div>
     &#125;
 &#125;</code></pre></div>
 <p>接收用户请求（用户连接会从这里进来），监听可读事件，注册回调函数 <code>acceptTcpHandler</code>。</p>
-<h4 id="cluster- 初始化">cluster 初始化</h4>
-<p>如果开启了 cluster mode，会进行相应的初始化。</p>
+<h4 id="cluster- 初始化"><a href="#cluster- 初始化" class="headerlink" title="cluster 初始化"></a>cluster 初始化 </h4><p> 如果开启了 cluster mode，会进行相应的初始化。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.cluster_enabled) clusterInit();</code></pre></div>
-<h4 id="其他环境初始化">其他环境初始化</h4>
-<div class="hljs"><pre><code class="hljs c">replicationScriptCacheInit();
+<h4 id="其他环境初始化"><a href="# 其他环境初始化" class="headerlink" title="其他环境初始化"></a>其他环境初始化</h4><div class="hljs"><pre><code class="hljs c">replicationScriptCacheInit();
 scriptingInit(<span class="hljs-number">1</span>);
 slowlogInit();
 latencyMonitorInit();
 bioInit();</code></pre></div>
-<h3 id="设置进程名">设置进程名</h3>
-<p>这个函数很实用的，方便 ps 看到良好格式的进程名。一起来复习下。</p>
+<h3 id="设置进程名"><a href="# 设置进程名" class="headerlink" title="设置进程名"></a>设置进程名 </h3><p> 这个函数很实用的，方便 ps 看到良好格式的进程名。一起来复习下。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">redisSetProcTitle</span><span class="hljs-params">(<span class="hljs-keyword">char</span> *title)</span> </span>&#123;
 <span class="hljs-meta">#<span class="hljs-meta-keyword">ifdef</span> USE_SETPROCTITLE</span>
     <span class="hljs-keyword">char</span> *server_mode = <span class="hljs-string">&quot;&quot;</span>;
@@ -438,11 +415,9 @@ bioInit();</code></pre></div>
     UNUSED(title);
 <span class="hljs-meta">#<span class="hljs-meta-keyword">endif</span></span>
 &#125;</code></pre></div>
-<h3 id="加载持久化数据">加载持久化数据</h3>
-<p>如果不是以 sentinel 模式启动的，那么会加载持久化的数据，处理函数为 <code>loadDataFromDisk</code>。</p>
+<h3 id="加载持久化数据"><a href="# 加载持久化数据" class="headerlink" title="加载持久化数据"></a>加载持久化数据 </h3><p> 如果不是以 sentinel 模式启动的，那么会加载持久化的数据，处理函数为 <code>loadDataFromDisk</code>。</p>
 <p>如果开启了 aof，那么就加载 aof 文件，否则加载 rdb 文件。</p>
-<h5 id="loadAppendOnlyFile">loadAppendOnlyFile</h5>
-<p>该函数用来记载  aof 文件，主要流程就是创建一个伪客户端，从 aof  文件中解析出来命令，让 server 重新执行一遍。</p>
+<h5 id="loadAppendOnlyFile"><a href="#loadAppendOnlyFile" class="headerlink" title="loadAppendOnlyFile"></a>loadAppendOnlyFile</h5><p>该函数用来记载  aof 文件，主要流程就是创建一个伪客户端，从 aof  文件中解析出来命令，让 server 重新执行一遍。</p>
 <div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (buf[<span class="hljs-number">0</span>] != <span class="hljs-string">&#x27;*&#x27;</span>) <span class="hljs-keyword">goto</span> fmterr;   <span class="hljs-comment">// 判断协议是否正确</span>
 <span class="hljs-keyword">if</span> (buf[<span class="hljs-number">1</span>] == <span class="hljs-string">&#x27;\0&#x27;</span>) <span class="hljs-keyword">goto</span> readerr; <span class="hljs-comment">// 判断数据完整判断</span>
 argc = atoi(buf+<span class="hljs-number">1</span>);
@@ -493,19 +468,15 @@ xx
 $<span class="hljs-number">2</span>
 yy
 *<span class="hljs-number">3</span></code></pre></div>
-<p><strong>注意</strong>：在加载 aof 文件过程中，会暂时关闭 aof。</p>
-<h5 id="rdbLoad">rdbLoad</h5>
-<p>该函数用来加载 rdb 文件。与 aof 加载不同的是，解析 rdb 文件后直接放入内存中。</p>
-<h3 id="事件循环初始化">事件循环初始化</h3>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 进入事件循环之前执行 beforeSleep() 函数</span>
+<p>  <strong>注意</strong>：在加载 aof 文件过程中，会暂时关闭 aof。</p>
+<h5 id="rdbLoad"><a href="#rdbLoad" class="headerlink" title="rdbLoad"></a>rdbLoad</h5><p>该函数用来加载 rdb 文件。与 aof 加载不同的是，解析 rdb 文件后直接放入内存中。</p>
+<h3 id="事件循环初始化"><a href="# 事件循环初始化" class="headerlink" title="事件循环初始化"></a>事件循环初始化</h3><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 进入事件循环之前执行 beforeSleep() 函数</span>
 aeSetBeforeSleepProc(server.el,beforeSleep);
 <span class="hljs-comment">// 开始事件循环</span>
 aeMain(server.el);
 <span class="hljs-comment">// 服务器关闭，删除事件循环</span>
 aeDeleteEventLoop(server.el);</code></pre></div>
-<h2 id="小结">小结</h2>
-<p>画了一个流程图，可以很好的体现以上流程。<br>
-<img src="http://ww1.sinaimg.cn/large/71ca8e3cly1fxz66ssdg9j209a0pdac8.jpg" srcset="/img/loading.gif" alt="redis server setup"></p>
+<h2 id="小结"><a href="# 小结" class="headerlink" title="小结"></a>小结 </h2><p> 画了一个流程图，可以很好的体现以上流程。<br><img src="http://ww1.sinaimg.cn/large/71ca8e3cly1fxz66ssdg9j209a0pdac8.jpg" srcset="/img/loading.gif" alt="redis server setup"></p>
 
             </div>
             <hr>

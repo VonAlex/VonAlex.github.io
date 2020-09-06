@@ -245,10 +245,9 @@
               </p>
             
             <div class="markdown-body" id="post-body">
-              <p><strong>JSON</strong>（Javascript Object Notation）已经成为了一种非常流行的数据交换格式，golang 自然不会忽视对 json 的支持，golang 自带的标准库就可以方便的处理 json。另外，推荐一种号称 <strong> 全世界最快的 JSON 解析器</strong> – <code>jsoniter</code>。</p>
+              <p><strong>JSON</strong>（Javascript Object Notation）已经成为了一种非常流行的数据交换格式，golang 自然不会忽视对 json 的支持，golang 自带的标准库就可以方便的处理 json。另外，推荐一种号称 <strong> 全世界最快的 JSON 解析器</strong> — <code>jsoniter</code>。</p>
 <a id="more"></a>
-<h2 id="简介">简介</h2>
-<p>json 中提供的处理 json 的标准包是 <code>encoding/json</code>, 主要使用的是以下两个方法：</p>
+<h2 id="简介"><a href="# 简介" class="headerlink" title="简介"></a>简介</h2><p>json 中提供的处理 json 的标准包是 <code>encoding/json</code>, 主要使用的是以下两个方法：</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-comment">// 序列化</span>
 <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">Marshal</span><span class="hljs-params">(v <span class="hljs-keyword">interface</span>&#123;&#125;)</span> <span class="hljs-params">([]<span class="hljs-keyword">byte</span>, error)</span></span>
 
@@ -261,10 +260,8 @@
 []<span class="hljs-keyword">interface</span>&#123;&#125;, <span class="hljs-keyword">for</span> JSON arrays
 <span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;, <span class="hljs-keyword">for</span> JSON objects
 <span class="hljs-literal">nil</span> <span class="hljs-keyword">for</span> JSON null</code></pre></div>
-<h2 id="Unmarshal">Unmarshal</h2>
-<p>这是一个反序列化的过程，将 JSON 串重新组装成结构体。</p>
-<h3 id="已知解析类型">已知解析类型</h3>
-<p><i class="fa fa-code" aria-hidden="true"></i>示例代码如下：</p>
+<h2 id="Unmarshal"><a href="#Unmarshal" class="headerlink" title="Unmarshal"></a>Unmarshal</h2><p>这是一个反序列化的过程，将 JSON 串重新组装成结构体。</p>
+<h3 id="已知解析类型"><a href="# 已知解析类型" class="headerlink" title="已知解析类型"></a>已知解析类型 </h3><p><i class="fa fa-code" aria-hidden="true"></i> 示例代码如下：</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">package</span> main
 
 <span class="hljs-keyword">import</span> (<span class="hljs-string">&quot;encoding/json&quot;</span>
@@ -287,9 +284,7 @@
     &#125;
     fmt.Printf(<span class="hljs-string">&quot;%+v&quot;</span>, animals)
 &#125;</code></pre></div>
-<p>运行后，输出结果：<code>[&#123;Name:Platypus Order:Monotremata&#125; &#123;Name:Quoll Order:Dasyuromorphia&#125;]</code><br>
-可以看出，结构体字段名与 JSON 里的 KEY 一一对应.<br>
-例如 JSON 中的 KEY 是 <strong>Name</strong>，那么怎么找对应的字段呢？</p>
+<p>运行后，输出结果：<code>[&#123;Name:Platypus Order:Monotremata&#125; &#123;Name:Quoll Order:Dasyuromorphia&#125;]</code><br>可以看出，结构体字段名与 JSON 里的 KEY 一一对应.<br>例如 JSON 中的 KEY 是 <strong>Name</strong>，那么怎么找对应的字段呢？</p>
 <ul>
 <li>首先查找 tag 含有 Name 的可导出的 struct 字段(首字母大写)</li>
 <li>其次查找字段名是 Name 的导出字段</li>
@@ -299,8 +294,7 @@
 <blockquote>
 <p>同时 JSON 解析的时候只会解析能找得到的字段，找不到的字段会被忽略，这样的一个 <strong> 好处 </strong> 是：当你接收到一个很大的 JSON 数据结构而你却只想获取其中的部分数据的时候，你只需将你想要的数据对应的字段名大写，即可轻松解决这个问题。</p>
 </blockquote>
-<h3 id="未知解析类型">未知解析类型</h3>
-<p>前面说的是，已知要解析的类型，比如说，当看到 JSON arrays 时定义一个 golang 数组进行接收数据， 看到 JSON objects 时定义一个 map 来接收数据，那么这个时候怎么办？答案是使用 interface{} 进行接收，然后配合 <strong>type assert</strong> 进行解析，比如：</p>
+<h3 id="未知解析类型"><a href="# 未知解析类型" class="headerlink" title="未知解析类型"></a>未知解析类型 </h3><p> 前面说的是，已知要解析的类型，比如说，当看到 JSON arrays 时定义一个 golang 数组进行接收数据， 看到 JSON objects 时定义一个 map 来接收数据，那么这个时候怎么办？答案是使用 interface{} 进行接收，然后配合 <strong>type assert</strong> 进行解析，比如：</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">var</span> f <span class="hljs-keyword">interface</span>&#123;&#125;
 b := []<span class="hljs-keyword">byte</span>(<span class="hljs-string">`&#123;&quot;Name&quot;:&quot;Wednesday&quot;,&quot;Age&quot;:6,&quot;Parents&quot;:[&quot;Gomez&quot;,&quot;Morticia&quot;]&#125;`</span>)
 json.Unmarshal(b, &amp;f)
@@ -319,9 +313,7 @@ json.Unmarshal(b, &amp;f)
         &#125;
     &#125;
 &#125;</code></pre></div>
-<h2 id="Marshal">Marshal</h2>
-<p>这是序列化的过程，将结构体序列化成一个 JSON 串。<br>
-<i class="fa fa-code" aria-hidden="true"></i>示例代码如下：</p>
+<h2 id="Marshal"><a href="#Marshal" class="headerlink" title="Marshal"></a>Marshal</h2><p>这是序列化的过程，将结构体序列化成一个 JSON 串。<br><i class="fa fa-code" aria-hidden="true"></i>示例代码如下：</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">package</span> main
 
 <span class="hljs-keyword">import</span> (<span class="hljs-string">&quot;encoding/json&quot;</span>
@@ -345,26 +337,21 @@ json.Unmarshal(b, &amp;f)
 &#125;</code></pre></div>
 <p>运行后，输出结果：</p>
 <p><code>[&#123;&quot;name&quot;:&quot;Platypus&quot;,&quot;order&quot;:&quot;Monotremata&quot;&#125;,&#123;&quot;name&quot;:&quot;Quoll&quot;,&quot;order&quot;:&quot;Dasyuromorphia&quot;&#125;]</code></p>
-<p>可以发现，序列化得到的 json 串的 key 名字跟结构体 json tag 后指定的名字一样.<br>
-当结构体字段后无 json tag 时，得到的 json 串的 key 名与字段名一致。<br>
-<strong>json tag</strong> 有很多值可以取，同时有着不同的含义，比如：</p>
+<p>可以发现，序列化得到的 json 串的 key 名字跟结构体 json tag 后指定的名字一样.<br>当结构体字段后无 json tag 时，得到的 json 串的 key 名与字段名一致。<br><strong>json tag</strong> 有很多值可以取，同时有着不同的含义，比如：</p>
 <ul>
-<li>tag 是 “-”，表示该字段不会输出到 JSON.</li>
+<li>tag 是 “-“，表示该字段不会输出到 JSON.</li>
 <li>tag 中带有自定义名称，那么这个自定义名称会出现在 JSON 的字段名中，比如上面小写字母开头的 <code>name</code>.</li>
 <li>tag 中带有 <strong>“omitempty”</strong> 选项，那么如果该字段值为空，就不会输出到 JSON 串中.</li>
-<li>如果字段类型是 bool, string, int, int64 等，而 tag 中带有 **&quot;,string&quot;** 选项，那么该字段在输出到 JSON 时，会把该字段对应的值转换成 JSON 字符串.</li>
+<li>如果字段类型是 bool, string, int, int64 等，而 tag 中带有<strong>“,string”</strong> 选项，那么该字段在输出到 JSON 时，会把该字段对应的值转换成 JSON 字符串.</li>
 </ul>
-<h2 id="推荐的 -json- 解析库">推荐的 json 解析库</h2>
-<blockquote>
+<h2 id="推荐的 -json- 解析库"><a href="# 推荐的 -json- 解析库" class="headerlink" title="推荐的 json 解析库"></a>推荐的 json 解析库</h2><blockquote>
 <p>jsoniter（json-iterator）是一款快且灵活的 JSON 解析器，同时提供 Java 和 Go 两个版本。从 dsljson 和 jsonparser 借鉴了大量代码。</p>
-</blockquote>
 <p>jsoniter 的 Golang 版本可以比标准库（encoding/json）快 6 倍之多, 而且这个性能是在不使用代码生成的前提下获得的。</p>
-<p>可以使用 <code>go get github.com/json-iterator/go</code> 进行获取，完全兼容标准库的 <code>Marshal</code> 和 <code>Unmarshal</code>方法。<br>
-使用时导入 <code>github.com/json-iterator/go</code> 代替标准库，基本用法如下：</p>
+</blockquote>
+<p>可以使用 <code>go get github.com/json-iterator/go</code> 进行获取，完全兼容标准库的 <code>Marshal</code> 和 <code>Unmarshal</code>方法。<br>使用时导入 <code>github.com/json-iterator/go</code> 代替标准库，基本用法如下：</p>
 <div class="hljs"><pre><code class="hljs go">jsoniter.Marshal(&amp;data)
 jsoniter.Unmarshal(input, &amp;data)</code></pre></div>
-<h2 id="参考">参考</h2>
-<ol>
+<h2 id="参考"><a href="# 参考" class="headerlink" title="参考"></a>参考</h2><ol>
 <li><a target="_blank" rel="noopener" href="https://github.com/astaxie/build-web-application-with-golang/blob/master/zh/07.2.md">JSON 处理</a></li>
 <li><a target="_blank" rel="noopener" href="http://jsoniter.com/index.cn.html">json iterator</a></li>
 </ol>
