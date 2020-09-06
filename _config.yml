@@ -3,7 +3,7 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Happen's Memo
+title: HappenのMemo
 subtitle: Stay foolish, Stay hungry
 description:
 keywords: ""
@@ -13,7 +13,7 @@ timezone:
 
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
-url: https://vonalex.github.io/
+url: https://happencc.gitee.io
 root: /
 permalink: :abbrlink.html
 abbrlink:
@@ -71,6 +71,9 @@ sitemap:
 baidusitemap:
   path: baidusitemap.xml
 
+# 压缩生成文件 npm install hexo-all-minifier --save
+all_minifier: true
+
 
 # Metadata elements
 ## https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta
@@ -83,7 +86,7 @@ meta_generator: true
 date_format: YYYY-MM-DD
 time_format: HH:mm:ss
 ## Use post's date for updated date unless set in front-matter
-use_date_for_updated: false
+updated_option: 'date'
 
 # Pagination
 ## Set per_page to 0 to disable pagination
@@ -101,44 +104,11 @@ ignore:
 ## Themes: https://hexo.io/themes/
 theme: fluid
 
-# 本地搜索
-search:
-  path: search.xml
-  field: post
-  content: true
-
-markdown:
-  render:
-    html: true
-    xhtmlOut: false
-    breaks: true
-    linkify: true
-    typographer: true
-    quotes: '“”‘’'
-  plugins:
-    - markdown-it-abbr
-    - markdown-it-footnote
-    - markdown-it-ins
-    - markdown-it-sub
-    - markdown-it-sup
-  anchors:
-    level: 2
-    collisionSuffix: 'v'
-    permalink: false
-    permalinkClass: header-anchor
-    permalinkSymbol: §
-
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repo: git@github.com:VonAlex/VonAlex.github.io.git
+  repo: git@gitee.com:happencc/happencc.git
   branch: master
-  name: VonAlex
+  name: happencc
   email: Ahappyhappen@163.com
-
-backup:
-  type: git
-  theme: fluid
-  message: backup my blog
-  repository: git@github.com:VonAlex/VonAlex.github.io.git,backup

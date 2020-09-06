@@ -18,40 +18,32 @@ maxmemory 可以通过配置文件 `redis.conf` 中的 `maxmemory` 配置项来�
 
 ```c
 while(*u && isdigit(*u)) u++;
-if (*u == '\0' || !strcasecmp(u,"b"))
-{
+if (*u == '\0' || !strcasecmp(u,"b")) {
     mul = 1;
 }
-else if (!strcasecmp(u,"k"))
-{
+else if (!strcasecmp(u,"k")) {
     mul = 1000;
 }
-else if (!strcasecmp(u,"kb"))
-{
+else if (!strcasecmp(u,"kb")) {
     mul = 1024;
 }
-else if (!strcasecmp(u,"m"))
-{
+else if (!strcasecmp(u,"m")) {
     mul = 1000*1000;
 }
-else if (!strcasecmp(u,"mb"))
-{
+else if (!strcasecmp(u,"mb")) {
     mul = 1024*1024;
 }
-else if (!strcasecmp(u,"g"))
-{
+else if (!strcasecmp(u,"g")) {
     mul = 1000L*1000*1000;
 }
-else if (!strcasecmp(u,"gb"))
-{
+else if (!strcasecmp(u,"gb")) {
     mul = 1024L*1024*1024;
-}
-else
-{
+} else {
     if (err) *err = 1;
     return 0;
 }
 ```
+
 可以看到，当加上 `b` 时，以 1024 做换算，否则以 1000 做换算。
 
 当服务器启动进行初始化时，对于 32 位系统，内存的最大使用量是 4G，如果用户没有做限制，那么设置 maxmemory 默认为 3G，并设置不做内存淘汰的策略，64 位系统则不做限制。
@@ -61,7 +53,6 @@ void initServer(void) {
     ....
     if (server.arch_bits == 32 && server.maxmemory == 0)
     {
-        serverLog(LL_WARNING,"Warning: 32 bit instance detected but no memory limit set. Setting 3 GB maxmemory limit with 'noeviction' policy now.");
         server.maxmemory = 3072LL*(1024*1024); /* 3 GB */
         server.maxmemory_policy = MAXMEMORY_NO_EVICTION;
     }
@@ -110,13 +101,11 @@ redis 基本上是通过 **zmalloc** 统一接口进行内存管理的，在 `zm
 1）**首先**，使用 `config` 命令设置 maxmemory 时，代码如下，
 
 ```c
-config_set_memory_field("maxmemory",server.maxmemory)
-{
-    if (server.maxmemory)
-    {
+config_set_memory_field("maxmemory",server.maxmemory) {
+    if (server.maxmemory) {
         if (server.maxmemory < zmalloc_used_memory())
         {
-            serverLog(LL_WARNING,"WARNING: the new maxmemory value set via CONFIG SET is smaller than the current memory usage. This will result in keys eviction and/or inability to accept new write commands depending on the maxmemory-policy.");
+            serverLog(LL_WARNING,"WARNING: xxxxxx.");
         }
         freeMemoryIfNeeded();
     }
@@ -128,8 +117,7 @@ config_set_memory_field("maxmemory",server.maxmemory)
 int luaRedisGenericCommand(lua_State *lua, int raise_error) {
   ...
   if (server.maxmemory && server.lua_write_dirty == 0 &&
-        (cmd->flags & CMD_DENYOOM))
-    {
+        (cmd->flags & CMD_DENYOOM)) {
         if (freeMemoryIfNeeded() == C_ERR) {
             luaPushError(lua, shared.oomerr->ptr);
             goto cleanup;
@@ -252,8 +240,7 @@ if (dictSize(dict) == 0) continue;
 random 策略，从 dict 里随机选一个 key。
 ```c
 if (server.maxmemory_policy == MAXMEMORY_ALLKEYS_RANDOM ||
-    server.maxmemory_policy == MAXMEMORY_VOLATILE_RANDOM)
-{
+    server.maxmemory_policy == MAXMEMORY_VOLATILE_RANDOM) {
     de = dictGetRandomKey(dict);
     bestkey = dictGetKey(de);
 }
@@ -319,8 +306,7 @@ robj *lookupKey(redisDb *db, robj *key, int flags) {
 
 ```c
 else if (server.maxmemory_policy == MAXMEMORY_ALLKEYS_LRU ||
-    server.maxmemory_policy == MAXMEMORY_VOLATILE_LRU)
-{
+    server.maxmemory_policy == MAXMEMORY_VOLATILE_LRU) {
     struct evictionPoolEntry *pool = db->eviction_pool;
 
     while(bestkey == NULL) {
@@ -416,8 +402,7 @@ unsigned long long estimateObjectIdleTime(robj *o) {
 
 该策略会随机选择 maxmemory_samples 个 key，选 ttl 最小的 key，也就是最先过期的 key。
 ```c
-else if (server.maxmemory_policy == MAXMEMORY_VOLATILE_TTL)
-{
+else if (server.maxmemory_policy == MAXMEMORY_VOLATILE_TTL) {
     for (k = 0; k < server.maxmemory_samples; k++) {
         sds thiskey;
         long thisval;

@@ -4,6 +4,7 @@ page.title = theme.archive.title || __('archive.title')
 page.subtitle = theme.archive.subtitle || __('archive.subtitle')
 page.banner_img = theme.archive.banner_img
 page.banner_img_height = theme.archive.banner_img_height
+page.banner_mask_alpha = theme.archive.banner_mask_alpha
 var date_cursor = 'xxx'
 %>
 
@@ -17,7 +18,7 @@ var date_cursor = 'xxx'
     <% } %>
     <a href="<%- url_for(post.path) %>" class="list-group-item list-group-item-action">
       <span class="archive-post-title"><%= post.title %></span>
-      <span style="float: right;"><%- date(post.date, "MM-DD") %></span>
+      <time style="float: right;"><%- date(post.date, "MM-DD") %></time>
     </a>
   <% }) %>
 </div>
