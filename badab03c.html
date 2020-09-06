@@ -1,260 +1,4 @@
-
-
-<!DOCTYPE html>
-<html lang="zh-CN" data-default-color-scheme=&#34;auto&#34;>
-
-
-
-<head>
-  <meta charset="UTF-8">
-  <link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png">
-  <link rel="icon" type="image/png" href="/images/dolphin.png">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-  <meta http-equiv="x-ua-compatible" content="ie=edge">
-  
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-  
-  <meta name="theme-color" content="#2f4154">
-  <meta name="description" content="">
-  <meta name="author" content="Happen">
-  <meta name="keywords" content="">
-  <title>Redis 源码分析之数据迁移 (2) - HappenのMemo</title>
-
-  <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
-
-
-  <link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css" />
-  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
-
-  
-    
-    
-      
-      <link  rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/atom-one-dark.min.css" />
-    
-  
-
-  
-
-
-<!-- 主题依赖的图标库，不要自行修改 -->
-
-<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css">
-
-
-
-<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
-
-
-<link  rel="stylesheet" href="/css/main.css" />
-
-<!-- 自定义样式保持在最底部 -->
-
-
-  <script  src="/js/utils.js" ></script>
-  <script  src="/js/color-schema.js" ></script>
-<meta name="generator" content="Hexo 5.1.1"></head>
-
-
-<body>
-  <header style="height: 70vh;">
-    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
-  <div class="container">
-    <a class="navbar-brand"
-       href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a>
-
-    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
-            data-target="#navbarSupportedContent"
-            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <div class="animated-icon"><span></span><span></span><span></span></div>
-    </button>
-
-    <!-- Collapsible content -->
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav ml-auto text-center">
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/">
-                <i class="iconfont icon-home-fill"></i>
-                首页
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/archives/">
-                <i class="iconfont icon-archive-fill"></i>
-                归档
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/categories/">
-                <i class="iconfont icon-category-fill"></i>
-                分类
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/tags/">
-                <i class="iconfont icon-tags-fill"></i>
-                标签
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/about/">
-                <i class="iconfont icon-user-fill"></i>
-                关于
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/links/">
-                <i class="iconfont icon-link-fill"></i>
-                友链
-              </a>
-            </li>
-          
-        
-        
-          <li class="nav-item" id="search-btn">
-            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i
-                class="iconfont icon-search"></i>&nbsp;</a>
-          </li>
-        
-        
-          <li class="nav-item" id="color-toggle-btn">
-            <a class="nav-link" href="javascript:">&nbsp;<i
-                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
-          </li>
-        
-      </ul>
-    </div>
-  </div>
-</nav>
-
-    <div class="banner intro-2" id="background" parallax=true
-         style="background: url('/images/about-banner.jpg') no-repeat center center;
-           background-size: cover;">
-      <div class="full-bg-img">
-        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
-          <div class="container page-header text-center fade-in-up">
-            <span class="h2" id="subtitle">
-              
-            </span>
-
-            
-              <div class="mt-3">
-  
-    <span class="post-meta mr-2">
-      <i class="iconfont icon-author" aria-hidden="true"></i>
-      Happen
-    </span>
-  
-  
-    <span class="post-meta">
-      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-      <time datetime="2020-04-02 18:40" pubdate>
-        2020年4月2日 晚上
-      </time>
-    </span>
-  
-</div>
-
-<div class="mt-1">
-  
-    
-    <span class="post-meta mr-2">
-      <i class="iconfont icon-chart"></i>
-      2.1k 字
-    </span>
-  
-
-  
-    
-    <span class="post-meta mr-2">
-      <i class="iconfont icon-clock-fill"></i>
-      
-      
-      29
-       分钟
-    </span>
-  
-
-  
-  
-</div>
-
-            
-          </div>
-
-          
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <main>
-    
-      
-
-<div class="container-fluid">
-  <div class="row">
-    <div class="d-none d-lg-block col-lg-2"></div>
-    <div class="col-lg-8 nopadding-md">
-      <div class="container nopadding-md" id="board-ctn">
-        <div class="py-5" id="board">
-          <article class="post-content mx-auto" id="post">
-            <!-- SEO header -->
-            <h1 style="display: none">Redis 源码分析之数据迁移 (2)</h1>
-            
-              <p class="note note-info">
-                
-                  本文最后更新于：2020年4月2日 晚上
-                
-              </p>
-            
-            <div class="markdown-body" id="post-body">
-              <p>上一篇文章中，详细讲解了 redis  cluster 中说数据迁移的流程，那在迁移过程中，节点对正常用户访问是如何处理的呢？<br>本篇文章将探讨一下。</p>
-<!--more---->
-<h3 id="processCommand- 函数处理"><a href="#processCommand- 函数处理" class="headerlink" title="processCommand 函数处理"></a>processCommand 函数处理 </h3><p> 众所周知，<code>processCommand</code> 函数负责处理具体的命令处理过程，</p>
-<p>在 cluster 模式下，此函数中会进行 cluster 重定向，但 2 种情况除外：</p>
-<ul>
-<li>发送命令的是我的 master</li>
-<li>发送的命令没有 key 参数</li>
-</ul>
-<p>具体代码，如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.cluster_enabled &amp;&amp;
+<!DOCTYPE html><html lang="zh-CN" data-default-color-scheme="&#34;auto&#34;"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#433d3c"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>Redis 源码分析之数据迁移 (2) - HappenのMemo</title><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css"><link rel="stylesheet" href="/lib/hint/hint.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/monokai.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css"><link rel="stylesheet" href="/css/main.css"><script src="/js/utils.js"></script><script src="/js/color-schema.js"></script><meta name="generator" content="Hexo 5.1.1"></head><body><header style="height:60vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"><a class="navbar-brand" href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="iconfont icon-home-fill"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="iconfont icon-archive-fill"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="iconfont icon-category-fill"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="iconfont icon-tags-fill"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="iconfont icon-user-fill"></i> 关于</a></li><li class="nav-item"><a class="nav-link" href="/links/"><i class="iconfont icon-link-fill"></i> 友链</a></li><li class="nav-item" id="search-btn"><a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i class="iconfont icon-search"></i>&nbsp;</a></li><li class="nav-item" id="color-toggle-btn"><a class="nav-link" href="javascript:">&nbsp;<i class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a></li></ul></div></div></nav><div class="banner intro-2" id="background" parallax="true" style="background:url(/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask flex-center" style="background-color:rgba(0,0,0,.3)"><div class="container page-header text-center fade-in-up"><span class="h2" id="subtitle"></span><div class="mt-3"><span class="post-meta mr-2"><i class="iconfont icon-author" aria-hidden="true"></i> Happen </span><span class="post-meta"><i class="iconfont icon-date-fill" aria-hidden="true"></i> <time datetime="2020-04-02 18:40" pubdate>2020-04-02 18:40</time></span></div><div class="mt-1"><span class="post-meta mr-2"><i class="iconfont icon-chart"></i> 2.1k 字 </span><span class="post-meta mr-2"><i class="iconfont icon-clock-fill"></i> 29 分钟 </span><span id="busuanzi_container_page_pv" style="display:none"><i class="iconfont icon-eye" aria-hidden="true"></i> <span id="busuanzi_value_page_pv"></span> 次</span></div></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5" id="board"><article class="post-content mx-auto" id="post"><h1 style="display:none">Redis 源码分析之数据迁移 (2)</h1><p class="note note-info">本文最后更新于：2020-04-02 18:40</p><div class="markdown-body" id="post-body"><p>上一篇文章中，详细讲解了 redis cluster 中说数据迁移的流程，那在迁移过程中，节点对正常用户访问是如何处理的呢？<br>本篇文章将探讨一下。</p><!--more----><h3 id="processCommand- 函数处理"><a href="#processCommand- 函数处理" class="headerlink" title="processCommand 函数处理"></a>processCommand 函数处理</h3><p>众所周知，<code>processCommand</code> 函数负责处理具体的命令处理过程，</p><p>在 cluster 模式下，此函数中会进行 cluster 重定向，但 2 种情况除外：</p><ul><li>发送命令的是我的 master</li><li>发送的命令没有 key 参数</li></ul><p>具体代码，如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.cluster_enabled &amp;&amp;
     !(c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
     !(c-&gt;flags &amp; CLIENT_LUA &amp;&amp;
     server.lua_caller-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
@@ -274,8 +18,7 @@
         clusterRedirectClient(c,n,hashslot,error_code);
         <span class="hljs-keyword">return</span> C_OK;
     &#125;
-&#125;</code></pre></div>
-<p>由上可以看出，代码中使用 <code>getNodeByQuery</code> 函数负责处理 hashslot 的节点 n。<br>如果 n 是空的，或者不是我自己，那么就需要做一个 cluster 的 redirection，使用 <code>clusterRedirectClient</code> 函数，该函数主要是针对 <code>getNodeByQuery</code> 函数返回的不同错误码，给 client 不同的返回信息，具体代码如下，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterRedirectClient</span><span class="hljs-params">(client *c, clusterNode *n, <span class="hljs-keyword">int</span> hashslot, <span class="hljs-keyword">int</span> error_code)</span> </span>&#123;
+&#125;</code></pre></div><p>由上可以看出，代码中使用 <code>getNodeByQuery</code> 函数负责处理 hashslot 的节点 n。<br>如果 n 是空的，或者不是我自己，那么就需要做一个 cluster 的 redirection，使用 <code>clusterRedirectClient</code> 函数，该函数主要是针对 <code>getNodeByQuery</code> 函数返回的不同错误码，给 client 不同的返回信息，具体代码如下，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterRedirectClient</span><span class="hljs-params">(client *c, clusterNode *n, <span class="hljs-keyword">int</span> hashslot, <span class="hljs-keyword">int</span> error_code)</span> </span>&#123;
     <span class="hljs-keyword">if</span> (error_code == CLUSTER_REDIR_CROSS_SLOT) &#123;
         addReplySds(c,sdsnew(<span class="hljs-string">&quot;-CROSSSLOT Keys in request don&#x27;t hash to the same slot\r\n&quot;</span>));
     &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (error_code == CLUSTER_REDIR_UNSTABLE) &#123;
@@ -293,10 +36,7 @@
     &#125; <span class="hljs-keyword">else</span> &#123;
         serverPanic(<span class="hljs-string">&quot;getNodeByQuery() unknown error.&quot;</span>);
     &#125;
-&#125;</code></pre></div></p>
-<p>最后返回 <code>C_OK</code>，结束命令处理流程，因为涉及到的 slot 不是本节点负责！</p>
-<h3 id="getNodeByQuery- 函数处理"><a href="#getNodeByQuery- 函数处理" class="headerlink" title="getNodeByQuery 函数处理"></a>getNodeByQuery 函数处理 </h3><p> 下面来看下比较重要的 <code>getNodeByQuery</code> 函数的处理逻辑，它用来返回负责访问 slot 的真实节点。</p>
-<div class="hljs"><pre><code class="hljs c">multiState *ms, _ms;
+&#125;</code></pre></div></p><p>最后返回 <code>C_OK</code>，结束命令处理流程，因为涉及到的 slot 不是本节点负责！</p><h3 id="getNodeByQuery- 函数处理"><a href="#getNodeByQuery- 函数处理" class="headerlink" title="getNodeByQuery 函数处理"></a>getNodeByQuery 函数处理</h3><p>下面来看下比较重要的 <code>getNodeByQuery</code> 函数的处理逻辑，它用来返回负责访问 slot 的真实节点。</p><div class="hljs"><pre><code class="hljs c">multiState *ms, _ms;
 multiCmd mc;
 <span class="hljs-keyword">int</span> i, slot = <span class="hljs-number">0</span>, migrating_slot = <span class="hljs-number">0</span>, importing_slot = <span class="hljs-number">0</span>, missing_keys = <span class="hljs-number">0</span>;
 <span class="hljs-comment">/* Set error code optimistically for the base case. */</span>
@@ -316,25 +56,15 @@ multiCmd mc;
         mc.argv = argv;
         mc.argc = argc;
         mc.cmd = cmd;
-&#125;</code></pre></div>
-<p>当没有错误时，该函数返回的错误码是 <strong>CLUSTER_REDIR_NONE</strong>。</p>
-<p><strong>注意 </strong>：<br> 如果当前处于事务模式下，则事务中的所有命令中的所有 key，需要一起进行判断。<br>对于非事务模式下的命令，也按照事务的方式进行处理，只不过本事务只包含当前一条命令。</p>
-<p>如果当前执行的命令是 <code>EXEC</code>，并且 client 没有 <strong>CLIENT_MULTI</strong> 标记，那么直接返回 myself，表示自己能处理这个命令，但是实际上这种情况下，在命令处理函数 <code>execCommand</code> 中，会直接反馈给客户端 <strong>EXEC without MULTI</strong> 错误。<br>否则，构造伪事务数据结构变量 <code>ms</code>，其中只包含当前命令这一条。</p>
-<p>接下来，针对每一条命令，即所有逻辑包裹在如下循环里，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; ms-&gt;count; i++) &#123;&#125;</code></pre></div>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 每一个命令的相关参数</span>
+&#125;</code></pre></div><p>当没有错误时，该函数返回的错误码是 <strong>CLUSTER_REDIR_NONE</strong>。</p><p><strong>注意 </strong>：<br>如果当前处于事务模式下，则事务中的所有命令中的所有 key，需要一起进行判断。<br>对于非事务模式下的命令，也按照事务的方式进行处理，只不过本事务只包含当前一条命令。</p><p>如果当前执行的命令是 <code>EXEC</code>，并且 client 没有 <strong>CLIENT_MULTI</strong> 标记，那么直接返回 myself，表示自己能处理这个命令，但是实际上这种情况下，在命令处理函数 <code>execCommand</code> 中，会直接反馈给客户端 <strong>EXEC without MULTI</strong> 错误。<br>否则，构造伪事务数据结构变量 <code>ms</code>，其中只包含当前命令这一条。</p><p>接下来，针对每一条命令，即所有逻辑包裹在如下循环里，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">for</span> (i = <span class="hljs-number">0</span>; i &lt; ms-&gt;count; i++) &#123;&#125;</code></pre></div><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 每一个命令的相关参数</span>
 mcmd = ms-&gt;commands[i].cmd;
 margc = ms-&gt;commands[i].argc;
 margv = ms-&gt;commands[i].argv;
-keyindex = getKeysFromCommand(mcmd,margv,margc,&amp;numkeys);</code></pre></div>
-<p><code>getKeysFromCommand</code> 函数的返回值 <code>keyindex</code> 为本条命令中所有 key 的 index 数组，<code>numkeys</code> 则为 key 的个数。<br>接下来就循环处理本条命令中的所有 key。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 循环处理每个 key</span>
-<span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; numkeys; j++) &#123;&#125;</code></pre></div>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 拿到 key</span>
+keyindex = getKeysFromCommand(mcmd,margv,margc,&amp;numkeys);</code></pre></div><p><code>getKeysFromCommand</code> 函数的返回值 <code>keyindex</code> 为本条命令中所有 key 的 index 数组，<code>numkeys</code> 则为 key 的个数。<br>接下来就循环处理本条命令中的所有 key。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 循环处理每个 key</span>
+<span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; numkeys; j++) &#123;&#125;</code></pre></div><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 拿到 key</span>
 robj *thiskey = margv[keyindex[j]];
 <span class="hljs-comment">// 拿到对应的 slot</span>
-<span class="hljs-keyword">int</span> thisslot = keyHashSlot((<span class="hljs-keyword">char</span>*)thiskey-&gt;ptr, sdslen(thiskey-&gt;ptr));</code></pre></div>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (firstkey == <span class="hljs-literal">NULL</span>) &#123;
+<span class="hljs-keyword">int</span> thisslot = keyHashSlot((<span class="hljs-keyword">char</span>*)thiskey-&gt;ptr, sdslen(thiskey-&gt;ptr));</code></pre></div><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (firstkey == <span class="hljs-literal">NULL</span>) &#123;
     <span class="hljs-comment">// 如果是该命令中的一个 key，记录到 firstkey 里</span>
     firstkey = thiskey;
     slot = thisslot;
@@ -353,10 +83,7 @@ robj *thiskey = margv[keyindex[j]];
      &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (server.cluster-&gt;importing_slots_from[slot] != <span class="hljs-literal">NULL</span>) &#123;
          importing_slot = <span class="hljs-number">1</span>;
      &#125;
-&#125;</code></pre></div>
-<p>这里有个重要的逻辑。<br>当要操作的 key 对应的 slot 是我负责的，并且该 slot 正在迁出 key，那么标记 <code>migrating_slot = 1</code>。<br>如果这个 slot 不是我负责的，那么标记 <code>importing_slot = 1</code>。</p>
-<p>如果不是第一个 key，就要看下 <strong> 是不是所有的 key 都在一个 slot 上</strong>，否则，会报错 <strong>CROSSSLOT Keys in request don’t hash to the same slot</strong>。代码如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (!equalStringObjects(firstkey,thiskey)) &#123;
+&#125;</code></pre></div><p>这里有个重要的逻辑。<br>当要操作的 key 对应的 slot 是我负责的，并且该 slot 正在迁出 key，那么标记 <code>migrating_slot = 1</code>。<br>如果这个 slot 不是我负责的，那么标记 <code>importing_slot = 1</code>。</p><p>如果不是第一个 key，就要看下 <strong>是不是所有的 key 都在一个 slot 上</strong>，否则，会报错 <strong>CROSSSLOT Keys in request don’t hash to the same slot</strong>。代码如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (!equalStringObjects(firstkey,thiskey)) &#123;
     <span class="hljs-keyword">if</span> (slot != thisslot) &#123;
        <span class="hljs-comment">/* Error: multiple keys from different slots. */</span>
         getKeysFreeResult(keyindex);
@@ -367,15 +94,10 @@ robj *thiskey = margv[keyindex[j]];
         <span class="hljs-comment">/* Flag this request as one with multiple different keys. */</span>
          multiple_keys = <span class="hljs-number">1</span>;
      &#125;
-&#125;</code></pre></div>
-<p>所以，对于多 key 操作，涉及到的 key 需要在一个 slot 上，否则会报错。</p>
-<p>同时，遇到正在迁入迁出 key 的 slot 还要统计 missing_keys（本地找不到的 key，可能已经迁移到目的地了）。如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> ((migrating_slot || importing_slot) &amp;&amp;
+&#125;</code></pre></div><p>所以，对于多 key 操作，涉及到的 key 需要在一个 slot 上，否则会报错。</p><p>同时，遇到正在迁入迁出 key 的 slot 还要统计 missing_keys（本地找不到的 key，可能已经迁移到目的地了）。如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> ((migrating_slot || importing_slot) &amp;&amp;
     lookupKeyRead(&amp;server.db[<span class="hljs-number">0</span>],thiskey) == <span class="hljs-literal">NULL</span>) &#123;
      missing_keys++;
-&#125;</code></pre></div>
-<p>结束了每个命令的处理，接着往下走，对于有迁入迁出 slot 的情况是如何处理的呢？</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 命令里没有 key，本节点就可以处理，返回 myself</span>
+&#125;</code></pre></div><p>结束了每个命令的处理，接着往下走，对于有迁入迁出 slot 的情况是如何处理的呢？</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">// 命令里没有 key，本节点就可以处理，返回 myself</span>
 <span class="hljs-keyword">if</span> (n == <span class="hljs-literal">NULL</span>) <span class="hljs-keyword">return</span> myself;
 
 <span class="hljs-comment">// 集群状态不正常，返回错误 -CLUSTERDOWN</span>
@@ -387,9 +109,7 @@ robj *thiskey = margv[keyindex[j]];
 <span class="hljs-comment">// 如果有正在迁入或者迁出的 slot，且正执行的命令是 MIGRATE，返回 myself</span>
 <span class="hljs-comment">// MIGRATE 命令总是在本地上下文环境中运行的</span>
 <span class="hljs-keyword">if</span> ((migrating_slot || importing_slot) &amp;&amp; cmd-&gt;proc == migrateCommand)
-    <span class="hljs-keyword">return</span> myself;</code></pre></div>
-<p>对于访问到迁入迁出 slot 中的 key 的处理，如下</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (migrating_slot &amp;&amp; missing_keys) &#123;
+    <span class="hljs-keyword">return</span> myself;</code></pre></div><p>对于访问到迁入迁出 slot 中的 key 的处理，如下</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (migrating_slot &amp;&amp; missing_keys) &#123;
     <span class="hljs-keyword">if</span> (error_code) *error_code = CLUSTER_REDIR_ASK;
     <span class="hljs-keyword">return</span> server.cluster-&gt;migrating_slots_to[slot];
 &#125;
@@ -403,288 +123,15 @@ robj *thiskey = margv[keyindex[j]];
          <span class="hljs-comment">// 否则返回 myself</span>
          <span class="hljs-keyword">return</span> myself;
      &#125;
-&#125;</code></pre></div>
-<p>若访问的 slot 正在做迁出，且存在正常访问的 key 在本地查不到，那么报错 <strong>-ASK</strong>，并返回该 key 迁移到的目的节点（可能是迁到目的节点了）。<br>若访问的 slot 正在做迁入，且 client 带有 <strong>CLIENT_ASKING</strong> 标记，或者 cmd 带有 <strong>CMD_ASKING</strong> 的标记。此时，如果涉及到多 key 操作，且有的 key 不在当前节点中，报错  <strong>-TRYAGAIN</strong>（后面重试），返回 NULL。否则，返回 myself（因为所有的 key 我都有嘛）。</p>
-<hr>
-<p>经过上面两条分析，<strong>下面总结一下 </strong>：<br> 当要访问的 slot 恰好在做迁移，那么 redis 有如下逻辑。<br><code>multiple_keys</code> 变量表示这是否是个多 key 操作。<br><code>missing_keys</code> 变量表示，要访问的 key，是否都在本节点。</p>
-<p>对于单 key 操作，</p>
-<ul>
-<li><p>写 key 时，因为本地没有这个 key，所以通过 ASK 错误重定向到目标节点进行写入操作。</p>
-</li>
-<li><p>读 key 时，如果本地节点有，那么在本地节点访问，否则通过 ASK 错误，重定向到目标节点进行读取。</p>
-</li>
-</ul>
-<p>对于多 key 操作，</p>
-<ul>
-<li><p>写 key 时，因为本地没有这些 key，所以通过 ASK 错误重定向到目标节点，而在目标节点中也没有这些 key，而且又是个多 key 操作，那么报错 <strong>-TRYAGAIN</strong>，只能等到后面这个 slot 迁移完成后才能做多 key 写入。</p>
-</li>
-<li><p>多 key 时，如果本地有所有的 key，那么正常返回。如果本地只有部分 key，那么通过 ASK 错误重定向到目标节点。到了目标节点，如果有全部的 key，那么正常返回，否则报错 <strong>-TRYAGAIN</strong>。（待会再来访问吧，等到所有的 key 都迁过来）</p>
-</li>
-</ul>
-<hr>
-<h3 id="MOVED- 与 -ASK- 重定向"><a href="#MOVED- 与 -ASK- 重定向" class="headerlink" title="MOVED 与 ASK 重定向"></a>MOVED 与 ASK 重定向 </h3><p> 如果访问到的 slot 不是我负责的，那么报错 <strong>-MOVED</strong>，且返回正确的负责节点。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (n != myself &amp;&amp; error_code) *error_code = CLUSTER_REDIR_MOVED;
-    <span class="hljs-keyword">return</span> n;</code></pre></div>
-<p>当然，这样也可以很清楚的看到 <strong>MOVED</strong> 和 <strong>ASK</strong> 错误的区别。</p>
-<ul>
-<li><p><strong>ASK</strong> 表示，要访问的 key 所在的 slot 当前正在做迁移，去 ASK 迁入节点处理请求。</p>
-</li>
-<li><p><strong>MOVED</strong> 表示，要访问的 key 所在的 slot 不由本节点负责，MOVED 到正确的节点去访问吧。</p>
-</li>
-</ul>
-<p>接收到 ASK 错误后，client 应该先发送 <code>ASKING</code> 命令到迁入节点，使得 client 带上 <code>CLIENT_ASKING</code> 标记，然后再发送正常命令。</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">askingCommand</span><span class="hljs-params">(client *c)</span> </span>&#123;
+&#125;</code></pre></div><p>若访问的 slot 正在做迁出，且存在正常访问的 key 在本地查不到，那么报错 <strong>-ASK</strong>，并返回该 key 迁移到的目的节点（可能是迁到目的节点了）。<br>若访问的 slot 正在做迁入，且 client 带有 <strong>CLIENT_ASKING</strong> 标记，或者 cmd 带有 <strong>CMD_ASKING</strong> 的标记。此时，如果涉及到多 key 操作，且有的 key 不在当前节点中，报错 <strong>-TRYAGAIN</strong>（后面重试），返回 NULL。否则，返回 myself（因为所有的 key 我都有嘛）。</p><hr><p>经过上面两条分析，<strong>下面总结一下 </strong>：<br>当要访问的 slot 恰好在做迁移，那么 redis 有如下逻辑。<br><code>multiple_keys</code> 变量表示这是否是个多 key 操作。<br><code>missing_keys</code> 变量表示，要访问的 key，是否都在本节点。</p><p>对于单 key 操作，</p><ul><li><p>写 key 时，因为本地没有这个 key，所以通过 ASK 错误重定向到目标节点进行写入操作。</p></li><li><p>读 key 时，如果本地节点有，那么在本地节点访问，否则通过 ASK 错误，重定向到目标节点进行读取。</p></li></ul><p>对于多 key 操作，</p><ul><li><p>写 key 时，因为本地没有这些 key，所以通过 ASK 错误重定向到目标节点，而在目标节点中也没有这些 key，而且又是个多 key 操作，那么报错 <strong>-TRYAGAIN</strong>，只能等到后面这个 slot 迁移完成后才能做多 key 写入。</p></li><li><p>多 key 时，如果本地有所有的 key，那么正常返回。如果本地只有部分 key，那么通过 ASK 错误重定向到目标节点。到了目标节点，如果有全部的 key，那么正常返回，否则报错 <strong>-TRYAGAIN</strong>。（待会再来访问吧，等到所有的 key 都迁过来）</p></li></ul><hr><h3 id="MOVED- 与 -ASK- 重定向"><a href="#MOVED- 与 -ASK- 重定向" class="headerlink" title="MOVED 与 ASK 重定向"></a>MOVED 与 ASK 重定向</h3><p>如果访问到的 slot 不是我负责的，那么报错 <strong>-MOVED</strong>，且返回正确的负责节点。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (n != myself &amp;&amp; error_code) *error_code = CLUSTER_REDIR_MOVED;
+    <span class="hljs-keyword">return</span> n;</code></pre></div><p>当然，这样也可以很清楚的看到 <strong>MOVED</strong> 和 <strong>ASK</strong> 错误的区别。</p><ul><li><p><strong>ASK</strong> 表示，要访问的 key 所在的 slot 当前正在做迁移，去 ASK 迁入节点处理请求。</p></li><li><p><strong>MOVED</strong> 表示，要访问的 key 所在的 slot 不由本节点负责，MOVED 到正确的节点去访问吧。</p></li></ul><p>接收到 ASK 错误后，client 应该先发送 <code>ASKING</code> 命令到迁入节点，使得 client 带上 <code>CLIENT_ASKING</code> 标记，然后再发送正常命令。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">askingCommand</span><span class="hljs-params">(client *c)</span> </span>&#123;
     <span class="hljs-keyword">if</span> (server.cluster_enabled == <span class="hljs-number">0</span>) &#123;
         addReplyError(c,<span class="hljs-string">&quot;This instance has cluster support disabled&quot;</span>);
         <span class="hljs-keyword">return</span>;
     &#125;
     c-&gt;flags |= CLIENT_ASKING;
     addReply(c,shared.ok);
-&#125;</code></pre></div>
-            </div>
-            <hr>
-            <div>
-              <div class="post-metas mb-3">
-                
-                  <div class="post-meta mr-3">
-                    <i class="iconfont icon-category"></i>
-                    
-                      <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a>
-                    
-                  </div>
-                
-                
-                  <div class="post-meta">
-                    <i class="iconfont icon-tags"></i>
-                    
-                      <a class="hover-with-bg" href="/tags/redis/">redis</a>
-                    
-                  </div>
-                
-              </div>
-              
-                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p>
-              
-              
-                <div class="post-prevnext row">
-                  <article class="post-prev col-6">
-                    
-                    
-                      <a href="/5a077de9.html">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Redis 源码分析之 key 过期</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
-                  </article>
-                  <article class="post-next col-6">
-                    
-                    
-                      <a href="/91f7e3ff.html">
-                        <span class="hidden-mobile">Redis 源码分析之数据迁移 (1)</span>
-                        <span class="visible-mobile">下一篇</span>
-                        <i class="iconfont icon-arrowright"></i>
-                      </a>
-                    
-                  </article>
-                </div>
-              
-            </div>
-
-            
-              <!-- Comments -->
-              <article class="comments" id="comments">
-                
-                
-  <div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw">
-    <script type="text/javascript">
-      function loadLivere() {
-        addScript('https://cdn-city.livere.com/js/embed.dist.js');
-      }
-      waitElementVisible('lv-container', loadLivere);
-    </script>
-    <noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript>
-  </div>
-
-
-              </article>
-            
-          </article>
-        </div>
-      </div>
-    </div>
-    
-      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
-        <div id="toc">
-  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
-  <div id="tocbot"></div>
-</div>
-
-      </div>
-    
-  </div>
-</div>
-
-<!-- Custom -->
-
-
-    
-  </main>
-
-  
-    <a id="scroll-top-button" href="#" role="button">
-      <i class="iconfont icon-arrowup" aria-hidden="true"></i>
-    </a>
-  
-
-  
-    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
-     aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header text-center">
-        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
-        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body mx-3">
-        <div class="md-form mb-5">
-          <input type="text" id="local-search-input" class="form-control validate">
-          <label data-error="x" data-success="v"
-                 for="local-search-input">关键词</label>
-        </div>
-        <div class="list-group" id="local-search-result"></div>
-      </div>
-    </div>
-  </div>
-</div>
-  
-
-  
-
-  
-
-  <footer class="mt-5">
-  <div class="text-center py-3">
-    <div>
-      <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a>
-      <i class="iconfont icon-love"></i>
-      <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener">
-        <span>Fluid</span></a>
-    </div>
-    
-  <div class="statistics">
-    
-    
-
-    
-      
-        <!-- 不蒜子统计PV -->
-        <span id="busuanzi_container_site_pv" style="display: none">
-            总访问量 
-            <span id="busuanzi_value_site_pv"></span>
-             次
-          </span>
-      
-      
-        <!-- 不蒜子统计UV -->
-        <span id="busuanzi_container_site_uv" style="display: none">
-            总访客数 
-            <span id="busuanzi_value_site_uv"></span>
-             人
-          </span>
-      
-    
-  </div>
-
-
-    
-
-    
-  </div>
-</footer>
-
-<!-- SCRIPTS -->
-<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
-<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
-<script  src="/js/debouncer.js" ></script>
-<script  src="/js/main.js" ></script>
-
-<!-- Plugins -->
-
-
-  
-    <script  src="/js/lazyload.js" ></script>
-  
-
-
-
-  
-
-
-
-  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
-  <script  src="/js/clipboard-use.js" ></script>
-
-
-
-  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
-
-
-
-
-
-  <script  src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js" ></script>
-  <script>
-    $(document).ready(function () {
-      var boardCtn = $('#board-ctn');
-      var boardTop = boardCtn.offset().top;
-
-      tocbot.init({
-        tocSelector: '#tocbot',
-        contentSelector: '#post-body',
-        headingSelector: 'h1,h2,h3,h4,h5,h6',
-        linkClass: 'tocbot-link',
-        activeLinkClass: 'tocbot-active-link',
-        listClass: 'tocbot-list',
-        isCollapsedClass: 'tocbot-is-collapsed',
-        collapsibleClass: 'tocbot-is-collapsible',
-        collapseDepth: 2,
-        scrollSmooth: true,
-        headingsOffset: -boardTop
-      });
-      if ($('.toc-list-item').length > 0) {
-        $('#toc').css('visibility', 'visible');
-      }
-    });
-  </script>
-
-
-
-  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
-  <script>
-    var typed = new Typed('#subtitle', {
-      strings: [
-        '  ',
-        "Redis 源码分析之数据迁移 (2)&nbsp;",
-      ],
-      cursorChar: "_",
-      typeSpeed: 70,
-      loop: false,
-    });
-    typed.stop();
-    $(document).ready(function () {
-      $(".typed-cursor").addClass("h2");
-      typed.start();
-    });
-  </script>
-
-
-
-  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
-  <script>
-    anchors.options = {
+&#125;</code></pre></div></div><hr><div><div class="post-metas mb-3"><div class="post-meta mr-3"><i class="iconfont icon-category"></i> <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a></div><div class="post-meta"><i class="iconfont icon-tags"></i> <a class="hover-with-bg" href="/tags/redis/">redis</a></div></div><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p><div class="post-prevnext row"><article class="post-prev col-6"><a href="/5a077de9.html"><i class="iconfont icon-arrowleft"></i> <span class="hidden-mobile">Redis 源码分析之 key 过期</span> <span class="visible-mobile">上一篇</span></a></article><article class="post-next col-6"><a href="/91f7e3ff.html"><span class="hidden-mobile">Redis 源码分析之数据迁移 (1)</span> <span class="visible-mobile">下一篇</span> <i class="iconfont icon-arrowright"></i></a></article></div></div><article class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">function loadLivere(){addScript("https://cdn-city.livere.com/js/embed.dist.js")}waitElementVisible("lv-container",loadLivere)</script><noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript></div></article></article></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc"><p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div></main><a id="scroll-top-button" href="#" role="button"><i class="iconfont icon-arrowup" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4><button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"><input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div><a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a></div><div class="statistics"><span id="busuanzi_container_site_pv" style="display:none">总访问量 <span id="busuanzi_value_site_pv"></span> 次 </span><span id="busuanzi_container_site_uv" style="display:none">总访客数 <span id="busuanzi_value_site_uv"></span> 人</span></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="/js/debouncer.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js"></script><script>$(document).ready(function(){var t=$("#board-ctn").offset().top;tocbot.init({tocSelector:"#tocbot",contentSelector:"#post-body",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",collapseDepth:3,scrollSmooth:!0,headingsOffset:-t}),0<$(".toc-list-item").length&&$("#toc").css("visibility","visible")})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","Redis 源码分析之数据迁移 (2)&nbsp;"],cursorChar:"|",typeSpeed:72,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>anchors.options = {
       placement: "right",
       visible: "hover",
       
@@ -696,55 +143,4 @@ robj *thiskey = margv[keyindex[j]];
     for (item of el) {
       res.push(".markdown-body > " + item)
     }
-    anchors.add(res.join(", "))
-  </script>
-
-
-
-  <script  src="/js/local-search.js" ></script>
-  <script>
-    var path = "/local-search.xml";
-    var inputArea = document.querySelector("#local-search-input");
-    inputArea.onclick = function () {
-      searchFunc(path, 'local-search-input', 'local-search-result');
-      this.onclick = null
-    }
-  </script>
-
-
-
-  <script  src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
-  <link  rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
-
-  <script>
-    $('#post img:not(.no-zoom img, img[no-zoom]), img[zoom]').each(
-      function () {
-        var element = document.createElement('a');
-        $(element).attr('data-fancybox', 'images');
-        $(element).attr('href', $(this).attr('src'));
-        $(this).wrap(element);
-      }
-    );
-  </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</body>
-</html>
+    anchors.add(res.join(", "))</script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){searchFunc(path,"local-search-input","local-search-result"),this.onclick=null}</script><script src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><link rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><script>$("#post img:not(.no-zoom img, img[no-zoom]), img[zoom]").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>

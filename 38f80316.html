@@ -1,261 +1,5 @@
-
-
-<!DOCTYPE html>
-<html lang="zh-CN" data-default-color-scheme=&#34;auto&#34;>
-
-
-
-<head>
-  <meta charset="UTF-8">
-  <link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png">
-  <link rel="icon" type="image/png" href="/images/dolphin.png">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-  <meta http-equiv="x-ua-compatible" content="ie=edge">
-  
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-  
-  <meta name="theme-color" content="#2f4154">
-  <meta name="description" content="">
-  <meta name="author" content="Happen">
-  <meta name="keywords" content="">
-  <title>java 第三方包学习之 lombok - HappenのMemo</title>
-
-  <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
-
-
-  <link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css" />
-  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
-
-  
-    
-    
-      
-      <link  rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/atom-one-dark.min.css" />
-    
-  
-
-  
-
-
-<!-- 主题依赖的图标库，不要自行修改 -->
-
-<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css">
-
-
-
-<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
-
-
-<link  rel="stylesheet" href="/css/main.css" />
-
-<!-- 自定义样式保持在最底部 -->
-
-
-  <script  src="/js/utils.js" ></script>
-  <script  src="/js/color-schema.js" ></script>
-<meta name="generator" content="Hexo 5.1.1"></head>
-
-
-<body>
-  <header style="height: 70vh;">
-    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
-  <div class="container">
-    <a class="navbar-brand"
-       href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a>
-
-    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
-            data-target="#navbarSupportedContent"
-            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <div class="animated-icon"><span></span><span></span><span></span></div>
-    </button>
-
-    <!-- Collapsible content -->
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav ml-auto text-center">
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/">
-                <i class="iconfont icon-home-fill"></i>
-                首页
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/archives/">
-                <i class="iconfont icon-archive-fill"></i>
-                归档
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/categories/">
-                <i class="iconfont icon-category-fill"></i>
-                分类
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/tags/">
-                <i class="iconfont icon-tags-fill"></i>
-                标签
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/about/">
-                <i class="iconfont icon-user-fill"></i>
-                关于
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/links/">
-                <i class="iconfont icon-link-fill"></i>
-                友链
-              </a>
-            </li>
-          
-        
-        
-          <li class="nav-item" id="search-btn">
-            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i
-                class="iconfont icon-search"></i>&nbsp;</a>
-          </li>
-        
-        
-          <li class="nav-item" id="color-toggle-btn">
-            <a class="nav-link" href="javascript:">&nbsp;<i
-                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
-          </li>
-        
-      </ul>
-    </div>
-  </div>
-</nav>
-
-    <div class="banner intro-2" id="background" parallax=true
-         style="background: url('/images/about-banner.jpg') no-repeat center center;
-           background-size: cover;">
-      <div class="full-bg-img">
-        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
-          <div class="container page-header text-center fade-in-up">
-            <span class="h2" id="subtitle">
-              
-            </span>
-
-            
-              <div class="mt-3">
-  
-    <span class="post-meta mr-2">
-      <i class="iconfont icon-author" aria-hidden="true"></i>
-      Happen
-    </span>
-  
-  
-    <span class="post-meta">
-      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-      <time datetime="2016-07-16 01:09" pubdate>
-        2016年7月16日 凌晨
-      </time>
-    </span>
-  
-</div>
-
-<div class="mt-1">
-  
-    
-    <span class="post-meta mr-2">
-      <i class="iconfont icon-chart"></i>
-      2.8k 字
-    </span>
-  
-
-  
-    
-    <span class="post-meta mr-2">
-      <i class="iconfont icon-clock-fill"></i>
-      
-      
-      41
-       分钟
-    </span>
-  
-
-  
-  
-</div>
-
-            
-          </div>
-
-          
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <main>
-    
-      
-
-<div class="container-fluid">
-  <div class="row">
-    <div class="d-none d-lg-block col-lg-2"></div>
-    <div class="col-lg-8 nopadding-md">
-      <div class="container nopadding-md" id="board-ctn">
-        <div class="py-5" id="board">
-          <article class="post-content mx-auto" id="post">
-            <!-- SEO header -->
-            <h1 style="display: none">java 第三方包学习之 lombok</h1>
-            
-              <p class="note note-info">
-                
-                  本文最后更新于：2016年7月16日 凌晨
-                
-              </p>
-            
-            <div class="markdown-body" id="post-body">
-              <p><strong>Laziness is a virtue！</strong>每当写 pojo 类时，都会重复写一些 setter/getter/toString 等大量的模版代码，无聊繁琐又不得不做，这会让这个类变得又臭又长，却没有多少东西。不久前发现有一个 java 第三方库可以一定程度上帮助我们从体力劳动中解救出来，它就是 lombok。它提供了一些简单的注解，并以此来消除 java 中臃肿的模版代码。本文对于一些常用到的注解做了一个简要的记录，希望有更多的人 enjoy it！<br><a id="more"></a></p>
-<h2 id="Lombok 是什么"><a href="#Lombok 是什么" class="headerlink" title="Lombok 是什么"></a>Lombok 是什么 </h2><p>Lombok 是一个旨在减少代码开发工作的 Java 库。它提供了一些简单的注解，并以此来消除 java 中臃肿的模版代码，比如 pojo 中最常见的 setter/getter 方法， 比如 toString 方法， 比如 equals 方法等等，还可以帮助我们关闭流，即使 JDK7 中已经有了 TWR 特性，但这个包很值得一试。<br> 通过几个简单的注解，将模版代码在编译时写入程序。使用 eclipse 可以在 Outline 窗口看到生成的方法，但是在源码里是干净的，</p>
-<h2 id="安装"><a href="# 安装" class="headerlink" title="安装"></a>安装 </h2><p> 首先去 lombok 的 <a target="_blank" rel="noopener" href="http://projectlombok.org/"> 官网 </a> 下载一个 jar 包。<br>只是把 jar 包下载下来并导入工程中，不会发现 IDE 不识别它的注解，那怎么办？</p>
-<h3 id="对于 eclipse"><a href="# 对于 eclipse" class="headerlink" title="对于 eclipse"></a>对于 eclipse</h3><p>将 lombok.jar 复制到 eclipse.ini 所在的目录下，然后编辑 eclipse.ini 文件， 在它的最后面插入以下两行并保存：</p>
-<div class="hljs"><pre><code class="hljs othe">­Xbootclasspath&#x2F;a:lombok.jar
-­javaagent:lombok.jar</code></pre></div>
-<p>接着重启 eclipse 就可以愉快地使用这个库了。</p>
-<h3 id="对于 -IDEA"><a href="# 对于 -IDEA" class="headerlink" title="对于 IDEA"></a>对于 IDEA</h3><p>在 IntelliJ 的插件中心可以找到它。</p>
-<h2 id="QuickStart"><a href="#QuickStart" class="headerlink" title="QuickStart"></a>QuickStart</h2><p>Lombok 提供的注解不多，但都好用，简要说一下常用的几个。</p>
-<h3 id="Setter-Getter"><a href="#Setter-Getter" class="headerlink" title="@Setter/@Getter"></a>@Setter/@Getter</h3><p>这两个注解修饰成员变量，可用于生成 setter/gettter 模版代码。<br>举个栗子：</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.AccessLevel;
+<!DOCTYPE html><html lang="zh-CN" data-default-color-scheme="&#34;auto&#34;"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#433d3c"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>java 第三方包学习之 lombok - HappenのMemo</title><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css"><link rel="stylesheet" href="/lib/hint/hint.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/monokai.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css"><link rel="stylesheet" href="/css/main.css"><script src="/js/utils.js"></script><script src="/js/color-schema.js"></script><meta name="generator" content="Hexo 5.1.1"></head><body><header style="height:60vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"><a class="navbar-brand" href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="iconfont icon-home-fill"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="iconfont icon-archive-fill"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="iconfont icon-category-fill"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="iconfont icon-tags-fill"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="iconfont icon-user-fill"></i> 关于</a></li><li class="nav-item"><a class="nav-link" href="/links/"><i class="iconfont icon-link-fill"></i> 友链</a></li><li class="nav-item" id="search-btn"><a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i class="iconfont icon-search"></i>&nbsp;</a></li><li class="nav-item" id="color-toggle-btn"><a class="nav-link" href="javascript:">&nbsp;<i class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a></li></ul></div></div></nav><div class="banner intro-2" id="background" parallax="true" style="background:url(/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask flex-center" style="background-color:rgba(0,0,0,.3)"><div class="container page-header text-center fade-in-up"><span class="h2" id="subtitle"></span><div class="mt-3"><span class="post-meta mr-2"><i class="iconfont icon-author" aria-hidden="true"></i> Happen </span><span class="post-meta"><i class="iconfont icon-date-fill" aria-hidden="true"></i> <time datetime="2016-07-16 01:09" pubdate>2016-07-16 01:09</time></span></div><div class="mt-1"><span class="post-meta mr-2"><i class="iconfont icon-chart"></i> 2.8k 字 </span><span class="post-meta mr-2"><i class="iconfont icon-clock-fill"></i> 41 分钟 </span><span id="busuanzi_container_page_pv" style="display:none"><i class="iconfont icon-eye" aria-hidden="true"></i> <span id="busuanzi_value_page_pv"></span> 次</span></div></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5" id="board"><article class="post-content mx-auto" id="post"><h1 style="display:none">java 第三方包学习之 lombok</h1><p class="note note-info">本文最后更新于：2016-07-16 01:09</p><div class="markdown-body" id="post-body"><p><strong>Laziness is a virtue！</strong>每当写 pojo 类时，都会重复写一些 setter/getter/toString 等大量的模版代码，无聊繁琐又不得不做，这会让这个类变得又臭又长，却没有多少东西。不久前发现有一个 java 第三方库可以一定程度上帮助我们从体力劳动中解救出来，它就是 lombok。它提供了一些简单的注解，并以此来消除 java 中臃肿的模版代码。本文对于一些常用到的注解做了一个简要的记录，希望有更多的人 enjoy it！<br><a id="more"></a></p><h2 id="Lombok 是什么"><a href="#Lombok 是什么" class="headerlink" title="Lombok 是什么"></a>Lombok 是什么</h2><p>Lombok 是一个旨在减少代码开发工作的 Java 库。它提供了一些简单的注解，并以此来消除 java 中臃肿的模版代码，比如 pojo 中最常见的 setter/getter 方法， 比如 toString 方法， 比如 equals 方法等等，还可以帮助我们关闭流，即使 JDK7 中已经有了 TWR 特性，但这个包很值得一试。<br>通过几个简单的注解，将模版代码在编译时写入程序。使用 eclipse 可以在 Outline 窗口看到生成的方法，但是在源码里是干净的，</p><h2 id="安装"><a href="# 安装" class="headerlink" title="安装"></a>安装</h2><p>首先去 lombok 的 <a target="_blank" rel="noopener" href="http://projectlombok.org/">官网 </a>下载一个 jar 包。<br>只是把 jar 包下载下来并导入工程中，不会发现 IDE 不识别它的注解，那怎么办？</p><h3 id="对于 eclipse"><a href="# 对于 eclipse" class="headerlink" title="对于 eclipse"></a>对于 eclipse</h3><p>将 lombok.jar 复制到 eclipse.ini 所在的目录下，然后编辑 eclipse.ini 文件， 在它的最后面插入以下两行并保存：</p><div class="hljs"><pre><code class="hljs othe">­Xbootclasspath&#x2F;a:lombok.jar
+­javaagent:lombok.jar</code></pre></div><p>接着重启 eclipse 就可以愉快地使用这个库了。</p><h3 id="对于 -IDEA"><a href="# 对于 -IDEA" class="headerlink" title="对于 IDEA"></a>对于 IDEA</h3><p>在 IntelliJ 的插件中心可以找到它。</p><h2 id="QuickStart"><a href="#QuickStart" class="headerlink" title="QuickStart"></a>QuickStart</h2><p>Lombok 提供的注解不多，但都好用，简要说一下常用的几个。</p><h3 id="Setter-Getter"><a href="#Setter-Getter" class="headerlink" title="@Setter/@Getter"></a>@Setter/@Getter</h3><p>这两个注解修饰成员变量，可用于生成 setter/gettter 模版代码。<br>举个栗子：</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.AccessLevel;
 <span class="hljs-keyword">import</span> lombok.Getter;
 <span class="hljs-keyword">import</span> lombok.Setter;
 
@@ -263,9 +7,7 @@
     <span class="hljs-meta">@Setter</span> <span class="hljs-meta">@Getter</span> <span class="hljs-keyword">private</span> String name;
     <span class="hljs-meta">@Getter(AccessLevel.PROTECTED)</span> <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> age;<span class="hljs-comment">// 可以指定访问权限</span>
     <span class="hljs-meta">@Setter</span> <span class="hljs-meta">@Getter</span> <span class="hljs-keyword">private</span> String[] hobbies;
-&#125;</code></pre></div>
-<p>将字节码文件反编译后可以看到下面这段代码</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Student</span> </span>&#123;
+&#125;</code></pre></div><p>将字节码文件反编译后可以看到下面这段代码</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Student</span> </span>&#123;
   <span class="hljs-keyword">private</span> String name;
   <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> age;
   <span class="hljs-keyword">private</span> String[] hobbies;
@@ -276,17 +18,14 @@
   <span class="hljs-function"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">int</span> <span class="hljs-title">getAge</span><span class="hljs-params">()</span> </span>&#123; <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.age; &#125;
   <span class="hljs-keyword">public</span> String[] getHobbies() &#123; <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.hobbies; &#125;
   <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setHobbies</span><span class="hljs-params">(String[] hobbies)</span> </span>&#123; <span class="hljs-keyword">this</span>.hobbies = hobbies; &#125;
-&#125;</code></pre></div>
-<h3 id="ToString"><a href="#ToString" class="headerlink" title="@ToString"></a>@ToString</h3><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.ToString;
+&#125;</code></pre></div><h3 id="ToString"><a href="#ToString" class="headerlink" title="@ToString"></a>@ToString</h3><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.ToString;
 
 <span class="hljs-meta">@ToString(exclude=&quot;id&quot;)</span>
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">ToStringExample</span> </span>&#123;
     <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> id;
     <span class="hljs-keyword">private</span> String name;
     <span class="hljs-keyword">private</span> String[] tags;
-&#125;</code></pre></div>
-<p>编译后</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> java.util.Arrays;
+&#125;</code></pre></div><p>编译后</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> java.util.Arrays;
 
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">ToStringExample</span> </span>&#123;
   <span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">toString</span><span class="hljs-params">()</span> </span>&#123;
@@ -296,38 +35,23 @@
   <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> id;
   <span class="hljs-keyword">private</span> String name;
   <span class="hljs-keyword">private</span> String[] tags;
-&#125;</code></pre></div>
-<p>我们发现，对于数组，在写 toString 方法时使用了 Arrays 类的 静态方法 deepToString。<br>来看 eclipse 自动生成的 toString 方法：</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-meta">@Override</span>
+&#125;</code></pre></div><p>我们发现，对于数组，在写 toString 方法时使用了 Arrays 类的 静态方法 deepToString。<br>来看 eclipse 自动生成的 toString 方法：</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-meta">@Override</span>
 <span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">toString</span><span class="hljs-params">()</span> </span>&#123;
     <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;ToStringExample [name=&quot;</span> + name + <span class="hljs-string">&quot;, tags=&quot;</span>
         + Arrays.toString(tags) + <span class="hljs-string">&quot;]&quot;</span>;
-&#125;</code></pre></div>
-<p>eclipse 中对于数组采用的是 Arrays.toString()。<br><strong>区别</strong>：这两个方法的区别是这样的，对于多维数组，使用 toString 只能打印出内部数组的名字，这时需要使用 deepToString 方法，它能将内部数组的内容全部打印出来。</p>
-<h4 id="exclude- 参数"><a href="#exclude- 参数" class="headerlink" title="exclude 参数"></a>exclude 参数 </h4><p> 可以指定哪些属性不出现在 toString 方法中， 比如 <strong>exclude={“id”, “name”}</strong></p>
-<h4 id="doNotUseGetters- 参数"><a href="#doNotUseGetters- 参数" class="headerlink" title="doNotUseGetters 参数"></a>doNotUseGetters 参数 </h4><p> 当类中有成员变量的 getter 方法时，生成 toString 方法会使用这些 getter 方法，比如</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">toString</span><span class="hljs-params">()</span> </span>&#123;
+&#125;</code></pre></div><p>eclipse 中对于数组采用的是 Arrays.toString()。<br><strong>区别</strong>：这两个方法的区别是这样的，对于多维数组，使用 toString 只能打印出内部数组的名字，这时需要使用 deepToString 方法，它能将内部数组的内容全部打印出来。</p><h4 id="exclude- 参数"><a href="#exclude- 参数" class="headerlink" title="exclude 参数"></a>exclude 参数</h4><p>可以指定哪些属性不出现在 toString 方法中， 比如 <strong>exclude={“id”, “name”}</strong></p><h4 id="doNotUseGetters- 参数"><a href="#doNotUseGetters- 参数" class="headerlink" title="doNotUseGetters 参数"></a>doNotUseGetters 参数</h4><p>当类中有成员变量的 getter 方法时，生成 toString 方法会使用这些 getter 方法，比如</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">toString</span><span class="hljs-params">()</span> </span>&#123;
     <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;ToStringExample(name=&quot;</span> + getName() + <span class="hljs-string">&quot;, tags=&quot;</span> + Arrays.deepToString(getTags()) + <span class="hljs-string">&quot;)&quot;</span>;
-    &#125;</code></pre></div>
-<p>但是将该参数设置为 true 时（默认为 false），生成 toString 方法时就不会使用 getter 方法，而是直接使用这些成员变量，比如</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">toString</span><span class="hljs-params">()</span> </span>&#123;
+    &#125;</code></pre></div><p>但是将该参数设置为 true 时（默认为 false），生成 toString 方法时就不会使用 getter 方法，而是直接使用这些成员变量，比如</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">toString</span><span class="hljs-params">()</span> </span>&#123;
     <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;ToStringExample(name=&quot;</span> + <span class="hljs-keyword">this</span>.name + <span class="hljs-string">&quot;, tags=&quot;</span> + Arrays.deepToString(<span class="hljs-keyword">this</span>.tags) + <span class="hljs-string">&quot;)&quot;</span>;
-    &#125;</code></pre></div>
-<h4 id="includeFieldNames 参数"><a href="#includeFieldNames 参数" class="headerlink" title="includeFieldNames 参数"></a>includeFieldNames 参数 </h4><p> 原本是以 <strong>fieldName = fieldValue</strong> 的格式来生成 toString 方法的，但是将该参数设置为 false 后（默认是 true），就不会显示 fieldName 了，而只是生成 fieldValue， 比如</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">toString</span><span class="hljs-params">()</span> </span>&#123;
+    &#125;</code></pre></div><h4 id="includeFieldNames 参数"><a href="#includeFieldNames 参数" class="headerlink" title="includeFieldNames 参数"></a>includeFieldNames 参数</h4><p>原本是以 <strong>fieldName = fieldValue</strong> 的格式来生成 toString 方法的，但是将该参数设置为 false 后（默认是 true），就不会显示 fieldName 了，而只是生成 fieldValue， 比如</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">toString</span><span class="hljs-params">()</span> </span>&#123;
   <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;ToStringExample(&quot;</span> + getId() + <span class="hljs-string">&quot;, &quot;</span> + getName() + <span class="hljs-string">&quot;, &quot;</span> + Arrays.deepToString(getTags()) + <span class="hljs-string">&quot;)&quot;</span>;
-  &#125;</code></pre></div>
-<h4 id="callSuper- 参数"><a href="#callSuper- 参数" class="headerlink" title="callSuper 参数"></a>callSuper 参数 </h4><p> 若类 A 是类 B 的子类，那么在 A 类重写 toString 时，若把该参数设置为 true，会加入下面这段代码，即也会把父类 B 的 toString 也写入。<br><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">super</span>=<span class="hljs-string">&quot; + super.toString()</span></code></pre></div></p>
-<h3 id="NonNull"><a href="#NonNull" class="headerlink" title="@NonNull"></a>@NonNull</h3><p>检查传入对象是否为 Null，若为 null，则抛出 NullPointerException 异常。<br>举个栗子</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.NonNull;
+  &#125;</code></pre></div><h4 id="callSuper- 参数"><a href="#callSuper- 参数" class="headerlink" title="callSuper 参数"></a>callSuper 参数</h4><p>若类 A 是类 B 的子类，那么在 A 类重写 toString 时，若把该参数设置为 true，会加入下面这段代码，即也会把父类 B 的 toString 也写入。<br><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">super</span>=<span class="hljs-string">&quot; + super.toString()</span></code></pre></div></p><h3 id="NonNull"><a href="#NonNull" class="headerlink" title="@NonNull"></a>@NonNull</h3><p>检查传入对象是否为 Null，若为 null，则抛出 NullPointerException 异常。<br>举个栗子</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.NonNull;
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NonNullExample</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Student</span></span>&#123;
     <span class="hljs-keyword">private</span> String name;
     <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">NonNullExample</span><span class="hljs-params">(<span class="hljs-meta">@NonNull</span> Student student)</span> </span>&#123;
         <span class="hljs-keyword">this</span>.name = student.getName();
     &#125;
-&#125;</code></pre></div>
-<p>编译后代码</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.NonNull;
+&#125;</code></pre></div><p>编译后代码</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.NonNull;
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NonNullExample</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Student</span> </span>&#123;
     <span class="hljs-keyword">private</span> String name;
 
@@ -336,18 +60,14 @@
             <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> NullPointerException(<span class="hljs-string">&quot;student&quot;</span>);
         <span class="hljs-keyword">this</span>.name = student.getName();
   &#125;
-&#125;</code></pre></div>
-<h3 id="EqualsAndHashCode"><a href="#EqualsAndHashCode" class="headerlink" title="@EqualsAndHashCode"></a>@EqualsAndHashCode</h3><p>用在类上，用于生成 equals 和 hashcode 方法。<br>举个栗子</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-meta">@EqualsAndHashCode(exclude=&#123;&quot;id&quot;&#125;)</span>
+&#125;</code></pre></div><h3 id="EqualsAndHashCode"><a href="#EqualsAndHashCode" class="headerlink" title="@EqualsAndHashCode"></a>@EqualsAndHashCode</h3><p>用在类上，用于生成 equals 和 hashcode 方法。<br>举个栗子</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-meta">@EqualsAndHashCode(exclude=&#123;&quot;id&quot;&#125;)</span>
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">EqualsAndHashCodeExample</span> </span>&#123;
      <span class="hljs-keyword">private</span> <span class="hljs-keyword">transient</span> <span class="hljs-keyword">int</span> transientVar = <span class="hljs-number">10</span>;
      <span class="hljs-keyword">private</span> String name;
      <span class="hljs-keyword">private</span> <span class="hljs-keyword">double</span> score;
      <span class="hljs-keyword">private</span> String[] tags;
      <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> id;
-&#125;</code></pre></div>
-<p>编译后代码</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> java.util.Arrays;
+&#125;</code></pre></div><p>编译后代码</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> java.util.Arrays;
 
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">EqualsAndHashCodeExample</span> </span>&#123;
     <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">int</span> <span class="hljs-title">hashCode</span><span class="hljs-params">()</span> </span>&#123;
@@ -381,12 +101,7 @@
     <span class="hljs-keyword">private</span> <span class="hljs-keyword">double</span> score;
     <span class="hljs-keyword">private</span> String[] tags;
     <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> id;
-&#125;</code></pre></div>
-<p>可以看出 transient 修饰的变量，不会参与。</p>
-<h4 id="参数"><a href="# 参数" class="headerlink" title="参数"></a>参数 </h4><p> 参数 of 用来指定参与的变量，其他的跟 <strong>@ToString</strong> 注解类似。</p>
-<h3 id="Data"><a href="#Data" class="headerlink" title="@Data"></a>@Data</h3><p>该注解用于修饰类，会自动生成 getter/setter 方法, 以及重写 equals(), hashcode()和 toString()方法。</p>
-<h3 id="Cleanup"><a href="#Cleanup" class="headerlink" title="@Cleanup"></a>@Cleanup</h3><p>该注解可以用来自动管理资源，用在局部变量之前，在当前变量范围内即将执行完毕退出之前会自动清理资源， 自动生成 try­finally 这样的代码来 <strong> 关闭流 </strong>。<br> 举个栗子，</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.Cleanup;
+&#125;</code></pre></div><p>可以看出 transient 修饰的变量，不会参与。</p><h4 id="参数"><a href="# 参数" class="headerlink" title="参数"></a>参数</h4><p>参数 of 用来指定参与的变量，其他的跟 <strong>@ToString</strong> 注解类似。</p><h3 id="Data"><a href="#Data" class="headerlink" title="@Data"></a>@Data</h3><p>该注解用于修饰类，会自动生成 getter/setter 方法, 以及重写 equals(), hashcode()和 toString()方法。</p><h3 id="Cleanup"><a href="#Cleanup" class="headerlink" title="@Cleanup"></a>@Cleanup</h3><p>该注解可以用来自动管理资源，用在局部变量之前，在当前变量范围内即将执行完毕退出之前会自动清理资源， 自动生成 try­finally 这样的代码来 <strong>关闭流 </strong>。<br>举个栗子，</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.Cleanup;
 <span class="hljs-keyword">import</span> java.io.*;
 
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CleanupExample</span> </span>&#123;
@@ -400,9 +115,7 @@
         out.write(b, <span class="hljs-number">0</span>, r);
        &#125;
      &#125;
-  &#125;</code></pre></div>
-<h3 id="NoArgsConstructor-RequiredArgsConstructor-AllArgsConstructor"><a href="#NoArgsConstructor-RequiredArgsConstructor-AllArgsConstructor" class="headerlink" title="@NoArgsConstructor/@RequiredArgsConstructor/@AllArgsConstructor"></a>@NoArgsConstructor/@RequiredArgsConstructor/@AllArgsConstructor</h3><p>这三个注解修饰在类上。<br>@NoArgsConstructor 用于生成一个无参构造方法。<br>@RequiredArgsConstructor 会生成一个包含了被 @NotNull 标识的变量的构造方法。同样可以设置生成构造方法的权限，使用 <strong>access</strong>参数进行设置。若指定 staticNam<br>e = “of”参数，同时还会生成一个返回类对象的静态工厂方法，生成的构造方法是私有的。<br>@AllArgsConstructor 会生成一个包含所有变量， 同时如果变量使用了 <strong>@NotNull</strong>，会进行是否为空的校验。<br> 举个栗子，</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.*;
+  &#125;</code></pre></div><h3 id="NoArgsConstructor-RequiredArgsConstructor-AllArgsConstructor"><a href="#NoArgsConstructor-RequiredArgsConstructor-AllArgsConstructor" class="headerlink" title="@NoArgsConstructor/@RequiredArgsConstructor/@AllArgsConstructor"></a>@NoArgsConstructor/@RequiredArgsConstructor/@AllArgsConstructor</h3><p>这三个注解修饰在类上。<br>@NoArgsConstructor 用于生成一个无参构造方法。<br>@RequiredArgsConstructor 会生成一个包含了被 @NotNull 标识的变量的构造方法。同样可以设置生成构造方法的权限，使用 <strong>access</strong>参数进行设置。若指定 staticNam<br>e = “of”参数，同时还会生成一个返回类对象的静态工厂方法，生成的构造方法是私有的。<br>@AllArgsConstructor 会生成一个包含所有变量， 同时如果变量使用了 <strong>@NotNull</strong>，会进行是否为空的校验。<br>举个栗子，</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.*;
 
 <span class="hljs-meta">@RequiredArgsConstructor(staticName = &quot;of&quot;)</span>
 <span class="hljs-meta">@AllArgsConstructor(access = AccessLevel.PROTECTED)</span>
@@ -416,9 +129,7 @@
         <span class="hljs-keyword">private</span> String field;
     &#125;
 
-&#125;</code></pre></div>
-<p>这与下面这段代码是等价的，</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> java.beans.ConstructorProperties;
+&#125;</code></pre></div><p>这与下面这段代码是等价的，</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> java.beans.ConstructorProperties;
 
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">ConstructorExample</span> </span>&#123;
     <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> ConstructorExample <span class="hljs-title">of</span><span class="hljs-params">(<span class="hljs-meta">@lombok</span>.NonNull String desc)</span> </span>&#123;
@@ -446,19 +157,14 @@
         <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">NoArgsExample</span><span class="hljs-params">()</span> </span>&#123;&#125;
     &#125;
 &#125;
-</code></pre></div>
-<h3 id="Value"><a href="#Value" class="headerlink" title="@Value"></a>@Value</h3><p>该注解用于修饰类，是 <strong>@Data</strong> 的不可变形式， 相当于为成员变量添加 <strong>final</strong> 声明， 只提供 getter 方法， 而不提供 setter 方法，<br>然后还有 equals/hashCode/toString 方法，以及一个包含所有参数的构造方法。</p>
-<h3 id="Builder"><a href="#Builder" class="headerlink" title="@Builder"></a>@Builder</h3><p>用在类、构造器、方法上，为你提供复杂的 builder APIs，让你可以像如下方式调用 Person.builder().name(“A<br>dam Savage”).city(“San Francisco”).job(“Mythbusters”).job(“Unchained Reaction”).build()。<br>举个栗子，</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.Builder;
+</code></pre></div><h3 id="Value"><a href="#Value" class="headerlink" title="@Value"></a>@Value</h3><p>该注解用于修饰类，是 <strong>@Data</strong> 的不可变形式， 相当于为成员变量添加 <strong>final</strong> 声明， 只提供 getter 方法， 而不提供 setter 方法，<br>然后还有 equals/hashCode/toString 方法，以及一个包含所有参数的构造方法。</p><h3 id="Builder"><a href="#Builder" class="headerlink" title="@Builder"></a>@Builder</h3><p>用在类、构造器、方法上，为你提供复杂的 builder APIs，让你可以像如下方式调用 Person.builder().name(“A<br>dam Savage”).city(“San Francisco”).job(“Mythbusters”).job(“Unchained Reaction”).build()。<br>举个栗子，</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.Builder;
 <span class="hljs-keyword">import</span> java.util.Set;
 
 <span class="hljs-meta">@Builder</span>
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BuilderExample</span> </span>&#123;
     <span class="hljs-keyword">private</span> String name;
     <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> age;
-&#125;</code></pre></div>
-<p>反编译代码如下：</p>
-<div class="hljs"><pre><code class="hljs java">
+&#125;</code></pre></div><p>反编译代码如下：</p><div class="hljs"><pre><code class="hljs java">
 <span class="hljs-keyword">package</span> tutorial.lombok;
 
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BuilderExample</span></span>
@@ -510,11 +216,7 @@
 <span class="hljs-function">    </span>&#123;
         <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> BuilderExampleBuilder();
     &#125;
-&#125;</code></pre></div>
-<p>注意：使用 @Singular 注解的集合属性名必须使用 s 结尾, lombok 会将属性名结尾的 s 去掉, 剩余的名字会作为方法名, 向这个集合中添加元素。<br>@Builder 的参数 builderClassName 设置生成的 builder 方法名，buildMethodName 设置 build 方法名，builderMethodName 设置 builderMethod 方法名。<br>比如,<strong>@Builder(builderClassName = “GBuilder”, buildMethodName = “buildG”, builderMethodName = “GBuilder”</strong></p>
-<h3 id="SneakyThrows"><a href="#SneakyThrows" class="headerlink" title="@SneakyThrows"></a>@SneakyThrows</h3><p>自动抛受检异常， 而无需显式在方法上使用 throws 语句。</p>
-<h3 id="Synchronized"><a href="#Synchronized" class="headerlink" title="@Synchronized"></a>@Synchronized</h3><p>用在方法上，将方法声明为同步的，并自动加锁，而锁对象是一个私有的属性 LOCK，而 java 中的 synchronized 关键字锁对象是 this，锁在 this 或者自己的类对象上存在副作用，就是你不能阻止非受控代码去锁 this 或者类对象，这可能会导致竞争条件或者其它线程错误。<br>举个栗子，</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok. Synchronized;
+&#125;</code></pre></div><p>注意：使用 @Singular 注解的集合属性名必须使用 s 结尾, lombok 会将属性名结尾的 s 去掉, 剩余的名字会作为方法名, 向这个集合中添加元素。<br>@Builder 的参数 builderClassName 设置生成的 builder 方法名，buildMethodName 设置 build 方法名，builderMethodName 设置 builderMethod 方法名。<br>比如,<strong>@Builder(builderClassName = “GBuilder”, buildMethodName = “buildG”, builderMethodName = “GBuilder”</strong></p><h3 id="SneakyThrows"><a href="#SneakyThrows" class="headerlink" title="@SneakyThrows"></a>@SneakyThrows</h3><p>自动抛受检异常， 而无需显式在方法上使用 throws 语句。</p><h3 id="Synchronized"><a href="#Synchronized" class="headerlink" title="@Synchronized"></a>@Synchronized</h3><p>用在方法上，将方法声明为同步的，并自动加锁，而锁对象是一个私有的属性 LOCK，而 java 中的 synchronized 关键字锁对象是 this，锁在 this 或者自己的类对象上存在副作用，就是你不能阻止非受控代码去锁 this 或者类对象，这可能会导致竞争条件或者其它线程错误。<br>举个栗子，</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok. Synchronized;
 
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SynchronizedExample</span> </span>&#123;
     <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Object readLock = <span class="hljs-keyword">new</span> Object() ;
@@ -527,9 +229,7 @@
     <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">foo</span><span class="hljs-params">()</span> </span>&#123;
         System. out. println(<span class="hljs-string">&quot;bar&quot;</span>) ;
     &#125;
-&#125;</code></pre></div>
-<p>反编译代码如下：</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SynchronizedExample</span> </span>&#123;
+&#125;</code></pre></div><p>反编译代码如下：</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SynchronizedExample</span> </span>&#123;
     <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> Object $LOCK = <span class="hljs-keyword">new</span> Object[<span class="hljs-number">0</span>] ;
     <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Object readLock = <span class="hljs-keyword">new</span> Object() ;
     <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">hello</span><span class="hljs-params">()</span> </span>&#123;
@@ -547,9 +247,7 @@
             System. out. println(<span class="hljs-string">&quot;bar&quot;</span>) ;
         &#125;
     &#125;
-&#125;</code></pre></div>
-<h3 id="Getter-lazy-true"><a href="#Getter-lazy-true" class="headerlink" title="@Getter(lazy=true)"></a>@Getter(lazy=true)</h3><p>可以替代经典的 Double Check Lock 样板代码。<br>举个栗子，</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.Getter;
+&#125;</code></pre></div><h3 id="Getter-lazy-true"><a href="#Getter-lazy-true" class="headerlink" title="@Getter(lazy=true)"></a>@Getter(lazy=true)</h3><p>可以替代经典的 Double Check Lock 样板代码。<br>举个栗子，</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.Getter;
 
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">GetterLazyExample</span> </span>&#123;
     <span class="hljs-meta">@Getter(lazy=true)</span> <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">double</span>[] cached = expensive();
@@ -561,9 +259,7 @@
         &#125;
         <span class="hljs-keyword">return</span> result;
     &#125;
-&#125;</code></pre></div>
-<p>反编译代码如下，</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> java.util.concurrent.atomic.AtomicReference;
+&#125;</code></pre></div><p>反编译代码如下，</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> java.util.concurrent.atomic.AtomicReference;
 
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">GetterLazyExample</span></span>
 <span class="hljs-class"></span>&#123;
@@ -599,9 +295,7 @@
             &#125;
         <span class="hljs-keyword">return</span> (<span class="hljs-keyword">double</span>[])(<span class="hljs-keyword">double</span>[])(value != cached ? value : <span class="hljs-keyword">null</span>);
     &#125;
-&#125;</code></pre></div>
-<h3 id="Log"><a href="#Log" class="headerlink" title="@Log"></a>@Log</h3><p>根据不同的注解生成不同类型的 log 对象， 但是实例名称都是 log， 有六种可选实现类</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-meta">@CommonsLog</span>
+&#125;</code></pre></div><h3 id="Log"><a href="#Log" class="headerlink" title="@Log"></a>@Log</h3><p>根据不同的注解生成不同类型的 log 对象， 但是实例名称都是 log， 有六种可选实现类</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-meta">@CommonsLog</span>
 Creates log = org. apache. commons. logging. LogFactory. getLog(LogExample. <span class="hljs-class"><span class="hljs-keyword">class</span>) </span>;
 <span class="hljs-meta">@Log</span>
 Creates log = java. util. logging. Logger. getLogger(LogExample. class. getName() ) ;
@@ -612,9 +306,7 @@ Creates log = org. apache. logging. log4j. LogManager. getLogger(LogExample. <sp
 <span class="hljs-meta">@Slf4j</span>
 Creates log = org. slf4j. LoggerFactory. getLogger(LogExample. <span class="hljs-class"><span class="hljs-keyword">class</span>) </span>;
 <span class="hljs-meta">@XSlf4j</span>
-Creates log = org. slf4j. ext. XLoggerFactory. getXLogger(LogExample. <span class="hljs-class"><span class="hljs-keyword">class</span>) </span>;</code></pre></div>
-<p>举个栗子，</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.extern.java.Log;
+Creates log = org. slf4j. ext. XLoggerFactory. getXLogger(LogExample. <span class="hljs-class"><span class="hljs-keyword">class</span>) </span>;</code></pre></div><p>举个栗子，</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">import</span> lombok.extern.java.Log;
 <span class="hljs-keyword">import</span> lombok.extern.slf4j.Slf4j;
 <span class="hljs-meta">@Log</span>
 <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">LogExample</span> </span>&#123;
@@ -635,255 +327,7 @@ Creates log = org. slf4j. ext. XLoggerFactory. getXLogger(LogExample. <span clas
     <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String... args)</span> </span>&#123;
         log.error(<span class="hljs-string">&quot;Calling the &#x27;CounterLog&#x27; with a message&quot;</span>);
     &#125;
-&#125;</code></pre></div>
-<div class="hljs"><pre><code class="hljs kotlin"><span class="hljs-meta">@CommonsLog(topic=<span class="hljs-meta-string">&quot;CounterLog&quot;</span>)</span></code></pre></div>
-<p>这条语句会翻译成这样</p>
-<div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> org.apache.commons.logging.Log log = org.apache.commons.logging.LogFactory.getLog(<span class="hljs-string">&quot;CounterLog&quot;</span>);</code></pre></div>
-
-            </div>
-            <hr>
-            <div>
-              <div class="post-metas mb-3">
-                
-                  <div class="post-meta mr-3">
-                    <i class="iconfont icon-category"></i>
-                    
-                      <a class="hover-with-bg" href="/categories/quick-start/">quick-start</a>
-                    
-                  </div>
-                
-                
-                  <div class="post-meta">
-                    <i class="iconfont icon-tags"></i>
-                    
-                      <a class="hover-with-bg" href="/tags/java/">java</a>
-                    
-                  </div>
-                
-              </div>
-              
-                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p>
-              
-              
-                <div class="post-prevnext row">
-                  <article class="post-prev col-6">
-                    
-                    
-                      <a href="/9cd13682.html">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">python 标准库之 pickle 模块</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
-                  </article>
-                  <article class="post-next col-6">
-                    
-                    
-                      <a href="/4ada5477.html">
-                        <span class="hidden-mobile">爬虫问题总结</span>
-                        <span class="visible-mobile">下一篇</span>
-                        <i class="iconfont icon-arrowright"></i>
-                      </a>
-                    
-                  </article>
-                </div>
-              
-            </div>
-
-            
-              <!-- Comments -->
-              <article class="comments" id="comments">
-                
-                
-  <div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw">
-    <script type="text/javascript">
-      function loadLivere() {
-        addScript('https://cdn-city.livere.com/js/embed.dist.js');
-      }
-      waitElementVisible('lv-container', loadLivere);
-    </script>
-    <noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript>
-  </div>
-
-
-              </article>
-            
-          </article>
-        </div>
-      </div>
-    </div>
-    
-      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
-        <div id="toc">
-  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
-  <div id="tocbot"></div>
-</div>
-
-      </div>
-    
-  </div>
-</div>
-
-<!-- Custom -->
-
-
-    
-  </main>
-
-  
-    <a id="scroll-top-button" href="#" role="button">
-      <i class="iconfont icon-arrowup" aria-hidden="true"></i>
-    </a>
-  
-
-  
-    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
-     aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header text-center">
-        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
-        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body mx-3">
-        <div class="md-form mb-5">
-          <input type="text" id="local-search-input" class="form-control validate">
-          <label data-error="x" data-success="v"
-                 for="local-search-input">关键词</label>
-        </div>
-        <div class="list-group" id="local-search-result"></div>
-      </div>
-    </div>
-  </div>
-</div>
-  
-
-  
-
-  
-
-  <footer class="mt-5">
-  <div class="text-center py-3">
-    <div>
-      <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a>
-      <i class="iconfont icon-love"></i>
-      <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener">
-        <span>Fluid</span></a>
-    </div>
-    
-  <div class="statistics">
-    
-    
-
-    
-      
-        <!-- 不蒜子统计PV -->
-        <span id="busuanzi_container_site_pv" style="display: none">
-            总访问量 
-            <span id="busuanzi_value_site_pv"></span>
-             次
-          </span>
-      
-      
-        <!-- 不蒜子统计UV -->
-        <span id="busuanzi_container_site_uv" style="display: none">
-            总访客数 
-            <span id="busuanzi_value_site_uv"></span>
-             人
-          </span>
-      
-    
-  </div>
-
-
-    
-
-    
-  </div>
-</footer>
-
-<!-- SCRIPTS -->
-<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
-<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
-<script  src="/js/debouncer.js" ></script>
-<script  src="/js/main.js" ></script>
-
-<!-- Plugins -->
-
-
-  
-    <script  src="/js/lazyload.js" ></script>
-  
-
-
-
-  
-
-
-
-  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
-  <script  src="/js/clipboard-use.js" ></script>
-
-
-
-  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
-
-
-
-
-
-  <script  src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js" ></script>
-  <script>
-    $(document).ready(function () {
-      var boardCtn = $('#board-ctn');
-      var boardTop = boardCtn.offset().top;
-
-      tocbot.init({
-        tocSelector: '#tocbot',
-        contentSelector: '#post-body',
-        headingSelector: 'h1,h2,h3,h4,h5,h6',
-        linkClass: 'tocbot-link',
-        activeLinkClass: 'tocbot-active-link',
-        listClass: 'tocbot-list',
-        isCollapsedClass: 'tocbot-is-collapsed',
-        collapsibleClass: 'tocbot-is-collapsible',
-        collapseDepth: 2,
-        scrollSmooth: true,
-        headingsOffset: -boardTop
-      });
-      if ($('.toc-list-item').length > 0) {
-        $('#toc').css('visibility', 'visible');
-      }
-    });
-  </script>
-
-
-
-  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
-  <script>
-    var typed = new Typed('#subtitle', {
-      strings: [
-        '  ',
-        "java 第三方包学习之 lombok&nbsp;",
-      ],
-      cursorChar: "_",
-      typeSpeed: 70,
-      loop: false,
-    });
-    typed.stop();
-    $(document).ready(function () {
-      $(".typed-cursor").addClass("h2");
-      typed.start();
-    });
-  </script>
-
-
-
-  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
-  <script>
-    anchors.options = {
+&#125;</code></pre></div><div class="hljs"><pre><code class="hljs kotlin"><span class="hljs-meta">@CommonsLog(topic=<span class="hljs-meta-string">&quot;CounterLog&quot;</span>)</span></code></pre></div><p>这条语句会翻译成这样</p><div class="hljs"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> org.apache.commons.logging.Log log = org.apache.commons.logging.LogFactory.getLog(<span class="hljs-string">&quot;CounterLog&quot;</span>);</code></pre></div></div><hr><div><div class="post-metas mb-3"><div class="post-meta mr-3"><i class="iconfont icon-category"></i> <a class="hover-with-bg" href="/categories/quick-start/">quick-start</a></div><div class="post-meta"><i class="iconfont icon-tags"></i> <a class="hover-with-bg" href="/tags/java/">java</a></div></div><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p><div class="post-prevnext row"><article class="post-prev col-6"><a href="/9cd13682.html"><i class="iconfont icon-arrowleft"></i> <span class="hidden-mobile">python 标准库之 pickle 模块</span> <span class="visible-mobile">上一篇</span></a></article><article class="post-next col-6"><a href="/4ada5477.html"><span class="hidden-mobile">爬虫问题总结</span> <span class="visible-mobile">下一篇</span> <i class="iconfont icon-arrowright"></i></a></article></div></div><article class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">function loadLivere(){addScript("https://cdn-city.livere.com/js/embed.dist.js")}waitElementVisible("lv-container",loadLivere)</script><noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript></div></article></article></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc"><p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div></main><a id="scroll-top-button" href="#" role="button"><i class="iconfont icon-arrowup" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4><button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"><input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div><a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a></div><div class="statistics"><span id="busuanzi_container_site_pv" style="display:none">总访问量 <span id="busuanzi_value_site_pv"></span> 次 </span><span id="busuanzi_container_site_uv" style="display:none">总访客数 <span id="busuanzi_value_site_uv"></span> 人</span></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="/js/debouncer.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js"></script><script>$(document).ready(function(){var t=$("#board-ctn").offset().top;tocbot.init({tocSelector:"#tocbot",contentSelector:"#post-body",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",collapseDepth:3,scrollSmooth:!0,headingsOffset:-t}),0<$(".toc-list-item").length&&$("#toc").css("visibility","visible")})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","java 第三方包学习之 lombok&nbsp;"],cursorChar:"|",typeSpeed:72,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>anchors.options = {
       placement: "right",
       visible: "hover",
       
@@ -895,55 +339,4 @@ Creates log = org. slf4j. ext. XLoggerFactory. getXLogger(LogExample. <span clas
     for (item of el) {
       res.push(".markdown-body > " + item)
     }
-    anchors.add(res.join(", "))
-  </script>
-
-
-
-  <script  src="/js/local-search.js" ></script>
-  <script>
-    var path = "/local-search.xml";
-    var inputArea = document.querySelector("#local-search-input");
-    inputArea.onclick = function () {
-      searchFunc(path, 'local-search-input', 'local-search-result');
-      this.onclick = null
-    }
-  </script>
-
-
-
-  <script  src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
-  <link  rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
-
-  <script>
-    $('#post img:not(.no-zoom img, img[no-zoom]), img[zoom]').each(
-      function () {
-        var element = document.createElement('a');
-        $(element).attr('data-fancybox', 'images');
-        $(element).attr('href', $(this).attr('src'));
-        $(this).wrap(element);
-      }
-    );
-  </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</body>
-</html>
+    anchors.add(res.join(", "))</script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){searchFunc(path,"local-search-input","local-search-result"),this.onclick=null}</script><script src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><link rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><script>$("#post img:not(.no-zoom img, img[no-zoom]), img[zoom]").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>

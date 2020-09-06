@@ -1,255 +1,4 @@
-
-
-<!DOCTYPE html>
-<html lang="zh-CN" data-default-color-scheme=&#34;auto&#34;>
-
-
-
-<head>
-  <meta charset="UTF-8">
-  <link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png">
-  <link rel="icon" type="image/png" href="/images/dolphin.png">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-  <meta http-equiv="x-ua-compatible" content="ie=edge">
-  
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-  
-  <meta name="theme-color" content="#2f4154">
-  <meta name="description" content="">
-  <meta name="author" content="Happen">
-  <meta name="keywords" content="">
-  <title>Redis 源码分析之 key 过期 - HappenのMemo</title>
-
-  <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
-
-
-  <link  rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css" />
-  <link  rel="stylesheet" href="/lib/hint/hint.min.css" />
-
-  
-    
-    
-      
-      <link  rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/atom-one-dark.min.css" />
-    
-  
-
-  
-
-
-<!-- 主题依赖的图标库，不要自行修改 -->
-
-<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css">
-
-
-
-<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css">
-
-
-<link  rel="stylesheet" href="/css/main.css" />
-
-<!-- 自定义样式保持在最底部 -->
-
-
-  <script  src="/js/utils.js" ></script>
-  <script  src="/js/color-schema.js" ></script>
-<meta name="generator" content="Hexo 5.1.1"></head>
-
-
-<body>
-  <header style="height: 70vh;">
-    <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
-  <div class="container">
-    <a class="navbar-brand"
-       href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a>
-
-    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
-            data-target="#navbarSupportedContent"
-            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <div class="animated-icon"><span></span><span></span><span></span></div>
-    </button>
-
-    <!-- Collapsible content -->
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav ml-auto text-center">
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/">
-                <i class="iconfont icon-home-fill"></i>
-                首页
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/archives/">
-                <i class="iconfont icon-archive-fill"></i>
-                归档
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/categories/">
-                <i class="iconfont icon-category-fill"></i>
-                分类
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/tags/">
-                <i class="iconfont icon-tags-fill"></i>
-                标签
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/about/">
-                <i class="iconfont icon-user-fill"></i>
-                关于
-              </a>
-            </li>
-          
-        
-          
-          
-          
-          
-            <li class="nav-item">
-              <a class="nav-link" href="/links/">
-                <i class="iconfont icon-link-fill"></i>
-                友链
-              </a>
-            </li>
-          
-        
-        
-          <li class="nav-item" id="search-btn">
-            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i
-                class="iconfont icon-search"></i>&nbsp;</a>
-          </li>
-        
-        
-          <li class="nav-item" id="color-toggle-btn">
-            <a class="nav-link" href="javascript:">&nbsp;<i
-                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
-          </li>
-        
-      </ul>
-    </div>
-  </div>
-</nav>
-
-    <div class="banner intro-2" id="background" parallax=true
-         style="background: url('/images/about-banner.jpg') no-repeat center center;
-           background-size: cover;">
-      <div class="full-bg-img">
-        <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
-          <div class="container page-header text-center fade-in-up">
-            <span class="h2" id="subtitle">
-              
-            </span>
-
-            
-              <div class="mt-3">
-  
-    <span class="post-meta mr-2">
-      <i class="iconfont icon-author" aria-hidden="true"></i>
-      Happen
-    </span>
-  
-  
-    <span class="post-meta">
-      <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-      <time datetime="2020-04-06 19:47" pubdate>
-        2020年4月6日 晚上
-      </time>
-    </span>
-  
-</div>
-
-<div class="mt-1">
-  
-    
-    <span class="post-meta mr-2">
-      <i class="iconfont icon-chart"></i>
-      3k 字
-    </span>
-  
-
-  
-    
-    <span class="post-meta mr-2">
-      <i class="iconfont icon-clock-fill"></i>
-      
-      
-      39
-       分钟
-    </span>
-  
-
-  
-  
-</div>
-
-            
-          </div>
-
-          
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <main>
-    
-      
-
-<div class="container-fluid">
-  <div class="row">
-    <div class="d-none d-lg-block col-lg-2"></div>
-    <div class="col-lg-8 nopadding-md">
-      <div class="container nopadding-md" id="board-ctn">
-        <div class="py-5" id="board">
-          <article class="post-content mx-auto" id="post">
-            <!-- SEO header -->
-            <h1 style="display: none">Redis 源码分析之 key 过期</h1>
-            
-              <p class="note note-info">
-                
-                  本文最后更新于：2020年4月6日 晚上
-                
-              </p>
-            
-            <div class="markdown-body" id="post-body">
-              <p>redis 支持 key 级别的过期设置，可以使用 <code>EXPIRE</code> 相关的命令对此进行设置，同时支持相对时间和绝对时间两种方式。</p>
-<!--more---->
-<h2 id="设置过期时间命令"><a href="# 设置过期时间命令" class="headerlink" title="设置过期时间命令"></a>设置过期时间命令</h2><p> redis 中设置 key 相对过期时间的命令 <code>EXPIRE</code>/ <code>PEXPIRE</code>，设置 key 绝对过期时间的命令 <code>EXPIREAT</code>/<code>PEXPIREAT</code>，最终都是调用 <code>expireGenericCommand</code> 函数实现的。</p>
-<p>代码分析大致如下，</p>
- <div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">expireGenericCommand</span><span class="hljs-params">(client *c, <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> basetime, <span class="hljs-keyword">int</span> unit)</span> </span>&#123;
+<!DOCTYPE html><html lang="zh-CN" data-default-color-scheme="&#34;auto&#34;"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#433d3c"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>Redis 源码分析之 key 过期 - HappenのMemo</title><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css"><link rel="stylesheet" href="/lib/hint/hint.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/monokai.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css"><link rel="stylesheet" href="/css/main.css"><script src="/js/utils.js"></script><script src="/js/color-schema.js"></script><meta name="generator" content="Hexo 5.1.1"></head><body><header style="height:60vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"><a class="navbar-brand" href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="iconfont icon-home-fill"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="iconfont icon-archive-fill"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="iconfont icon-category-fill"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="iconfont icon-tags-fill"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="iconfont icon-user-fill"></i> 关于</a></li><li class="nav-item"><a class="nav-link" href="/links/"><i class="iconfont icon-link-fill"></i> 友链</a></li><li class="nav-item" id="search-btn"><a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i class="iconfont icon-search"></i>&nbsp;</a></li><li class="nav-item" id="color-toggle-btn"><a class="nav-link" href="javascript:">&nbsp;<i class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a></li></ul></div></div></nav><div class="banner intro-2" id="background" parallax="true" style="background:url(/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask flex-center" style="background-color:rgba(0,0,0,.3)"><div class="container page-header text-center fade-in-up"><span class="h2" id="subtitle"></span><div class="mt-3"><span class="post-meta mr-2"><i class="iconfont icon-author" aria-hidden="true"></i> Happen </span><span class="post-meta"><i class="iconfont icon-date-fill" aria-hidden="true"></i> <time datetime="2020-04-06 19:47" pubdate>2020-04-06 19:47</time></span></div><div class="mt-1"><span class="post-meta mr-2"><i class="iconfont icon-chart"></i> 3k 字 </span><span class="post-meta mr-2"><i class="iconfont icon-clock-fill"></i> 39 分钟 </span><span id="busuanzi_container_page_pv" style="display:none"><i class="iconfont icon-eye" aria-hidden="true"></i> <span id="busuanzi_value_page_pv"></span> 次</span></div></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5" id="board"><article class="post-content mx-auto" id="post"><h1 style="display:none">Redis 源码分析之 key 过期</h1><p class="note note-info">本文最后更新于：2020-04-06 19:47</p><div class="markdown-body" id="post-body"><p>redis 支持 key 级别的过期设置，可以使用 <code>EXPIRE</code> 相关的命令对此进行设置，同时支持相对时间和绝对时间两种方式。</p><!--more----><h2 id="设置过期时间命令"><a href="# 设置过期时间命令" class="headerlink" title="设置过期时间命令"></a>设置过期时间命令</h2><p>redis 中设置 key 相对过期时间的命令 <code>EXPIRE</code>/ <code>PEXPIRE</code>，设置 key 绝对过期时间的命令 <code>EXPIREAT</code>/<code>PEXPIREAT</code>，最终都是调用 <code>expireGenericCommand</code> 函数实现的。</p><p>代码分析大致如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">expireGenericCommand</span><span class="hljs-params">(client *c, <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> basetime, <span class="hljs-keyword">int</span> unit)</span> </span>&#123;
     robj *key = c-&gt;argv[<span class="hljs-number">1</span>], *param = c-&gt;argv[<span class="hljs-number">2</span>];
     <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> when; <span class="hljs-comment">/* unix time in milliseconds when the key will expire. */</span>
     <span class="hljs-keyword">if</span> (getLongLongFromObjectOrReply(c, param, &amp;when, <span class="hljs-literal">NULL</span>) != C_OK)
@@ -286,11 +35,7 @@
         server.dirty++;
         <span class="hljs-keyword">return</span>;
     &#125;
-&#125;</code></pre></div>
-<p> 首先是解析参数，相对时间会被转换成绝对时间 <code>when</code>。</p>
-<p> 找一个下这个 key 是否存在，如果不存在，那么直接返回。</p>
-<p> 如果 <code>when</code> 比当前时间还要小，没有做数据的 loading，且当前节点是 master（slave 节点等着 master 传过去的 DEL 就好），这时把 expire 命令转换成 <strong>DEL</strong>。<br> 否则，调用 <code>setExpire</code> 函数为 key 设置过期时间，</p>
-<p> 代码分析如下，<br> <div class="hljs"><pre><code class="hljs c"> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">setExpire</span><span class="hljs-params">(redisDb *db, robj *key, <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> when)</span> </span>&#123;
+&#125;</code></pre></div><p>首先是解析参数，相对时间会被转换成绝对时间 <code>when</code>。</p><p>找一个下这个 key 是否存在，如果不存在，那么直接返回。</p><p>如果 <code>when</code> 比当前时间还要小，没有做数据的 loading，且当前节点是 master（slave 节点等着 master 传过去的 DEL 就好），这时把 expire 命令转换成 <strong>DEL</strong>。<br>否则，调用 <code>setExpire</code> 函数为 key 设置过期时间，</p><p>代码分析如下，<br><div class="hljs"><pre><code class="hljs c"> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">setExpire</span><span class="hljs-params">(redisDb *db, robj *key, <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> when)</span> </span>&#123;
     dictEntry *kde, *de;
 
     <span class="hljs-comment">/* Reuse the sds from the main dict in the expire dict */</span>
@@ -313,14 +58,7 @@
         <span class="hljs-keyword">double</span> d;
     &#125; v;
     <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">dictEntry</span> *<span class="hljs-title">next</span>;</span>
-&#125; dictEntry;</code></pre></div></p>
-<h2 id="查询过期时间命令"><a href="# 查询过期时间命令" class="headerlink" title="查询过期时间命令"></a>查询过期时间命令 </h2><p> 查询某个 key 的过期时间，redis 提供了 <code>TTL</code> 这个命令，有三种返回值，</p>
-<ul>
-<li>返回 <strong>-2</strong>，表示查询的 key 不存在。</li>
-<li>返回 <strong>-1</strong>，表示查询的 key 没有设置过期。</li>
-<li>返回正常的过期时间。</li>
-</ul>
-<p>上面已经知道，key 过期时间存放位置了，那么直接取出来就好了。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> <span class="hljs-title">getExpire</span><span class="hljs-params">(redisDb *db, robj *key)</span> </span>&#123;
+&#125; dictEntry;</code></pre></div></p><h2 id="查询过期时间命令"><a href="# 查询过期时间命令" class="headerlink" title="查询过期时间命令"></a>查询过期时间命令</h2><p>查询某个 key 的过期时间，redis 提供了 <code>TTL</code> 这个命令，有三种返回值，</p><ul><li>返回 <strong>-2</strong>，表示查询的 key 不存在。</li><li>返回 <strong>-1</strong>，表示查询的 key 没有设置过期。</li><li>返回正常的过期时间。</li></ul><p>上面已经知道，key 过期时间存放位置了，那么直接取出来就好了。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> <span class="hljs-title">getExpire</span><span class="hljs-params">(redisDb *db, robj *key)</span> </span>&#123;
     dictEntry *de;
 
     <span class="hljs-comment">/* No expire? return ASAP */</span>
@@ -328,23 +66,12 @@
        (de = dictFind(db-&gt;expires,key-&gt;ptr)) == <span class="hljs-literal">NULL</span>) <span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;
     serverAssertWithInfo(<span class="hljs-literal">NULL</span>,key,dictFind(db-&gt;dict,key-&gt;ptr) != <span class="hljs-literal">NULL</span>);
     <span class="hljs-keyword">return</span> dictGetSignedIntegerVal(de);
-&#125;</code></pre></div><br>通过 <code>dictGetSignedIntegerVal</code> 函数取到过期时间。</p>
-<h2 id="删除过期时间"><a href="# 删除过期时间" class="headerlink" title="删除过期时间"></a>删除过期时间 </h2><p> 如果一个 key 设置了过期时间后想删除怎么办？redis 提供了 <code>PERSIST</code> 命令，或者直接用 <code>SET</code> 命令去覆盖，它们都涉及到函数 <code>removeExpire</code>。</p>
-<p>具体代码如下，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">removeExpire</span><span class="hljs-params">(redisDb *db, robj *key)</span> </span>&#123;
+&#125;</code></pre></div><br>通过 <code>dictGetSignedIntegerVal</code> 函数取到过期时间。</p><h2 id="删除过期时间"><a href="# 删除过期时间" class="headerlink" title="删除过期时间"></a>删除过期时间</h2><p>如果一个 key 设置了过期时间后想删除怎么办？redis 提供了 <code>PERSIST</code> 命令，或者直接用 <code>SET</code> 命令去覆盖，它们都涉及到函数 <code>removeExpire</code>。</p><p>具体代码如下，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">removeExpire</span><span class="hljs-params">(redisDb *db, robj *key)</span> </span>&#123;
     <span class="hljs-comment">/* An expire may only be removed if there is a corresponding entry in the</span>
 <span class="hljs-comment">     * main dict. Otherwise, the key will never be freed. */</span>
     serverAssertWithInfo(<span class="hljs-literal">NULL</span>,key,dictFind(db-&gt;dict,key-&gt;ptr) != <span class="hljs-literal">NULL</span>);
     <span class="hljs-keyword">return</span> dictDelete(db-&gt;expires,key-&gt;ptr) == DICT_OK;
-&#125;</code></pre></div><br>从 <code>db-&gt;expires</code> 中删掉这个 key，但是 <code>dictEntry</code> 结构体中的 <strong> 过期时间并不会重置</strong>。</p>
-<h2 id="删除过期 -key"><a href="# 删除过期 -key" class="headerlink" title="删除过期 key"></a>删除过期 key</h2><p>redis 3.x 中，过期 key 的删除方式有两种，<strong>惰性删除 </strong> 和<strong>周期删除</strong>。</p>
-<h3 id="惰性删除"><a href="# 惰性删除" class="headerlink" title="惰性删除"></a>惰性删除 </h3><p> 当 key 过期后，并不会立刻删除，即，它们占用的内存不能够得到及时释放。</p>
-<p>redis 在对每个 key 进行读写时，都会去检查这个 key 是否过期需要删除了，这样就 <strong> 把清理过期 key 的工作分摊到每一次访问中</strong>。类似的思路还有，redis 中的 dict 的扩容，称为渐进式 rehash。</p>
-<p class="note note-warning">
-这样会导致一个问题，当检查到一个大 key 要删除时，会占用比较长的时间，导致此次访问的响应时间变长。
-</p>
-
-<p>检查 key 的 expire 的逻辑在 <code>expireIfNeeded</code> 函数中实现，代码如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">expireIfNeeded</span><span class="hljs-params">(redisDb *db, robj *key)</span> </span>&#123;
+&#125;</code></pre></div><br>从 <code>db-&gt;expires</code> 中删掉这个 key，但是 <code>dictEntry</code> 结构体中的 <strong>过期时间并不会重置</strong>。</p><h2 id="删除过期 -key"><a href="# 删除过期 -key" class="headerlink" title="删除过期 key"></a>删除过期 key</h2><p>redis 3.x 中，过期 key 的删除方式有两种，<strong>惰性删除 </strong>和<strong>周期删除</strong>。</p><h3 id="惰性删除"><a href="# 惰性删除" class="headerlink" title="惰性删除"></a>惰性删除</h3><p>当 key 过期后，并不会立刻删除，即，它们占用的内存不能够得到及时释放。</p><p>redis 在对每个 key 进行读写时，都会去检查这个 key 是否过期需要删除了，这样就 <strong>把清理过期 key 的工作分摊到每一次访问中</strong>。类似的思路还有，redis 中的 dict 的扩容，称为渐进式 rehash。</p><p class="note note-warning">这样会导致一个问题，当检查到一个大 key 要删除时，会占用比较长的时间，导致此次访问的响应时间变长。</p><p>检查 key 的 expire 的逻辑在 <code>expireIfNeeded</code> 函数中实现，代码如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">expireIfNeeded</span><span class="hljs-params">(redisDb *db, robj *key)</span> </span>&#123;
     <span class="hljs-comment">// 获得 key 的过期时间</span>
     <span class="hljs-keyword">mstime_t</span> when = getExpire(db,key);
     <span class="hljs-keyword">mstime_t</span> now;
@@ -374,8 +101,7 @@
 
     <span class="hljs-comment">// 删 key</span>
     <span class="hljs-keyword">return</span> dbDelete(db,key);
-&#125;</code></pre></div>
-<p>经过一些前置校验，在 <code>propagateExpire</code> 函数中，将 <code>DEL</code> 命令分发给所有的 slave，以及写入 aof。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">propagateExpire</span><span class="hljs-params">(redisDb *db, robj *key)</span> </span>&#123;
+&#125;</code></pre></div><p>经过一些前置校验，在 <code>propagateExpire</code> 函数中，将 <code>DEL</code> 命令分发给所有的 slave，以及写入 aof。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">propagateExpire</span><span class="hljs-params">(redisDb *db, robj *key)</span> </span>&#123;
     robj *argv[<span class="hljs-number">2</span>];
 
     argv[<span class="hljs-number">0</span>] = shared.del;
@@ -389,12 +115,7 @@
 
     decrRefCount(argv[<span class="hljs-number">0</span>]);
     decrRefCount(argv[<span class="hljs-number">1</span>]);
-&#125;</code></pre></div><br>当一个 key 在 master 上过期后，将会给所有的 slave 发送相应的 DEL 命令，如果 aof 打开了，也会写入 aof。</p>
-<p class="note note-primary">
-这种在一个地方集中化管理 key 的方式，并且在 aof 和主从链接里保证操作顺序，即使有对于过期 key 的写操作也是允许的。
-</p>
-
-<p>而删 key 的操作，在函数 <code>dbDelete</code> 中完成，代码如下，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">dbDelete</span><span class="hljs-params">(redisDb *db, robj *key)</span> </span>&#123;
+&#125;</code></pre></div><br>当一个 key 在 master 上过期后，将会给所有的 slave 发送相应的 DEL 命令，如果 aof 打开了，也会写入 aof。</p><p class="note note-primary">这种在一个地方集中化管理 key 的方式，并且在 aof 和主从链接里保证操作顺序，即使有对于过期 key 的写操作也是允许的。</p><p>而删 key 的操作，在函数 <code>dbDelete</code> 中完成，代码如下，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">dbDelete</span><span class="hljs-params">(redisDb *db, robj *key)</span> </span>&#123;
     <span class="hljs-keyword">if</span> (dictSize(db-&gt;expires) &gt; <span class="hljs-number">0</span>) dictDelete(db-&gt;expires,key-&gt;ptr);
     <span class="hljs-keyword">if</span> (dictDelete(db-&gt;dict,key-&gt;ptr) == DICT_OK) &#123;
         <span class="hljs-keyword">if</span> (server.cluster_enabled) slotToKeyDel(key);
@@ -402,31 +123,12 @@
     &#125; <span class="hljs-keyword">else</span> &#123;
         <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
     &#125;
-&#125;</code></pre></div><br>如上代码可以看到，分别从 <code>db-&gt;expires</code> 和 <code>db-&gt;dict</code> 这两个 dict 里删除相应的 key。如果开启了 <strong>cluster 模式</strong>，还有在相应的 slot 里删掉。</p>
-<h3 id="周期删除"><a href="# 周期删除" class="headerlink" title="周期删除"></a>周期删除 </h3><p> 上面的惰性删除，只有在访问到 key 时才会触发，这使得过期 key 的清理时间拉的很长，所以只有惰性删除一种方式是不行的，因此增加周期删除这个方式作为补充。</p>
-<p>周期删除使用的函数是 <code>activeExpireCycle</code>。这个函数在调用时，入参分情况有 2 种过期循环类型，两者的主要区别是执行时间的差异。</p>
-<ul>
-<li>常量 <code>ACTIVE_EXPIRE_CYCLE_FAST</code> ，执行时间限制是 1000 us。在 <code>beforeSleep</code> 函数中调用的，即，每次 redis 要进入事件循环之前调用，因此需要比较快的返回</li>
-<li><p>常量 <code>ACTIVE_EXPIRE_CYCLE_SLOW</code>，执行时间限制有一个复杂公式计算，后面会说到。在周期性任务 <code>databasesCron</code> 中调用的，执行时间可以稍微长一点。</p>
-<p>在 <code>activeExpireCycle</code> 函数里，会尝试删除一些过期的 key。使用到的算法是 <strong> 自适应的</strong>，如果几乎没有过期 key，仅使用少量的 CPU 周期，否则，为了避免过期 key 过多占用内存，将会更积极地从数据库删除它们。每轮检查的数据库个数不超过常量 <strong>CRON_DBS_PER_CALL</strong> (16) 个。</p>
-</li>
-</ul>
-<p>代码大概如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (type == ACTIVE_EXPIRE_CYCLE_FAST) &#123;
+&#125;</code></pre></div><br>如上代码可以看到，分别从 <code>db-&gt;expires</code> 和 <code>db-&gt;dict</code> 这两个 dict 里删除相应的 key。如果开启了 <strong>cluster 模式</strong>，还有在相应的 slot 里删掉。</p><h3 id="周期删除"><a href="# 周期删除" class="headerlink" title="周期删除"></a>周期删除</h3><p>上面的惰性删除，只有在访问到 key 时才会触发，这使得过期 key 的清理时间拉的很长，所以只有惰性删除一种方式是不行的，因此增加周期删除这个方式作为补充。</p><p>周期删除使用的函数是 <code>activeExpireCycle</code>。这个函数在调用时，入参分情况有 2 种过期循环类型，两者的主要区别是执行时间的差异。</p><ul><li>常量 <code>ACTIVE_EXPIRE_CYCLE_FAST</code> ，执行时间限制是 1000 us。在 <code>beforeSleep</code> 函数中调用的，即，每次 redis 要进入事件循环之前调用，因此需要比较快的返回</li><li><p>常量 <code>ACTIVE_EXPIRE_CYCLE_SLOW</code>，执行时间限制有一个复杂公式计算，后面会说到。在周期性任务 <code>databasesCron</code> 中调用的，执行时间可以稍微长一点。</p><p>在 <code>activeExpireCycle</code> 函数里，会尝试删除一些过期的 key。使用到的算法是 <strong>自适应的</strong>，如果几乎没有过期 key，仅使用少量的 CPU 周期，否则，为了避免过期 key 过多占用内存，将会更积极地从数据库删除它们。每轮检查的数据库个数不超过常量 <strong>CRON_DBS_PER_CALL</strong> (16) 个。</p></li></ul><p>代码大概如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (type == ACTIVE_EXPIRE_CYCLE_FAST) &#123;
       <span class="hljs-keyword">if</span> (!timelimit_exit) <span class="hljs-keyword">return</span>;
       <span class="hljs-keyword">if</span> (start &lt; last_fast_cycle + ACTIVE_EXPIRE_CYCLE_FAST_DURATION*<span class="hljs-number">2</span>) <span class="hljs-keyword">return</span>;
       last_fast_cycle = start;
-  &#125;</code></pre></div>
-<p>如果上一次循环不是因为 timeout 而结束的，那么这一次没必要跑 fast 循环，也就是说，时间够用了，可以跑 slow 多清理一些过期 key。<br>另外，不要在上一次跑过 fast 之后的 2 倍 <strong>ACTIVE_EXPIRE_CYCLE_FAST_DURATION</strong> (1000) us 时间内再跑一次 fast 循环。</p>
-<p><code>dbs_per_call</code> 变量保存的是，本轮循环需要遍历的 db 数量，默认值是 16，在以下 2 种情况下需要修改，</p>
-<ul>
-<li>检查的 db 数超过现有的。</li>
-<li>上一次以为 timelimit 离开了。此时需要尽快的把已有的 db 里的过期 key 给清理掉，减少内存占用，留出更多空间供正常使用。</li>
-</ul>
-<p>判断代码如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (dbs_per_call &gt; server.dbnum || timelimit_exit)
-    dbs_per_call = server.dbnum;</code></pre></div>
-<p>下面是循环时间 limit 的计算，<br><div class="hljs"><pre><code class="hljs c">timelimit = <span class="hljs-number">1000000</span>*ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC/server.hz/<span class="hljs-number">100</span>;
+  &#125;</code></pre></div><p>如果上一次循环不是因为 timeout 而结束的，那么这一次没必要跑 fast 循环，也就是说，时间够用了，可以跑 slow 多清理一些过期 key。<br>另外，不要在上一次跑过 fast 之后的 2 倍 <strong>ACTIVE_EXPIRE_CYCLE_FAST_DURATION</strong> (1000) us 时间内再跑一次 fast 循环。</p><p><code>dbs_per_call</code> 变量保存的是，本轮循环需要遍历的 db 数量，默认值是 16，在以下 2 种情况下需要修改，</p><ul><li>检查的 db 数超过现有的。</li><li>上一次以为 timelimit 离开了。此时需要尽快的把已有的 db 里的过期 key 给清理掉，减少内存占用，留出更多空间供正常使用。</li></ul><p>判断代码如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (dbs_per_call &gt; server.dbnum || timelimit_exit)
+    dbs_per_call = server.dbnum;</code></pre></div><p>下面是循环时间 limit 的计算，<br><div class="hljs"><pre><code class="hljs c">timelimit = <span class="hljs-number">1000000</span>*ACTIVE_EXPIRE_CYCLE_SLOW_TIME_PERC/server.hz/<span class="hljs-number">100</span>;
 timelimit_exit = <span class="hljs-number">0</span>;
 <span class="hljs-keyword">if</span> (timelimit &lt;= <span class="hljs-number">0</span>) timelimit = <span class="hljs-number">1</span>;
 
@@ -440,8 +142,7 @@ current_db++;</code></pre></div><br>选择一个 db 进行数据清理，<br><di
 
 slots = dictSlots(db-&gt;expires);
 <span class="hljs-keyword">if</span> (num &amp;&amp; slots &gt; DICT_HT_INITIAL_SIZE &amp;&amp; (num*<span class="hljs-number">100</span>/slots &lt; <span class="hljs-number">1</span>))
-        <span class="hljs-keyword">break</span>;</code></pre></div><br>如果 expires 字典不为空，存储的数据可能已经很少了，但是字典还是大字典 (<strong> 数据不足 1%</strong>)，这样遍历数据有效命中率会很低，处理起来会浪费时间，后面的访问会很快触发字典的缩容，缩容后再进行处理效率更高, 暂时结束这个 db 的检查。</p>
-<p>每一次抽样最多 20 个 key。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (num &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP)
+        <span class="hljs-keyword">break</span>;</code></pre></div><br>如果 expires 字典不为空，存储的数据可能已经很少了，但是字典还是大字典 (<strong> 数据不足 1%</strong>)，这样遍历数据有效命中率会很低，处理起来会浪费时间，后面的访问会很快触发字典的缩容，缩容后再进行处理效率更高, 暂时结束这个 db 的检查。</p><p>每一次抽样最多 20 个 key。<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (num &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP)
       num = ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP;
 
 <span class="hljs-keyword">while</span> (num--) &#123;
@@ -456,8 +157,7 @@ slots = dictSlots(db-&gt;expires);
         ttl_sum += ttl;
         ttl_samples++;
     &#125;
-&#125;</code></pre></div><br>随机选取 key，调用 <code>activeExpireCycleTryExpire</code> 函数进行过期 key 的删除，该函数逻辑见附录。</p>
-<p>这里还有个统计平均 ttl 的逻辑，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (ttl_samples) &#123;
+&#125;</code></pre></div><br>随机选取 key，调用 <code>activeExpireCycleTryExpire</code> 函数进行过期 key 的删除，该函数逻辑见附录。</p><p>这里还有个统计平均 ttl 的逻辑，<br><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (ttl_samples) &#123;
     <span class="hljs-comment">// 抽样 key 的平均 ttl 时间</span>
     <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> avg_ttl = ttl_sum/ttl_samples;
 
@@ -465,36 +165,17 @@ slots = dictSlots(db-&gt;expires);
 
     <span class="hljs-keyword">if</span> (db-&gt;avg_ttl == <span class="hljs-number">0</span>) db-&gt;avg_ttl = avg_ttl;
     db-&gt;avg_ttl = (db-&gt;avg_ttl/<span class="hljs-number">50</span>)*<span class="hljs-number">49</span> + (avg_ttl/<span class="hljs-number">50</span>);
-&#125;</code></pre></div><br>每个 db 的检查什么时候退出呢？有 2 个时刻。</p>
-<ol>
-<li>通过超时时间 <code>timelimit</code>。<br>每 16 轮循环检查一次是否超时，到时间后 ，<code>timelimit_exit</code> 变量置 1，接着就退出了。<div class="hljs"><pre><code class="hljs c">iteration++;
+&#125;</code></pre></div><br>每个 db 的检查什么时候退出呢？有 2 个时刻。</p><ol><li>通过超时时间 <code>timelimit</code>。<br>每 16 轮循环检查一次是否超时，到时间后 ，<code>timelimit_exit</code> 变量置 1，接着就退出了。<div class="hljs"><pre><code class="hljs c">iteration++;
 <span class="hljs-keyword">if</span> ((iteration &amp; <span class="hljs-number">0xf</span>) == <span class="hljs-number">0</span>) &#123; <span class="hljs-comment">/* check once every 16 iterations. */</span>
     <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> elapsed = ustime()-start;
 
     latencyAddSampleIfNeeded(<span class="hljs-string">&quot;expire-cycle&quot;</span>,elapsed/<span class="hljs-number">1000</span>);
     <span class="hljs-keyword">if</span> (elapsed &gt; timelimit) timelimit_exit = <span class="hljs-number">1</span>;
 &#125;
-<span class="hljs-keyword">if</span> (timelimit_exit) <span class="hljs-keyword">return</span>;</code></pre></div></li>
-<li>在每个 db 的检查循环外，是有条件的。<br>每检查到一个过期的 key，就把 <code>expired</code> 变量加 1，所以，这个循环的条件时，如果一轮抽样到的 key 中过期的比例小于 25%，那么这个 db 就不必再抽样了。<div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP 20</span>
+<span class="hljs-keyword">if</span> (timelimit_exit) <span class="hljs-keyword">return</span>;</code></pre></div></li><li>在每个 db 的检查循环外，是有条件的。<br>每检查到一个过期的 key，就把 <code>expired</code> 变量加 1，所以，这个循环的条件时，如果一轮抽样到的 key 中过期的比例小于 25%，那么这个 db 就不必再抽样了。<div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP 20</span>
 <span class="hljs-keyword">do</span> &#123;
   ...
-&#125; <span class="hljs-keyword">while</span> (expired &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP/<span class="hljs-number">4</span>);</code></pre></div>
-</li>
-</ol>
-<p class="note note-warning">
-在一个时间范围内，过期 key 最好不要太密集，因为系统发现到期数据很多，会迫切希望尽快处理掉这些过期数据，所以每次检查都要耗尽分配的时间片，直到到期数据到达一个可接受的密度比例。
-</p>
-
-<p class="note note-primary">
-由上总结，redis 主逻辑在单进程主线程中实现，要保证不能影响主业务前提下，检查过期数据，不能太影响系统性能。主要三方面进行限制：
-(1) 检查时间限制。
-(2) 过期数据检查数量限制。
-(3) 过期数据是否达到可接受比例。
-</p>
-
-<p>至此，redis 中 key 的过期逻辑就讲完了。顺便说一下，为了解决删大 key 带来的阻塞风险，在更高版本的 redis 中，将删 key 放到了 bio 后台线程中。</p>
-<h2 id="附录"><a href="# 附录" class="headerlink" title="附录"></a>附录</h2><p><code>activeExpireCycleTryExpire</code> 函数将试着将存储的过期 key 从全局 key 的 dict 和 expire 的 dict 中删掉。如果发现 key 过期了，操作后返回 1，否则什么也不做，返回 0。代码逻辑如下，</p>
-<div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">activeExpireCycleTryExpire</span><span class="hljs-params">(redisDb *db, dictEntry *de, <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> now)</span> </span>&#123;
+&#125; <span class="hljs-keyword">while</span> (expired &gt; ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP/<span class="hljs-number">4</span>);</code></pre></div></li></ol><p class="note note-warning">在一个时间范围内，过期 key 最好不要太密集，因为系统发现到期数据很多，会迫切希望尽快处理掉这些过期数据，所以每次检查都要耗尽分配的时间片，直到到期数据到达一个可接受的密度比例。</p><p class="note note-primary">由上总结，redis 主逻辑在单进程主线程中实现，要保证不能影响主业务前提下，检查过期数据，不能太影响系统性能。主要三方面进行限制： (1) 检查时间限制。 (2) 过期数据检查数量限制。 (3) 过期数据是否达到可接受比例。</p><p>至此，redis 中 key 的过期逻辑就讲完了。顺便说一下，为了解决删大 key 带来的阻塞风险，在更高版本的 redis 中，将删 key 放到了 bio 后台线程中。</p><h2 id="附录"><a href="# 附录" class="headerlink" title="附录"></a>附录</h2><p><code>activeExpireCycleTryExpire</code> 函数将试着将存储的过期 key 从全局 key 的 dict 和 expire 的 dict 中删掉。如果发现 key 过期了，操作后返回 1，否则什么也不做，返回 0。代码逻辑如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">activeExpireCycleTryExpire</span><span class="hljs-params">(redisDb *db, dictEntry *de, <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> now)</span> </span>&#123;
     <span class="hljs-keyword">long</span> <span class="hljs-keyword">long</span> t = dictGetSignedIntegerVal(de);
     <span class="hljs-keyword">if</span> (now &gt; t) &#123;
         sds key = dictGetKey(de);
@@ -515,251 +196,7 @@ slots = dictSlots(db-&gt;expires);
     &#125; <span class="hljs-keyword">else</span> &#123;
         <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
     &#125;
-&#125;</code></pre></div>
-            </div>
-            <hr>
-            <div>
-              <div class="post-metas mb-3">
-                
-                  <div class="post-meta mr-3">
-                    <i class="iconfont icon-category"></i>
-                    
-                      <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a>
-                    
-                  </div>
-                
-                
-                  <div class="post-meta">
-                    <i class="iconfont icon-tags"></i>
-                    
-                      <a class="hover-with-bg" href="/tags/redis/">redis</a>
-                    
-                  </div>
-                
-              </div>
-              
-                <p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p>
-              
-              
-                <div class="post-prevnext row">
-                  <article class="post-prev col-6">
-                    
-                    
-                      <a href="/f0a45582.html">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Redis 源码分析之内存淘汰策略</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
-                  </article>
-                  <article class="post-next col-6">
-                    
-                    
-                      <a href="/badab03c.html">
-                        <span class="hidden-mobile">Redis 源码分析之数据迁移 (2)</span>
-                        <span class="visible-mobile">下一篇</span>
-                        <i class="iconfont icon-arrowright"></i>
-                      </a>
-                    
-                  </article>
-                </div>
-              
-            </div>
-
-            
-              <!-- Comments -->
-              <article class="comments" id="comments">
-                
-                
-  <div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw">
-    <script type="text/javascript">
-      function loadLivere() {
-        addScript('https://cdn-city.livere.com/js/embed.dist.js');
-      }
-      waitElementVisible('lv-container', loadLivere);
-    </script>
-    <noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript>
-  </div>
-
-
-              </article>
-            
-          </article>
-        </div>
-      </div>
-    </div>
-    
-      <div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn">
-        <div id="toc">
-  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
-  <div id="tocbot"></div>
-</div>
-
-      </div>
-    
-  </div>
-</div>
-
-<!-- Custom -->
-
-
-    
-  </main>
-
-  
-    <a id="scroll-top-button" href="#" role="button">
-      <i class="iconfont icon-arrowup" aria-hidden="true"></i>
-    </a>
-  
-
-  
-    <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
-     aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header text-center">
-        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
-        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body mx-3">
-        <div class="md-form mb-5">
-          <input type="text" id="local-search-input" class="form-control validate">
-          <label data-error="x" data-success="v"
-                 for="local-search-input">关键词</label>
-        </div>
-        <div class="list-group" id="local-search-result"></div>
-      </div>
-    </div>
-  </div>
-</div>
-  
-
-  
-
-  
-
-  <footer class="mt-5">
-  <div class="text-center py-3">
-    <div>
-      <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a>
-      <i class="iconfont icon-love"></i>
-      <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener">
-        <span>Fluid</span></a>
-    </div>
-    
-  <div class="statistics">
-    
-    
-
-    
-      
-        <!-- 不蒜子统计PV -->
-        <span id="busuanzi_container_site_pv" style="display: none">
-            总访问量 
-            <span id="busuanzi_value_site_pv"></span>
-             次
-          </span>
-      
-      
-        <!-- 不蒜子统计UV -->
-        <span id="busuanzi_container_site_uv" style="display: none">
-            总访客数 
-            <span id="busuanzi_value_site_uv"></span>
-             人
-          </span>
-      
-    
-  </div>
-
-
-    
-
-    
-  </div>
-</footer>
-
-<!-- SCRIPTS -->
-<script  src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js" ></script>
-<script  src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js" ></script>
-<script  src="/js/debouncer.js" ></script>
-<script  src="/js/main.js" ></script>
-
-<!-- Plugins -->
-
-
-  
-    <script  src="/js/lazyload.js" ></script>
-  
-
-
-
-  
-
-
-
-  <script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js" ></script>
-  <script  src="/js/clipboard-use.js" ></script>
-
-
-
-  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
-
-
-
-
-
-  <script  src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js" ></script>
-  <script>
-    $(document).ready(function () {
-      var boardCtn = $('#board-ctn');
-      var boardTop = boardCtn.offset().top;
-
-      tocbot.init({
-        tocSelector: '#tocbot',
-        contentSelector: '#post-body',
-        headingSelector: 'h1,h2,h3,h4,h5,h6',
-        linkClass: 'tocbot-link',
-        activeLinkClass: 'tocbot-active-link',
-        listClass: 'tocbot-list',
-        isCollapsedClass: 'tocbot-is-collapsed',
-        collapsibleClass: 'tocbot-is-collapsible',
-        collapseDepth: 2,
-        scrollSmooth: true,
-        headingsOffset: -boardTop
-      });
-      if ($('.toc-list-item').length > 0) {
-        $('#toc').css('visibility', 'visible');
-      }
-    });
-  </script>
-
-
-
-  <script  src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js" ></script>
-  <script>
-    var typed = new Typed('#subtitle', {
-      strings: [
-        '  ',
-        "Redis 源码分析之 key 过期&nbsp;",
-      ],
-      cursorChar: "_",
-      typeSpeed: 70,
-      loop: false,
-    });
-    typed.stop();
-    $(document).ready(function () {
-      $(".typed-cursor").addClass("h2");
-      typed.start();
-    });
-  </script>
-
-
-
-  <script  src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js" ></script>
-  <script>
-    anchors.options = {
+&#125;</code></pre></div></div><hr><div><div class="post-metas mb-3"><div class="post-meta mr-3"><i class="iconfont icon-category"></i> <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a></div><div class="post-meta"><i class="iconfont icon-tags"></i> <a class="hover-with-bg" href="/tags/redis/">redis</a></div></div><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p><div class="post-prevnext row"><article class="post-prev col-6"><a href="/f0a45582.html"><i class="iconfont icon-arrowleft"></i> <span class="hidden-mobile">Redis 源码分析之内存淘汰策略</span> <span class="visible-mobile">上一篇</span></a></article><article class="post-next col-6"><a href="/badab03c.html"><span class="hidden-mobile">Redis 源码分析之数据迁移 (2)</span> <span class="visible-mobile">下一篇</span> <i class="iconfont icon-arrowright"></i></a></article></div></div><article class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">function loadLivere(){addScript("https://cdn-city.livere.com/js/embed.dist.js")}waitElementVisible("lv-container",loadLivere)</script><noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript></div></article></article></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc"><p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div></main><a id="scroll-top-button" href="#" role="button"><i class="iconfont icon-arrowup" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4><button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"><input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div><a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a></div><div class="statistics"><span id="busuanzi_container_site_pv" style="display:none">总访问量 <span id="busuanzi_value_site_pv"></span> 次 </span><span id="busuanzi_container_site_uv" style="display:none">总访客数 <span id="busuanzi_value_site_uv"></span> 人</span></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="/js/debouncer.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js"></script><script>$(document).ready(function(){var t=$("#board-ctn").offset().top;tocbot.init({tocSelector:"#tocbot",contentSelector:"#post-body",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",collapseDepth:3,scrollSmooth:!0,headingsOffset:-t}),0<$(".toc-list-item").length&&$("#toc").css("visibility","visible")})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","Redis 源码分析之 key 过期&nbsp;"],cursorChar:"|",typeSpeed:72,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>anchors.options = {
       placement: "right",
       visible: "hover",
       
@@ -771,55 +208,4 @@ slots = dictSlots(db-&gt;expires);
     for (item of el) {
       res.push(".markdown-body > " + item)
     }
-    anchors.add(res.join(", "))
-  </script>
-
-
-
-  <script  src="/js/local-search.js" ></script>
-  <script>
-    var path = "/local-search.xml";
-    var inputArea = document.querySelector("#local-search-input");
-    inputArea.onclick = function () {
-      searchFunc(path, 'local-search-input', 'local-search-result');
-      this.onclick = null
-    }
-  </script>
-
-
-
-  <script  src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js" ></script>
-  <link  rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css" />
-
-  <script>
-    $('#post img:not(.no-zoom img, img[no-zoom]), img[zoom]').each(
-      function () {
-        var element = document.createElement('a');
-        $(element).attr('data-fancybox', 'images');
-        $(element).attr('href', $(this).attr('src'));
-        $(this).wrap(element);
-      }
-    );
-  </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-</body>
-</html>
+    anchors.add(res.join(", "))</script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){searchFunc(path,"local-search-input","local-search-result"),this.onclick=null}</script><script src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><link rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><script>$("#post img:not(.no-zoom img, img[no-zoom]), img[zoom]").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>
