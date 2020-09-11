@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://happencc.gitee.io/a722b34f.html</loc>
+    
+    <lastmod>2020-09-11</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://happencc.gitee.io/f0a45582.html</loc>
     
     <lastmod>2020-04-19</lastmod>
@@ -354,6 +361,13 @@
   </url>
   
   <url>
+    <loc>https://happencc.gitee.io/tags/git/</loc>
+    <lastmod>2020-09-11</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://happencc.gitee.io/tags/hexo/</loc>
     <lastmod>2020-09-11</lastmod>
     <changefreq>daily</changefreq>
@@ -382,14 +396,14 @@
   </url>
   
   <url>
-    <loc>https://happencc.gitee.io/tags/sublime/</loc>
+    <loc>https://happencc.gitee.io/tags/vscode/</loc>
     <lastmod>2020-09-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>https://happencc.gitee.io/tags/vscode/</loc>
+    <loc>https://happencc.gitee.io/tags/sublime/</loc>
     <lastmod>2020-09-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
