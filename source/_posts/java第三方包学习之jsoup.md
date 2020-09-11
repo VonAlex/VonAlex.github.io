@@ -3,7 +3,7 @@ title: java第三方包学习之 jsoup
 tags:
   - java
 categories: quick-start
-index_img: /images/java.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/java.jpg
 abbrlink: ad4c6b9
 date: 2016-08-12 23:44:34
 description:

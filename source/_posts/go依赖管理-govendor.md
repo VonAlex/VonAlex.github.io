@@ -3,7 +3,7 @@ title: go 依赖管理 govendor
 tags:
   - go
 categories: quick-start
-index_img: /images/gopher.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/gopher.png
 abbrlink: b5574948
 date: 2017-05-02 23:34:26
 ---

@@ -3,7 +3,7 @@ title: golang 中下划线的使用
 tags:
   - go
 categories: quick-start
-index_img: /images/gopher.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/gopher.png
 abbrlink: 3581d0f0
 date: 2019-01-06 16:07:53
 ---

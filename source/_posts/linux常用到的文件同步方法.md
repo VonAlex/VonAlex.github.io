@@ -3,7 +3,7 @@ title: linux 常用到的文件同步方法
 tags:
   - tools
 categories: linux
-index_img: /images/linux.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/linux.jpg
 abbrlink: e8a575f7
 date: 2017-10-05 16:36:03
 ---

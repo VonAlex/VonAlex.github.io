@@ -3,7 +3,7 @@ title: Redis 基本数据结构之 SDS
 tags:
   - redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: 75a172a4
 date: 2017-10-15 17:57:32
 ---

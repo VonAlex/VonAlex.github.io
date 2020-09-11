@@ -1,50 +1,63 @@
 <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
   <div class="container">
     <a class="navbar-brand"
-      href="<%- url_for() %>">&nbsp;<strong><%- theme.navbar.blog_title || config.title %></strong>&nbsp;</a>
+       href="<%- url_for() %>">&nbsp;<strong><%- theme.navbar.blog_title || config.title %></strong>&nbsp;</a>
 
     <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
-      data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
-      aria-label="Toggle navigation">
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <div class="animated-icon"><span></span><span></span><span></span></div>
     </button>
 
     <!-- Collapsible content -->
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav ml-auto text-center">
-        <% for(const each in theme.navbar.menu) { %>
-        <% var link = theme.navbar.menu[each] %>
-        <% if (!link) continue %>
-        <% var text = __(each + '.title') || each %>
-        <% if (text.indexOf('.title') !== -1) {
-            text = each
+        <% for(const each of theme.navbar.menu || []) { %>
+          <% if (!each.submenu && !each.link) continue %>
+          <% var text = each.name || __(each.key + '.title') %>
+          <% if (text.indexOf('.title') !== -1) {
+            text = each.key
           } %>
-        <li class="nav-item">
-          <a class="nav-link" href="<%- url_for(link) %>">
-            <% if (link.length == 1) { %>
-            <i class="fa fa-home" aria-hidden="true"></i>
-            <%}%>
-            <% if (link.indexOf('archives') !== -1) { %>
-            <i class="fa fa-archive" aria-hidden="true"></i>
-            <%}%>
-            <% if (link.indexOf('categories') !== -1) { %>
-            <i class="fa fa-map-signs" aria-hidden="true"></i>
-            <%}%>
-            <% if (link.indexOf('tags') !== -1) { %>
-            <i class="fa fa-tags" aria-hidden="true"></i>
-            <%}%>
-            <% if (link.indexOf('about') !== -1) { %>
-            <i class="fa fa-child" aria-hidden="true"></i>
-            <%}%>
-            <%- text %>
-          </a>
-        </li>
+          <% if (each.submenu) { %>
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <%- each.icon ? '<i class="' + each.icon + '"></i>' : '' %>
+                <%- text %>
+              </a>
+              <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                <% for(const subEach of each.submenu || []) { %>
+                  <% if (!subEach.link) continue %>
+                  <% var subText = subEach.name || __(subEach.key + '.title') %>
+                  <% if (subText.indexOf('.title') !== -1) {
+                    subText = subEach.key
+                  } %>
+                  <a class="dropdown-item" href="<%= url_for(subEach.link) %>">
+                    <%- subEach.icon ? '<i class="' + subEach.icon + '"></i>' : '' %>
+                    <%- subText %>
+                  </a>
+                <% } %>
+              </div>
+            </li>
+          <% } else { %>
+            <li class="nav-item">
+              <a class="nav-link" href="<%= url_for(each.link) %>">
+                <%- each.icon ? '<i class="' + each.icon + '"></i>' : '' %>
+                <%- text %>
+              </a>
+            </li>
+          <% } %>
         <% } %>
         <% if(theme.search.enable) { %>
-        <li class="nav-item" id="search-btn">
-          <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;&nbsp;<i
-              class="iconfont icon-search"></i>&nbsp;&nbsp;</a>
-        </li>
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i
+                class="iconfont icon-search"></i>&nbsp;</a>
+          </li>
+        <% } %>
+        <% if(theme.dark_mode && theme.dark_mode.enable) { %>
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" href="javascript:">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
         <% } %>
       </ul>
     </div>

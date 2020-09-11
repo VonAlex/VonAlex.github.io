@@ -3,7 +3,7 @@ title: dstat工具使用
 tags:
   - shell
 categories: linux
-index_img: /images/linux.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/linux.jpg
 abbrlink: fe52c850
 date: 2018-07-04 00:35:12
 ---

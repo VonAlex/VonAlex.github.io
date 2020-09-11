@@ -3,7 +3,7 @@ title: Redis 源码之 Bio
 tags:
   - redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: 9ceee0f6
 date: 2018-10-29 12:35:51
 ---

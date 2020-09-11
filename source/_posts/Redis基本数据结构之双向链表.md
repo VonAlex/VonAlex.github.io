@@ -3,7 +3,7 @@ title: Redis 基本数据结构之双向链表
 tags:
   - redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: ba6bb8e7
 date: 2018-08-13 20:19:52
 ---

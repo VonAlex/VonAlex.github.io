@@ -3,7 +3,7 @@ title: Scrapy Demo
 tags:
   - 爬虫
 categories: python
-index_img: /images/spider.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/spider.jpg
 abbrlink: 24aff268
 date: 2016-04-20 00:05:28
 ---

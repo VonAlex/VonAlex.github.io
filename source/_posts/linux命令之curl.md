@@ -3,7 +3,7 @@ title: linux 命令之 curl
 tags:
   - shell
 categories: linux
-index_img: /images/linux.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/linux.jpg
 abbrlink: d904ea3d
 date: 2017-06-11 00:12:08
 ---

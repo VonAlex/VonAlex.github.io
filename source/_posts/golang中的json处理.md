@@ -3,7 +3,7 @@ title: golang 中的 json 处理
 tags:
   - go
 categories: quick-start
-index_img: /images/gopher.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/gopher.png
 abbrlink: fef1a660
 date: 2017-06-17 19:11:53
 ---

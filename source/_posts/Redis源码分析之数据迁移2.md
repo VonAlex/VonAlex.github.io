@@ -3,7 +3,7 @@ title: Redis源码分析之数据迁移(2)
 tags:
   - redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: badab03c
 date: 2020-04-02 18:40:22
 ---
