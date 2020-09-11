@@ -3,7 +3,7 @@ title: irqbalance 详解之一
 tags:
   - shell
 categories: linux
-index_img: /images/linux.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/linux.jpg
 abbrlink: 211b84d9
 date: 2018-06-29 10:38:03
 ---

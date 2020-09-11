@@ -3,7 +3,7 @@ title: 'sublime text3 配置[ python 篇]'
 tags:
   - sublime
 categories: tools
-index_img: /images/sublime.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/sublime.jpg
 abbrlink: f49a9b8a
 date: 2016-05-12 23:24:10
 ---

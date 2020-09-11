@@ -3,7 +3,7 @@ title: gdb 日常使用
 tags:
   - gdb
 categories: linux
-index_img: /images/gdb.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/gdb.jpg
 abbrlink: 14ffc71
 date: 2017-09-24 03:16:46
 ---

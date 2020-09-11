@@ -3,7 +3,7 @@ title: golang 包导入的一些问题
 tags:
   - go
 categories: quick-start
-index_img: /images/gopher.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/gopher.png
 abbrlink: 3dbe6014
 date: 2017-12-19 01:26:55
 ---

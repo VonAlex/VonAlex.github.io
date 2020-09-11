@@ -4,7 +4,7 @@ tags:
   - redis
   - sdk
 categories: 源码系列
-index_img: /images/gopher.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/gopher.png
 abbrlink: 1bcb9a09
 date: 2019-06-23 16:08:54
 ---

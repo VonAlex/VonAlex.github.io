@@ -3,7 +3,7 @@ title: python标准库之 pickle 模块
 tags:
   - python
 categories: quick-start
-index_img: /images/python.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/python.jpg
 abbrlink: 9cd13682
 date: 2016-07-17 17:25:37
 ---

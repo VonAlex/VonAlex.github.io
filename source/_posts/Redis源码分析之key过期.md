@@ -3,7 +3,7 @@ title: Redis 源码分析之 key 过期
 tags:
   - redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: 5a077de9
 date: 2020-04-06 19:47:58
 ---

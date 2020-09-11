@@ -3,7 +3,7 @@ title: golang 标准库之 flag 包
 tags:
   - go
 categories: quick-start
-index_img: /images/gopher.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/gopher.png
 abbrlink: 1e9de668
 date: 2017-06-04 15:51:29
 ---

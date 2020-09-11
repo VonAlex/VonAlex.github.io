@@ -3,7 +3,7 @@ title: Redis 中的事件
 tags:
   - redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: 85f7b0b4
 date: 2018-08-17 01:50:50
 ---

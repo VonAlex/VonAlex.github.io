@@ -3,7 +3,7 @@ title: Redis 基本数据结构之 dict
 tags:
   - redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: d68bbf73
 date: 2018-09-08 14:04:32
 ---

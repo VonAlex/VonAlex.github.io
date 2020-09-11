@@ -2,7 +2,7 @@
 title: Redis 源码之启动流程
 tags: redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: 35a9decf
 date: 2018-12-08 01:07:25
 ---

@@ -3,7 +3,7 @@ title: Redis 持久化之 AOF 重写
 tags:
   - redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: d15eb256
 date: 2019-01-20 01:55:11
 ---

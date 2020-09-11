@@ -3,7 +3,7 @@ title: Redis 源码之 cluster meet
 tags:
   - redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: c62267d
 date: 2018-12-10 00:02:03
 ---

@@ -3,7 +3,7 @@ title: vscode 体验记
 tags:
   - vscode
 categories: tools
-index_img: /images/vscode.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/vscode.jpg
 abbrlink: ef96f204
 date: 2018-05-19 10:31:27
 ---

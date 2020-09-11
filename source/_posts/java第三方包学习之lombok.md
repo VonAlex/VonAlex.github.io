@@ -3,7 +3,7 @@ title: java第三方包学习之lombok
 tags:
   - java
 categories: quick-start
-index_img: /images/java.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/java.jpg
 abbrlink: 38f80316
 date: 2016-07-16 01:09:49
 ---

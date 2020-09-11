@@ -3,7 +3,7 @@ title: 常用 shell
 tags:
   - shell
 categories: linux
-index_img: /images/bash.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/bash.jpg
 abbrlink: d64f6d6a
 date: 2017-08-05 14:09:19
 ---

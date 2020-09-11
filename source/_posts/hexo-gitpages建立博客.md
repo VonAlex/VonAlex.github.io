@@ -3,7 +3,7 @@ title: hexo + gitpages 搭建博客
 tags:
   - hexo
 categories: tools
-index_img: /images/hexo.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/hexo.jpg
 abbrlink: '5e988508'
 date: 2016-04-03 00:04:49
 ---

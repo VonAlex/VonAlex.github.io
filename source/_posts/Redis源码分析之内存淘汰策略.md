@@ -3,7 +3,7 @@ title: Redis 源码分析之内存淘汰策略
 tags:
   - redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: f0a45582
 date: 2020-04-19 12:33:33
 ---
@@ -344,7 +344,7 @@ else if (server.maxmemory_policy == MAXMEMORY_ALLKEYS_LRU ||
 ```
 每个 db 都有一个 `eviction_pool` 的结构，存放潜在的淘汰对象，就是那些 idle 时间很大的 key，长度为 16，该 pool 的结构如下图所示，
 
-![](/images/redis-evictionpool.jpg)
+![](https://gitee.com/happencc/pics/raw/master/images/redis-evictionpool.jpg)
 
 可以看到，在 pool 中，key 按照 idletime 升序排列，所以淘汰数据时，从右侧开始遍历 pool，也就是拿到 pool 中 idletime 最大的那个 key 进行淘汰，这个 key 就是代码中的 `bestkey`。
 
@@ -355,7 +355,7 @@ else if (server.maxmemory_policy == MAXMEMORY_ALLKEYS_LRU ||
 以上的插入过长中，都要使用 `memmove` 函数进行元素的移动。
 
 逻辑主要如下图所示，这里就不贴代码了，
-![](/images/ecictionpoo-update.jpg)
+![](https://gitee.com/happencc/pics/raw/master/images/ecictionpoo-update.jpg)
 
 
 需要注意的一点是，在 idletime 的获取时，需要兼容 24 bit lru lock 溢出的情况。

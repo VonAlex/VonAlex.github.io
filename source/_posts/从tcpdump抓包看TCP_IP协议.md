@@ -4,7 +4,7 @@ tags:
   - tcp/ip
   - tupdump
 categories: linux
-index_img: /images/tcpip.jpg
+index_img: https://gitee.com/happencc/pics/raw/master/images/tcpip.jpg
 abbrlink: 1f742d6d
 date: 2018-05-26 16:44:18
 ---

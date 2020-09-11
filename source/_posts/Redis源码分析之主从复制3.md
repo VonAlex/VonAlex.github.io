@@ -3,7 +3,7 @@ title: Redis 源码之主从复制(3)
 tags:
   - redis
 categories: 源码系列
-index_img: /images/redis.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/redis.png
 abbrlink: 968a029a
 date: 2019-09-05 00:20:55
 ---

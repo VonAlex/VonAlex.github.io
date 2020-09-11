@@ -3,7 +3,7 @@ title: 小白学golang
 tags:
   - go
 categories: golang
-index_img: /images/gopher.png
+index_img: https://gitee.com/happencc/pics/raw/master/images/gopher.png
 abbrlink: d94122d2
 date: 2017-03-18 21:09:49
 ---
