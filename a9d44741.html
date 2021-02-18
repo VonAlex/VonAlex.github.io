@@ -1,0 +1,123 @@
+<!DOCTYPE html><html lang="zh-CN" data-default-color-scheme="&#34;auto&#34;"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#433d3c"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>Redis Cluster write safety 分析 - HappenのMemo</title><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css"><link rel="stylesheet" href="/lib/hint/hint.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/monokai.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css"><link rel="stylesheet" href="/css/main.css"><script src="/js/utils.js"></script><script src="/js/color-schema.js"></script><meta name="generator" content="Hexo 5.1.1"></head><body><header style="height:60vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"><a class="navbar-brand" href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="iconfont icon-home-fill"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="iconfont icon-archive-fill"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="iconfont icon-category-fill"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="iconfont icon-tags-fill"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="iconfont icon-user-fill"></i> 关于</a></li><li class="nav-item"><a class="nav-link" href="/links/"><i class="iconfont icon-link-fill"></i> 友链</a></li><li class="nav-item" id="search-btn"><a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i class="iconfont icon-search"></i>&nbsp;</a></li><li class="nav-item" id="color-toggle-btn"><a class="nav-link" href="javascript:">&nbsp;<i class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a></li></ul></div></div></nav><div class="banner intro-2" id="background" parallax="true" style="background:url(https://gitee.com/happencc/pics/raw/master/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask flex-center" style="background-color:rgba(0,0,0,.3)"><div class="container page-header text-center fade-in-up"><span class="h2" id="subtitle"></span><div class="mt-3"><span class="post-meta mr-2"><i class="iconfont icon-author" aria-hidden="true"></i> Happen </span><span class="post-meta"><i class="iconfont icon-date-fill" aria-hidden="true"></i> <time datetime="2021-02-18 23:25" pubdate>2021-02-18 23:25</time></span></div><div class="mt-1"><span class="post-meta mr-2"><i class="iconfont icon-chart"></i> 2.3k 字 </span><span class="post-meta mr-2"><i class="iconfont icon-clock-fill"></i> 29 分钟 </span><span id="busuanzi_container_page_pv" style="display:none"><i class="iconfont icon-eye" aria-hidden="true"></i> <span id="busuanzi_value_page_pv"></span> 次</span></div></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5" id="board"><article class="post-content mx-auto" id="post"><h1 style="display:none">Redis Cluster write safety 分析</h1><p class="note note-info">本文最后更新于：2021-02-18 23:25</p><div class="markdown-body" id="post-body"><p>redis cluster 是 redis 的分布式实现。<br>如同官方文档 <strong><a target="_blank" rel="noopener" href="https://redis.io/topics/cluster-spec">cluster-spec</a></strong> 强调的那样，其设计 <strong>优先考虑高性能和线性扩展能力，并尽最大努力保证 write safety</strong>。</p><a id="more"></a><p>这里所说的 write 丢失是指，回复 client ack 后，后续请求中出现数据未做变更或丢失的情况，主要有主从切换、实例重启、脑裂等三种情况可能导致该问题，下面依次分析。</p><h2 id="case-1- 主从切换">case 1 主从切换</h2><p>failover 会带来路由的变更，主动 / 被动情况需要分开讨论。</p><h3 id="被动 -failover">被动 failover</h3><p>为表达方便，有以下假设，cluster 状态正常， node C 为 master，负责 slot 1-100，对应 slave 为 C’。</p><p>master C 挂掉后，slave C’ 在 <strong>最多 2 倍 cluster_node_timeout 的时间 </strong>内把 C 标记成 FAIL，进而触发 failover 逻辑。</p><p>在 slave C’ 成功切换为 master 前，1-100 slot 仍然由 C 负责，访问会报错。<br>C’ 切为 master 后，gossip 广播路由变更，在这个过程中，client 访问 C’，仍可以得到正常的回应，而访问其他持有老路由的 node，请求会被 MOVED 到挂掉的 C，访问报错。</p><p><strong>唯一可能出现 write 丢失的 case 由主从异步复制机制导致</strong>。<br>如果写到 master 上的数据还没有来得及同步到 slave 就挂掉了，那么这部分数据就会丢失（<strong>重启后不存在 merge 操作</strong>）。master 回复 client ack 与同步 slave 几乎是同时进行的，这种情况很少发生，但这是一个风险，时间窗口很小。</p><h3 id="主动 -failover">主动 failover</h3><p>主动 failover 通过 sysadmin 在 slave node 上执行 <code>CLUSTER FAILOVER [FORCE|TAKEOVER]</code> 命令触发。</p><p>完整 manual failover 过程在之前的 <a href="https://happencc.gitee.io/54df012b.html">博客 </a>详细讨论过，概括为以下 6 个步骤：</p><ol><li>slave 发起请求，gossip 消息携带 <strong>CLUSTERMSG_TYPE_MFSTART</strong> 标识。</li><li>master 阻塞 client，停服时间为 2 倍 <strong>CLUSTER_MF_TIMEOUT</strong>，目前版本为 10s。</li><li>slave 追赶主从复制 offset 数据。</li><li>slave 开始发起选举，并最终当选。</li><li>slave 切换自身 role，接管 slots，并广播新的路由信息。</li><li>其他节点更改路由，cluster 路由打平。</li></ol><p>三个选项分别有不同的行为，分析如下，</p><p>（1）默认选项。<br>执行完整的 mf 流程，master 有停服行为，因此不存在 write 丢失的问题。</p><p>（2）FORCE 选项。<br>从第 4 步开始执行。在 <strong>slave C’ 统计选票阶段，master C 仍然可以正常接收用户请求</strong>，且主从异步复制，这些都可能导致 write 丢失。mf 将在未来的某个时间点开始执行，timeout 时间为 <strong>CLUSTER_MF_TIMEOUT</strong>（现版本为 5s），每次 <code>clusterCron</code> 都会检查。</p><p>（3）TAKEOVER 选项。<br>从第 5 步开始执行。slave 直接增加自己的 configEpoch（无需其他 node 同意），接管 slots。<strong>从 slave C’ 切换为 master ，到原 master 节点 C 更新路由，发到 C 的请求，都可能存在 write 丢失的可能</strong>，一般在一个 ping 的时间内完成，时间窗口很小。C 和 C’ 以外节点更新路由滞后只会带来多一次的 <strong>MOVED</strong> 错误，不会导致 write 丢失。</p><h2 id="case-2-master- 重启">case 2 master 重启</h2><h3 id="cluster- 状态初始化">cluster 状态初始化</h3><p>clusterState 结构体中有一个 <strong>state</strong> 成员变量，表示 cluster 的全局状态，控制着当前 cluster 是否可以提供服务，有以下两种取值，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> CLUSTER_OK 0    <span class="hljs-comment">/* Everything looks ok */</span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> CLUSTER_FAIL 1  <span class="hljs-comment">/* The cluster can&#x27;t work */</span></span></code></pre></div><p>server 重启后，state 被初始化为 <strong>CLUSTER_FAIL</strong>，代码逻辑可以在 <code>clusterInit</code> 函数中找到。</p><p>对于 <strong>CLUSTER_FAIL</strong> 状态的 cluster 是拒绝接受访问的，代码参考如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">processCommand</span><span class="hljs-params">(client *c)</span> </span>&#123;
+    ...
+    <span class="hljs-keyword">if</span> (server.cluster_enabled &amp;&amp;
+    !(c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
+    !(c-&gt;flags &amp; CLIENT_LUA &amp;&amp;
+        server.lua_caller-&gt;flags &amp; CLIENT_MASTER) &amp;&amp;
+    !(c-&gt;cmd-&gt;getkeys_proc == <span class="hljs-literal">NULL</span> &amp;&amp; c-&gt;cmd-&gt;firstkey == <span class="hljs-number">0</span> &amp;&amp;
+        c-&gt;cmd-&gt;proc != execCommand))
+&#123;
+    <span class="hljs-keyword">int</span> hashslot;
+    <span class="hljs-keyword">int</span> error_code;
+    
+    clusterNode *n = getNodeByQuery(c,c-&gt;cmd,c-&gt;argv,c-&gt;argc,
+                                    &amp;hashslot,&amp;error_code);
+    ...
+&#125;</code></pre></div><p>重点在 <code>getNodeByQuery</code> 函数，在 cluster 模式开启后，用来查找到真正要执行 command 的 node。</p><p class="note note-warning">注意：redis cluster 采用去中心化的路由管理策略，每一个 node 都可以直接访问，如果要执行 command 的 node 不是当前连接的，它会返回一个 -MOVED 的重定向错误，指向真正要执行 command 的 node。</p><p>下面看 <code>getNodeByQuery</code> 函数的部分逻辑，</p><div class="hljs"><pre><code class="hljs c">
+<span class="hljs-function">clusterNode *<span class="hljs-title">getNodeByQuery</span><span class="hljs-params">(client *c, </span></span>
+<span class="hljs-function"><span class="hljs-params">    struct redisCommand *cmd, robj **argv, </span></span>
+<span class="hljs-function"><span class="hljs-params">    <span class="hljs-keyword">int</span> argc, <span class="hljs-keyword">int</span> *hashslot, </span></span>
+<span class="hljs-function"><span class="hljs-params">    <span class="hljs-keyword">int</span> *error_code)</span> </span>&#123;
+        ...
+        <span class="hljs-keyword">if</span> (server.cluster-&gt;state != CLUSTER_OK) &#123;
+            <span class="hljs-keyword">if</span> (error_code) *error_code = CLUSTER_REDIR_DOWN_STATE;
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">NULL</span>;
+        &#125;
+        ...
+&#125;</code></pre></div><p>可以看到，必须是 <strong>CLUSTER_OK</strong> 状态的 cluster 才能正常访问。</p><p>我们说，这种限制对于 <strong>保证 Write safety</strong> 是非常有必要的！<br>可以想象，如果 master A 挂掉后，对应的 slave A’ 通过选举成功当选为新 master。此时，**A 重启，且恰好有一些 client 看到的路由没有更新，它们仍然会往 A 上写数据，如果接受这些 write，就会丢数据！**A’ 才是这个 sharding 大家公认的 master。所以，A’ 重启后需要先禁用服务，直到路由变更完成。</p><h3 id="cluster- 状态变更">cluster 状态变更</h3><p>那么，什么时候 cluster 才会出现 <strong>CLUSTER_FAIL</strong> -&gt; <strong>CLUSTER_OK</strong> 的状态变更呢？答案要在 <code>clusterCron</code> 定时任务里找。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterCron</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+    ...
+    <span class="hljs-keyword">if</span> (update_state || server.cluster-&gt;state == CLUSTER_FAIL)
+        clusterUpdateState();
+&#125;</code></pre></div><p>关键逻辑在 <code>clusterUpdateState</code> 函数里。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> CLUSTER_WRITABLE_DELAY 2000</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterUpdateState</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">mstime_t</span> first_call_time = <span class="hljs-number">0</span>;
+    ...
+    <span class="hljs-keyword">if</span> (first_call_time == <span class="hljs-number">0</span>) first_call_time = mstime();
+    <span class="hljs-keyword">if</span> (nodeIsMaster(myself) &amp;&amp;
+        server.cluster-&gt;state == CLUSTER_FAIL &amp;&amp;
+        mstime() - first_call_time &lt; CLUSTER_WRITABLE_DELAY) <span class="hljs-keyword">return</span>;
+    
+    new_state = CLUSTER_OK;
+    ...
+    <span class="hljs-keyword">if</span> (new_state != server.cluster-&gt;state) &#123;
+        ...
+        server.cluster-&gt;state = new_state;
+    &#125;
+&#125;</code></pre></div><p>在以上逻辑里可以看到，cluster 状态变更要延迟 <strong>CLUSTER_WRITABLE_DELAY</strong> 毫秒，目前版本为 2s。</p><p>访问延迟就是为了等待路由变更，那么，什么时候触发路由变更呢？<br>我们知道，一个新 server 刚启动，它与其他 node 进行 gossip 通信的 link 都是 null，在 <code>clusterCron</code> 里检查出来后会依次连接，并发送 ping。作为一个路由过期的老节点，收到其他节点发来的 update 消息，更改自身路由。</p><p><strong>CLUSTER_WRITABLE_DELAY</strong> 毫秒后，A 节点恢复访问，我们认为 CLUSTER_WRITABLE_DELAY 的时间窗口足够更新路由。</p><h2 id="case-3-partition">case 3 partition</h2><h3 id="partition- 发生">partition 发生</h3><p>由于网络的不可靠，网络分区是一个必须要考虑的问题，也即 CAP 理论中的 P。</p><p>partition 发生后，cluster 被割裂成 majority 和 minority 两部分，这里以分区中 master 节点的数量来区分。</p><p>（1）<strong>对于 minority 部分</strong>，slave 会发起选举，但是不能收到大多数 master 的选票，也就无法完成正常的 failover 流程。同时在 <code>clusterCron</code> 里大部分节点会被标记为 <strong>CLUSTER_NODE_PFAIL</strong> 状态，进而触发 <code>clusterUpdateState</code> 的逻辑，大概如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterCron</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+    ...
+    di = dictGetSafeIterator(server.cluster-&gt;nodes);
+    <span class="hljs-keyword">while</span>((de = dictNext(di)) != <span class="hljs-literal">NULL</span>) &#123;
+        ...
+        delay = now - node-&gt;ping_sent;
+        <span class="hljs-keyword">if</span> (delay &gt; server.cluster_node_timeout) &#123;
+            <span class="hljs-keyword">if</span> (!(node-&gt;flags &amp; (CLUSTER_NODE_PFAIL|CLUSTER_NODE_FAIL))) &#123;
+                serverLog(LL_DEBUG,<span class="hljs-string">&quot;*** NODE %.40s possibly failing&quot;</span>,
+                    node-&gt;name);
+                node-&gt;flags |= CLUSTER_NODE_PFAIL;
+                update_state = <span class="hljs-number">1</span>;
+            &#125;
+        &#125;  
+    &#125;
+    ...
+    <span class="hljs-keyword">if</span> (update_state || server.cluster-&gt;state == CLUSTER_FAIL)
+        clusterUpdateState();
+&#125;</code></pre></div><p>而在 <code>clusterUpdateState</code> 函数里，会改变 cluster 的状态。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterUpdateState</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+    <span class="hljs-keyword">static</span> <span class="hljs-keyword">mstime_t</span> among_minority_time;
+    ...
+    &#123;
+        dictIterator *di;
+        dictEntry *de;
+        server.cluster-&gt;size = <span class="hljs-number">0</span>;
+        di = dictGetSafeIterator(server.cluster-&gt;nodes);
+        <span class="hljs-keyword">while</span>((de = dictNext(di)) != <span class="hljs-literal">NULL</span>) &#123;
+            clusterNode *node = dictGetVal(de);
+            <span class="hljs-keyword">if</span> (nodeIsMaster(node) &amp;&amp; node-&gt;numslots) &#123;
+                server.cluster-&gt;size++;
+                <span class="hljs-keyword">if</span> ((node-&gt;flags &amp; (CLUSTER_NODE_FAIL|CLUSTER_NODE_PFAIL)) == <span class="hljs-number">0</span>)
+                    reachable_masters++;
+            &#125;
+        &#125;
+        dictReleaseIterator(di);
+    &#125;
+    &#123;
+        <span class="hljs-keyword">int</span> needed_quorum = (server.cluster-&gt;size / <span class="hljs-number">2</span>) + <span class="hljs-number">1</span>;
+
+        <span class="hljs-keyword">if</span> (reachable_masters &lt; needed_quorum) &#123;
+            new_state = CLUSTER_FAIL;
+            among_minority_time = mstime();
+        &#125;
+    &#125;
+    ...
+&#125;</code></pre></div><p>由上面代码可以看出，在 minority 中，cluster 状态在一段时间后会被更改为 <strong>CLUSTER_FAIL</strong>。但，对于一个划分到 minority 的 master B，在状态更改前是一直可以访问的，这就有一个时间窗口，会导致 write 丢失！！</p><p>在 <code>clusterCron</code> 函数中可以计算出这个时间窗口的大小。从 partition 时间开始算起，<strong>cluster_node_timeout</strong> 时间后才会有 node 标记为 PFAIL，加上 gossip 消息传播会偏向于携带 PFAIL 的节点，node B 不必等到 <strong>cluster_node_timeout/2</strong> 把 cluster nodes ping 遍，就可以将 cluster 标记为 <strong>CLUSTER_FAIL</strong>。可以推算出，时间窗口大约为 <strong>cluster_node_timeout</strong>。</p><p>另外，会记录下禁用服务的时间，即 among_minority_time。</p><p>（2）<strong>对于 majority 部分</strong>，slave 会发起选举，以 B 的 slave B’ 为例，failover 切为新的 master，并提供服务。<br>如果 partition 时间小于 <strong>cluster_node_timeout</strong>，以至于没有 PFAIL 标识出现，就不会有 write 丢失。</p><h3 id="partition- 恢复">partition 恢复</h3><p>当 partition 恢复后，minority 中的 老 master B 重新加进 cluster，B 要想提供服务，就必须先将 cluster 状态从 <strong>CLUSTER_FAIL</strong> 修改为 <strong>CLUSTER_OK</strong>，那么，应该什么时候改呢？</p><p>我们知道 B 中是旧路由，此时它应该变更为 slave，所以，还是需要等待一段时间做路由变更，否则有可能出现 write 丢失的问题（前面分析过），同样在 <code>clusterUpdateState</code> 函数的逻辑里。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> CLUSTER_MAX_REJOIN_DELAY 5000</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> CLUSTER_MIN_REJOIN_DELAY 500</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterUpdateState</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+    ...
+    <span class="hljs-keyword">if</span> (new_state != server.cluster-&gt;state) &#123;
+        <span class="hljs-keyword">mstime_t</span> rejoin_delay = server.cluster_node_timeout;
+
+        <span class="hljs-keyword">if</span> (rejoin_delay &gt; CLUSTER_MAX_REJOIN_DELAY)
+            rejoin_delay = CLUSTER_MAX_REJOIN_DELAY;
+        <span class="hljs-keyword">if</span> (rejoin_delay &lt; CLUSTER_MIN_REJOIN_DELAY)
+            rejoin_delay = CLUSTER_MIN_REJOIN_DELAY;
+
+        <span class="hljs-keyword">if</span> (new_state == CLUSTER_OK &amp;&amp;
+            nodeIsMaster(myself) &amp;&amp;
+            mstime() - among_minority_time &lt; rejoin_delay)
+        &#123;
+            <span class="hljs-keyword">return</span>;
+        &#125;
+    &#125;
+&#125;</code></pre></div><p>可以看出，时间窗口为 <strong>cluster_node_timeout</strong>，最多 5s，最少 500ms。</p><h2 id="小结">小结</h2><p>failover 可能因为选举和主从异步复制数据偏差带来 write 丢失。</p><p>master 重启通过 <strong>CLUSTER_WRITABLE_DELAY</strong> 延迟，等 cluster 状态变更为 <strong>CLUSTER_OK</strong>，可以重新访问，不存在 write 丢失。</p><p>partition 中的 minority 部分，在 cluster 状态变更为 <strong>CLUSTER_FAIL</strong> 之前，可能存在 write 丢失。</p><p>partition 恢复后，通过 rejoin_delay 延迟，等 cluster 状态变更为 <strong>CLUSTER_OK</strong>，可以重新访问，不存在 write 丢失。</p></div><hr><div><div class="post-metas mb-3"><div class="post-meta mr-3"><i class="iconfont icon-category"></i> <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a></div><div class="post-meta"><i class="iconfont icon-tags"></i> <a class="hover-with-bg" href="/tags/redis/">redis</a></div></div><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p><div class="post-prevnext row"><article class="post-prev col-6"></article><article class="post-next col-6"><a href="/a722b34f.html"><span class="hidden-mobile">git 使用笔记</span> <span class="visible-mobile">下一篇</span> <i class="iconfont icon-arrowright"></i></a></article></div></div><article class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">function loadLivere(){addScript("https://cdn-city.livere.com/js/embed.dist.js")}waitElementVisible("lv-container",loadLivere)</script><noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript></div></article></article></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc"><p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div></main><a id="scroll-top-button" href="#" role="button"><i class="iconfont icon-arrowup" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4><button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"><input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div><a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a></div><div class="statistics"><span id="busuanzi_container_site_pv" style="display:none">总访问量 <span id="busuanzi_value_site_pv"></span> 次 </span><span id="busuanzi_container_site_uv" style="display:none">总访客数 <span id="busuanzi_value_site_uv"></span> 人</span></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="/js/debouncer.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js"></script><script>$(document).ready(function(){var t=$("#board-ctn").offset().top;tocbot.init({tocSelector:"#tocbot",contentSelector:"#post-body",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",collapseDepth:3,scrollSmooth:!0,headingsOffset:-t}),0<$(".toc-list-item").length&&$("#toc").css("visibility","visible")})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","Redis Cluster write safety 分析&nbsp;"],cursorChar:"|",typeSpeed:72,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+      icon: "§"
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))</script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){searchFunc(path,"local-search-input","local-search-result"),this.onclick=null}</script><script src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><link rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><script>$("#post img:not(.no-zoom img, img[no-zoom]), img[zoom]").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>
