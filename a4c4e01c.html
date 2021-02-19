@@ -1,0 +1,100 @@
+<!DOCTYPE html><html lang="zh-CN" data-default-color-scheme="&#34;auto&#34;"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#433d3c"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>Redis Cluster availability 讨论 - HappenのMemo</title><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css"><link rel="stylesheet" href="/lib/hint/hint.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/monokai.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css"><link rel="stylesheet" href="/css/main.css"><script src="/js/utils.js"></script><script src="/js/color-schema.js"></script><meta name="generator" content="Hexo 5.1.1"></head><body><header style="height:60vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"><a class="navbar-brand" href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="iconfont icon-home-fill"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="iconfont icon-archive-fill"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="iconfont icon-category-fill"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="iconfont icon-tags-fill"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="iconfont icon-user-fill"></i> 关于</a></li><li class="nav-item"><a class="nav-link" href="/links/"><i class="iconfont icon-link-fill"></i> 友链</a></li><li class="nav-item" id="search-btn"><a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i class="iconfont icon-search"></i>&nbsp;</a></li><li class="nav-item" id="color-toggle-btn"><a class="nav-link" href="javascript:">&nbsp;<i class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a></li></ul></div></div></nav><div class="banner intro-2" id="background" parallax="true" style="background:url(https://gitee.com/happencc/pics/raw/master/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask flex-center" style="background-color:rgba(0,0,0,.3)"><div class="container page-header text-center fade-in-up"><span class="h2" id="subtitle"></span><div class="mt-3"><span class="post-meta mr-2"><i class="iconfont icon-author" aria-hidden="true"></i> Happen </span><span class="post-meta"><i class="iconfont icon-date-fill" aria-hidden="true"></i> <time datetime="2021-02-19 21:58" pubdate>2021-02-19 21:58</time></span></div><div class="mt-1"><span class="post-meta mr-2"><i class="iconfont icon-chart"></i> 1.2k 字 </span><span class="post-meta mr-2"><i class="iconfont icon-clock-fill"></i> 17 分钟 </span><span id="busuanzi_container_page_pv" style="display:none"><i class="iconfont icon-eye" aria-hidden="true"></i> <span id="busuanzi_value_page_pv"></span> 次</span></div></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5" id="board"><article class="post-content mx-auto" id="post"><h1 style="display:none">Redis Cluster availability 讨论</h1><p class="note note-info">本文最后更新于：2021-02-19 21:58</p><div class="markdown-body" id="post-body"><p>本文档主要基于个人理解，分析 Redis Cluster 设计中对于 Availability 的一些考量。</p><a id="more"></a><p>当 Redis 以 Cluster 模式启动时，对于一个 master 节点，只有当集群为 CLUSTER_OK 状态时，才能正常接受访问，这在之前的博客 《<a href="https://happencc.gitee.io/a9d44741.html">Redis Cluster write safety 分析 </a>》讨论过。</p><p>Redis Cluster 设计的三个目标，最后一个才是可用性。</p><blockquote><p>Redis Cluster is able to survive partitions where the majority of the master nodes are reachable and there is at least one reachable slave for every master node that is no longer reachable. Moreover using replicas migration, masters no longer replicated by any slave will receive one from a master which is covered by multiple slaves.</p></blockquote><p>下面主要讨论三种情况。</p><h3 id="partition- 故障">partition 故障</h3><p>Redis Cluster 在发生 partition 后，minority 部分是不可用的。</p><p>假设 majority 部分有过半数 master 及每个 unreachable master 的一个 slave。那么，经过 NODE_TIMEOUT 时间加额外几秒钟（给 slave 进行 failover），cluster 恢复可用状态。</p><p>当集群中有过半数 master 可达，cluster 就不会标记成 <strong>CLUSTER_FAIL</strong>。</p><h3 id="replicas-migration- 功能">replicas migration 功能</h3><p>Redis Cluster 的设计，保证了少数节点发生故障时，集群依然可用。</p><p>举个例子，包含 N 个 master 的集群，每个 master 有唯一 slave。<br>单个 node 出现故障，cluster 仍然可用，第二个 node 再出现故障，集群仍然可用的概率是 1-(1/(N*2-1)。</p><div class="note note-info"><p>计算方式如下，</p><p>第一个 node fail 后，集群剩下 N*2-1 个健康节点，此时 orphan master 恰好 fail 的概率是 1/(N*2-1)。</p></div><p>套用公式，假设 N = 5，那么，2 个节点从 majority partition 出去，集群不可用的概率是 11.11%。</p><p>redis 为了提高集群可用性，提供了 <strong>replicas migration</strong> 功能，代码分析如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterCron</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+    <span class="hljs-keyword">int</span> orphaned_masters;
+    <span class="hljs-keyword">int</span> max_slaves;
+    <span class="hljs-keyword">int</span> this_slaves;
+    ... 
+    di = dictGetSafeIterator(server.cluster-&gt;nodes);
+    <span class="hljs-keyword">while</span>((de = dictNext(di)) != <span class="hljs-literal">NULL</span>) &#123;
+    	clusterNode *node = dictGetVal(de);
+        ...
+        <span class="hljs-keyword">if</span> (nodeIsSlave(myself) &amp;&amp; 
+            nodeIsMaster(node) &amp;&amp; 
+            !nodeFailed(node)) &#123;
+            <span class="hljs-comment">// 统计 node 有几个健康的 slave</span>
+            <span class="hljs-keyword">int</span> okslaves = clusterCountNonFailingSlaves(node);
+            <span class="hljs-comment">// 没有 slave 但依然负责 slot 的 master</span>
+            <span class="hljs-keyword">if</span> (okslaves == <span class="hljs-number">0</span> &amp;&amp; 
+                node-&gt;numslots &gt; <span class="hljs-number">0</span> &amp;&amp; 
+                node-&gt;flags &amp; CLUSTER_NODE_MIGRATE_TO)
+            &#123;
+                orphaned_masters++;
+            &#125;
+            <span class="hljs-keyword">if</span> (okslaves &gt; max_slaves) max_slaves = okslaves;
+            <span class="hljs-comment">// node 是我的 master</span>
+            <span class="hljs-keyword">if</span> (nodeIsSlave(myself) &amp;&amp; myself-&gt;slaveof == node)
+                this_slaves = okslaves;
+        &#125;
+    &#125;
+    ...
+    <span class="hljs-keyword">if</span> (nodeIsSlave(myself)) &#123;
+        ...
+       	<span class="hljs-keyword">if</span> (orphaned_masters &amp;&amp; max_slaves &gt;= <span class="hljs-number">2</span> &amp;&amp; this_slaves == max_slaves)
+            clusterHandleSlaveMigration(max_slaves);
+    &#125;
+    ...
+&#125;</code></pre></div><p>首先定义了什么样的节点算 orphaned master，即，负责部分 slot 但没有健康 slave 的 master。orphaned master 有可用性风险，一旦挂掉，则整个 sharding 不可用。</p><p>以上代码可以看出，当 slave 检测到自己的 master 拥有不少于 2 个健康 slave ，且 cluster 中恰好有 orphan master 时，触发 <code>clusterHandleSlaveMigration</code> 函数逻辑，尝试进行 slave 漂移，漂移步骤有 4 步，下面进行分步说明。</p><p>（1）CLUSTER_FAIL 集群漂移。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">if</span> (server.cluster-&gt;state != CLUSTER_OK) <span class="hljs-keyword">return</span>;</code></pre></div><p>非 CLUSTER_OK 集群本来就无法正常接受请求，漂移多此一举，忽略掉这种情况。</p><p>（2）检查 cluster-migration-barrier 参数。</p><p><strong>redis conf 提供了 cluster-migration-barrier 参数 </strong>，用来决定 slave 数量达到多少个才会把冗余 slave 漂移出去。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; mymaster-&gt;numslaves; j++)
+    <span class="hljs-keyword">if</span> (!nodeFailed(mymaster-&gt;slaves[j]) &amp;&amp;
+        !nodeTimedOut(mymaster-&gt;slaves[j])) okslaves++;
+<span class="hljs-keyword">if</span> (okslaves &lt;= server.cluster_migration_barrier) <span class="hljs-keyword">return</span>;</code></pre></div><p>只有 mymaster 健康 slave 的个数超过 cluster-migration-barrier 配置的数量时，才会漂移。</p><p>（3）选出要漂移的 slave 以及漂给谁。</p><div class="hljs"><pre><code class="hljs c">candidate = myself;
+di = dictGetSafeIterator(server.cluster-&gt;nodes);
+<span class="hljs-keyword">while</span>((de = dictNext(di)) != <span class="hljs-literal">NULL</span>) &#123;
+    clusterNode *node = dictGetVal(de);
+    <span class="hljs-keyword">int</span> okslaves = <span class="hljs-number">0</span>, is_orphaned = <span class="hljs-number">1</span>;
+
+    <span class="hljs-keyword">if</span> (nodeIsSlave(node) || nodeFailed(node)) is_orphaned = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">if</span> (!(node-&gt;flags &amp; CLUSTER_NODE_MIGRATE_TO)) is_orphaned = <span class="hljs-number">0</span>;
+
+    <span class="hljs-keyword">if</span> (nodeIsMaster(node)) okslaves = clusterCountNonFailingSlaves(node);
+    <span class="hljs-keyword">if</span> (okslaves &gt; <span class="hljs-number">0</span>) is_orphaned = <span class="hljs-number">0</span>;
+
+    <span class="hljs-keyword">if</span> (is_orphaned) &#123;
+        <span class="hljs-keyword">if</span> (!target &amp;&amp; node-&gt;numslots &gt; <span class="hljs-number">0</span>) target = node;
+        <span class="hljs-keyword">if</span> (!node-&gt;orphaned_time) node-&gt;orphaned_time = mstime();
+    &#125; <span class="hljs-keyword">else</span> &#123;
+        node-&gt;orphaned_time = <span class="hljs-number">0</span>;
+    &#125;
+
+    <span class="hljs-keyword">if</span> (okslaves == max_slaves) &#123;
+        <span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; node-&gt;numslaves; j++) &#123;
+            <span class="hljs-keyword">if</span> (<span class="hljs-built_in">memcmp</span>(node-&gt;slaves[j]-&gt;name,
+                       candidate-&gt;name,
+                       CLUSTER_NAMELEN) &lt; <span class="hljs-number">0</span>)
+            &#123;
+                candidate = node-&gt;slaves[j];
+            &#125;
+        &#125;
+    &#125;
+&#125;
+dictReleaseIterator(di);</code></pre></div><p>选择 node name 最小的 slave ，漂移给遍历到的第一个 orphaned master，如果有多个。</p><p>（4）执行漂移。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-meta">#<span class="hljs-meta-keyword">define</span> CLUSTER_SLAVE_MIGRATION_DELAY 5000 </span>
+<span class="hljs-keyword">if</span> (target &amp;&amp; candidate == myself &amp;&amp;
+    (mstime()-target-&gt;orphaned_time) &gt; CLUSTER_SLAVE_MIGRATION_DELAY)
+&#123;
+    serverLog(LL_WARNING,<span class="hljs-string">&quot;Migrating to orphaned master %.40s&quot;</span>,
+              target-&gt;name);
+    clusterSetMaster(target);
+&#125;</code></pre></div><p>在 failover 期间，master 有一段时间是没有 slave 的，为防止误漂，漂移必须有一定的延迟，时间为 CLUSTER_SLAVE_MIGRATION_DELAY，现版本为 5s。</p><h3 id="sharding- 缺失故障">sharding 缺失故障</h3><p>默认情况下，当检测到有 slot 没有绑定，Redis Cluster 就会停止接收请求。在这种配置下，如果 cluster 部分节点挂掉，也就是说一个范围内的 slot 不再有节点负责，最终整个 cluster 会变得不能提供服务。</p><p><strong>有时候，服务部分可用比整个不可用更有意义 </strong>，因此，即使一部分 sharding 可用，也要让 cluster 提供服务。redis 将这种选择权交到了用户手中，conf 里提供 <strong>cluster-require-full-coverage</strong> 参数。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterUpdateState</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span> </span>&#123;
+    ...
+    <span class="hljs-keyword">if</span> (server.cluster_require_full_coverage) &#123; 
+        <span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; CLUSTER_SLOTS; j++) &#123;
+            <span class="hljs-keyword">if</span> (server.cluster-&gt;slots[j] == <span class="hljs-literal">NULL</span> ||
+                server.cluster-&gt;slots[j]-&gt;flags &amp; (CLUSTER_NODE_FAIL))
+            &#123;
+                new_state = CLUSTER_FAIL;
+                <span class="hljs-keyword">break</span>;
+            &#125;
+        &#125;
+    &#125;
+    ...
+&#125;</code></pre></div><p>以上代码可以看到，如果配置 cluster-require-full-coverage 为 yes，那么，有 slot 未绑定或者 sharding 缺失，会将 cluster 状态设置为 CLUSTER_FAIL，server 就会拒绝请求。</p></div><hr><div><div class="post-metas mb-3"><div class="post-meta mr-3"><i class="iconfont icon-category"></i> <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a></div><div class="post-meta"><i class="iconfont icon-tags"></i> <a class="hover-with-bg" href="/tags/redis/">redis</a></div></div><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p><div class="post-prevnext row"><article class="post-prev col-6"></article><article class="post-next col-6"><a href="/a9d44741.html"><span class="hidden-mobile">Redis Cluster write safety 分析</span> <span class="visible-mobile">下一篇</span> <i class="iconfont icon-arrowright"></i></a></article></div></div><article class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">function loadLivere(){addScript("https://cdn-city.livere.com/js/embed.dist.js")}waitElementVisible("lv-container",loadLivere)</script><noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript></div></article></article></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc"><p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div></main><a id="scroll-top-button" href="#" role="button"><i class="iconfont icon-arrowup" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4><button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"><input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div><a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a></div><div class="statistics"><span id="busuanzi_container_site_pv" style="display:none">总访问量 <span id="busuanzi_value_site_pv"></span> 次 </span><span id="busuanzi_container_site_uv" style="display:none">总访客数 <span id="busuanzi_value_site_uv"></span> 人</span></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="/js/debouncer.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js"></script><script>$(document).ready(function(){var t=$("#board-ctn").offset().top;tocbot.init({tocSelector:"#tocbot",contentSelector:"#post-body",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",collapseDepth:3,scrollSmooth:!0,headingsOffset:-t}),0<$(".toc-list-item").length&&$("#toc").css("visibility","visible")})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","Redis Cluster availability 讨论&nbsp;"],cursorChar:"|",typeSpeed:72,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+      icon: "§"
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))</script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){searchFunc(path,"local-search-input","local-search-result"),this.onclick=null}</script><script src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><link rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><script>$("#post img:not(.no-zoom img, img[no-zoom]), img[zoom]").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>
