@@ -1,0 +1,153 @@
+<!DOCTYPE html><html lang="zh-CN" data-default-color-scheme="&#34;auto&#34;"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/images/dolphin.png"><link rel="icon" type="image/png" href="/images/dolphin.png"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><meta name="theme-color" content="#433d3c"><meta name="description" content=""><meta name="author" content="Happen"><meta name="keywords" content=""><title>Redis Cluster 路由变更 - HappenのMemo</title><link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/github-markdown-css/4.0.0/github-markdown.min.css"><link rel="stylesheet" href="/lib/hint/hint.min.css"><link rel="stylesheet" href="https://cdn.staticfile.org/highlight.js/10.0.0/styles/monokai.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_pf9vaxs7x7b.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css"><link rel="stylesheet" href="/css/main.css"><script src="/js/utils.js"></script><script src="/js/color-schema.js"></script><meta name="generator" content="Hexo 5.1.1"></head><body><header style="height:60vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"><a class="navbar-brand" href="/">&nbsp;<strong>HappenのMemo</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="iconfont icon-home-fill"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="iconfont icon-archive-fill"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="iconfont icon-category-fill"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="iconfont icon-tags-fill"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="iconfont icon-user-fill"></i> 关于</a></li><li class="nav-item"><a class="nav-link" href="/links/"><i class="iconfont icon-link-fill"></i> 友链</a></li><li class="nav-item" id="search-btn"><a class="nav-link" data-toggle="modal" data-target="#modalSearch">&nbsp;<i class="iconfont icon-search"></i>&nbsp;</a></li><li class="nav-item" id="color-toggle-btn"><a class="nav-link" href="javascript:">&nbsp;<i class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a></li></ul></div></div></nav><div class="banner intro-2" id="background" parallax="true" style="background:url(https://gitee.com/happencc/pics/raw/master/images/about-banner.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask flex-center" style="background-color:rgba(0,0,0,.3)"><div class="container page-header text-center fade-in-up"><span class="h2" id="subtitle"></span><div class="mt-3"><span class="post-meta mr-2"><i class="iconfont icon-author" aria-hidden="true"></i> Happen </span><span class="post-meta"><i class="iconfont icon-date-fill" aria-hidden="true"></i> <time datetime="2021-02-23 21:42" pubdate>2021-02-23 21:42</time></span></div><div class="mt-1"><span class="post-meta mr-2"><i class="iconfont icon-chart"></i> 2.1k 字 </span><span class="post-meta mr-2"><i class="iconfont icon-clock-fill"></i> 28 分钟 </span><span id="busuanzi_container_page_pv" style="display:none"><i class="iconfont icon-eye" aria-hidden="true"></i> <span id="busuanzi_value_page_pv"></span> 次</span></div></div></div></div></div></header><main><div class="container-fluid"><div class="row"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-md"><div class="container nopadding-md" id="board-ctn"><div class="py-5" id="board"><article class="post-content mx-auto" id="post"><h1 style="display:none">Redis Cluster 路由变更</h1><p class="note note-info">本文最后更新于：2021-02-23 21:42</p><div class="markdown-body" id="post-body"><p>Redis Cluster 采用去中心化的路由方案，cluster 中的每个 node 都可以感知到完整路由表，为了能够正确地访问到数据，路由表的正确性保证至关重要。</p><a id="more"></a><p>在 cluster 节点数量一定的情况下，有两种情况可以导致路由的变化，即主从关系变更和 slot resharding。<br>同时，需要考虑 server 重启和 partition 恢复后如何去更新本地旧的路由信息。</p><p>本文将结合代码片段逐一分析。</p><h2 id="主从关系变更">主从关系变更</h2><h3 id="failover">failover</h3><p>执行 failover 后，首先在本地做变更，然后通过 gossip 信息传播，使得路由在 cluster 内打平。</p><h4 id="本节点变更">本节点变更</h4><p>不管是主动 failover 还是被动 failover，流程的最后一步都需要调用 <code>clusterFailoverReplaceYourMaster</code> 函数。</p><p>从代码可以看出，有以下 5 个步骤，</p><p>1）修改节点 flag 标识</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* 1) Turn this node into a master. */</span>
+clusterSetNodeAsMaster(myself);</code></pre></div><div class="hljs"><pre><code class="hljs c"> <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterSetNodeAsMaster</span><span class="hljs-params">(clusterNode *n)</span> </span>&#123;
+    <span class="hljs-keyword">if</span> (nodeIsMaster(n)) <span class="hljs-keyword">return</span>;
+
+    <span class="hljs-keyword">if</span> (n-&gt;slaveof) &#123;
+        clusterNodeRemoveSlave(n-&gt;slaveof,n);
+        <span class="hljs-keyword">if</span> (n != myself) n-&gt;flags |= CLUSTER_NODE_MIGRATE_TO;
+    &#125;
+    n-&gt;flags &amp;= ~CLUSTER_NODE_SLAVE;
+    n-&gt;flags |= CLUSTER_NODE_MASTER;
+    n-&gt;slaveof = <span class="hljs-literal">NULL</span>;
+
+    <span class="hljs-comment">/* Update config and state. */</span>
+    clusterDoBeforeSleep(CLUSTER_TODO_SAVE_CONFIG|
+                         CLUSTER_TODO_UPDATE_STATE);
+&#125;</code></pre></div><p>去掉 <strong>CLUSTER_NODE_SLAVE</strong> 标识，变更为 <strong>CLUSTER_NODE_MASTER</strong>，取消本地路由表中原有的主从关系。</p><p>2）接管 slot</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* 2) Claim all the slots assigned to our master. */</span>
+
+clusterNode *oldmaster = myself-&gt;slaveof;
+<span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; CLUSTER_SLOTS; j++) &#123;
+    <span class="hljs-keyword">if</span> (clusterNodeGetSlotBit(oldmaster,j)) &#123;
+        clusterDelSlot(j);
+        clusterAddSlot(myself,j);
+    &#125;
+&#125;</code></pre></div><p>将 oldmaster 负责的 slot 全部交给当前节点。</p><p>3）更新 cluster state 状态，并保存 config。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* 3) Update state and save config. */</span>
+clusterUpdateState();
+clusterSaveConfigOrDie(<span class="hljs-number">1</span>);</code></pre></div><p>在保存配置前需要先执行<code>clusterUpdateState</code> 函数。<br>对于被动 failover 的情况，必然是当前节点先检测到了 node fail，那么对于配置了 <strong>cluster-require-full-coverage</strong> 参数的实例，需要将 cluster 状态更新为 <strong>CLUSTER_FAIL</strong>。</p><p>4）广播路由变更</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* 4) Pong all the other nodes so that they can update the state</span>
+<span class="hljs-comment">*    accordingly and detect that we switched to master role. */</span>
+clusterBroadcastPong(CLUSTER_BROADCAST_ALL);</code></pre></div><p>遍历本地路由表中所有认识的节点，发送 pong 消息，告知它们新的路由信息。</p><p>5）重置 mf 状态</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-comment">/* 5) If there was a manual failover in progress, clear the state. */</span>
+resetManualFailover();</code></pre></div><div class="note note-warning"><p><strong>注意 </strong>：</p><p>如果，此时在该节点上执行 <code>cluster nodes</code> 命令，会看到该节点已经切换为 master，且携带 slot，而原来的 master 依然是 master，只是不再负责 slot。</p></div><h4 id="路由打平">路由打平</h4><p>上一小结步骤 4）中发出的 pong 消息，会在 cluster 其他 node 引起路由更改。</p><p>为表述方便，做如下假设。<br>正常 cluster 中有以下关系：A1 为 slave，A 是 A1 的 master，负责 0-100 slot，路人节点 B。</p><p>那么，路由在 A/A1/B 三者之间打平，需要以下 5 个步骤。</p><p>① 新主节点 A1 更新，A1(myself) role slave → master，接管 slot，此时 A 仍是 master ，但没有了 slots，广播 pong。<br>② 原主节点 A 更新，A1 role slave → master，接管 slots，A(myself) role master → slave，抹掉 slots。A 路由更新完成。<br>③ 路人节点 B 更新，A1 role slave → master，[接管 slots]，A 还是 master ，但不负责 slots。<br>④ 新主节点 A1 收到 A 的 ping，或者主动 ping A，A role master → slave。A1 路由更新完成。<br>⑤ 路人节点 B 同 ④ 逻辑 （等待额外的 pingpong）。路人 B 路由更新完成。</p><p>实际上，以上 5 个步骤中， ① 必然第一个执行， 由于网络的不可靠，③ 和 ⑤ 的发生顺序是不确定的。</p><p>如果 ③ 发生在 ⑤ 之前，那么路由打平逻辑如下图所示，</p><p><img src="https://gitee.com/happencc/pics/raw/master/images/failover1.jpg" srcset="/img/loading.gif" alt=""></p><p>而如果 ③ 发生在 ⑤ 之后，那么路由打平逻辑将做如下变更，</p><p><img src="https://gitee.com/happencc/pics/raw/master/images/failover2.jpg" srcset="/img/loading.gif" alt=""></p><p>重点区别在路人节点 B 上对于 A/A1 的更新！</p><div class="note note-warning"><p>注意：</p><p><strong>对于 node 信息的变更，一定要以“当事人”说的为准</strong>！<br>A1 对原 master 节点 A 的 role 信息变更一定发生在 A 自己的 role 变更之后！<br>A1 做 failover 后，只更改了自己的信息，不去改 A 的 role，至于 A 要怎么改，需要 A 发信息来同步。</p></div><h3 id="replication">replication</h3><p>执行 <code>CLUSTER REPLICATE &lt;NODE ID&gt;</code> 后，<strong>仅对本地路由表做了更改</strong>，路由打平需要依靠 ping-pong 消息实现。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="hljs-number">1</span>]-&gt;ptr,<span class="hljs-string">&quot;replicate&quot;</span>) &amp;&amp; c-&gt;argc == <span class="hljs-number">3</span>) &#123;
+    ...
+    <span class="hljs-comment">/* Set the master. */</span>
+    clusterSetMaster(n);
+    clusterDoBeforeSleep(CLUSTER_TODO_UPDATE_STATE|CLUSTER_TODO_SAVE_CONFIG);
+    addReply(c,shared.ok);
+&#125;</code></pre></div><p>在某节点收到 ping 或者 pong 消息时，对 role 信息进行校验，核心逻辑如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">clusterProcessPacket</span><span class="hljs-params">(clusterLink *link)</span> </span>&#123;
+    ...
+   <span class="hljs-comment">/* Check for role switch: slave -&gt; master or master -&gt; slave. */</span>
+    <span class="hljs-keyword">if</span> (sender) &#123;
+    	<span class="hljs-keyword">if</span> (!<span class="hljs-built_in">memcmp</span>(hdr-&gt;slaveof, 
+          CLUSTER_NODE_NULL_NAME, <span class="hljs-keyword">sizeof</span>(hdr-&gt;slaveof)))
+        &#123;
+            <span class="hljs-comment">/* sender claimed it is a master. */</span>
+         	clusterSetNodeAsMaster(sender);
+         &#125; <span class="hljs-keyword">else</span> &#123;
+            <span class="hljs-comment">/* sender claimed it is a slave. */</span>
+            clusterNode *master = clusterLookupNode(hdr-&gt;slaveof);
+            ...
+
+            <span class="hljs-comment">/* Master node changed for this slave? */</span>
+            <span class="hljs-keyword">if</span> (master &amp;&amp; sender-&gt;slaveof != master) &#123;
+                <span class="hljs-keyword">if</span> (sender-&gt;slaveof)
+                    clusterNodeRemoveSlave(sender-&gt;slaveof,sender);
+                
+                <span class="hljs-comment">// 绑定新的主从关系</span>
+                clusterNodeAddSlave(master,sender);
+                sender-&gt;slaveof = master;
+                clusterDoBeforeSleep(CLUSTER_TODO_SAVE_CONFIG);
+            &#125;
+        &#125;
+    &#125;
+    ...
+&#125;</code></pre></div><p>当检测到 sender 的 master 发生变化时，调用 <code>clusterNodeRemoveSlave</code> 函数，把它从原来的主从关系绑定中释放出来，绑定新的主从关系。</p><h2 id="slot- 变更">slot 变更</h2><p>在 slot resharding 的过程中，会发生 slot ownership 的重新绑定，详细过程已经在之前的博客 《<a href="https://happencc.gitee.io/91f7e3ff.html">Redis 源码分析之数据迁移</a>》中详细介绍过，这里只说明路由打平逻辑。</p><p>在 slot 迁移的最后一步，更改目标节点路由时，有以下逻辑，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="hljs-number">1</span>]-&gt;ptr,<span class="hljs-string">&quot;setslot&quot;</span>) &amp;&amp; c-&gt;argc &gt;= <span class="hljs-number">4</span>) &#123;
+    ...
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!strcasecmp(c-&gt;argv[<span class="hljs-number">3</span>]-&gt;ptr,<span class="hljs-string">&quot;node&quot;</span>) &amp;&amp; c-&gt;argc == <span class="hljs-number">5</span>) &#123;
+        ...
+        <span class="hljs-keyword">if</span> (n == myself &amp;&amp; 
+          server.cluster-&gt;importing_slots_from[slot])
+        &#123;
+        	<span class="hljs-keyword">if</span> (clusterBumpConfigEpochWithoutConsensus() == C_OK) &#123;&#125;
+            server.cluster-&gt;importing_slots_from[slot] = <span class="hljs-literal">NULL</span>;
+        &#125;
+        clusterDelSlot(slot); 
+        clusterAddSlot(n,slot);
+    &#125;
+&#125;</code></pre></div><p>在 <code>clusterBumpConfigEpochWithoutConsensus</code> 函数中，迁移目标节点要保证自己的 configEpoch 为 cluster 中最大。</p><p>其他节点在 ping-pong 消息处理中，通过 diff 对路由进行相应的变更，代码如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">clusterProcessPacket</span><span class="hljs-params">(clusterLink *link)</span> </span>&#123;
+    ...
+    clusterNode *sender_master = <span class="hljs-literal">NULL</span>; <span class="hljs-comment">/* Sender or its master if slave. */</span>
+    <span class="hljs-keyword">int</span> dirty_slots = <span class="hljs-number">0</span>; <span class="hljs-comment">/* Sender claimed slots don&#x27;t match my view? */</span>
+
+    <span class="hljs-keyword">if</span> (sender) &#123;
+        sender_master = nodeIsMaster(sender) ? sender : sender-&gt;slaveof; 
+        <span class="hljs-keyword">if</span> (sender_master) &#123;
+            dirty_slots = <span class="hljs-built_in">memcmp</span>(sender_master-&gt;slots,
+              hdr-&gt;myslots, <span class="hljs-keyword">sizeof</span>(hdr-&gt;myslots)) != <span class="hljs-number">0</span>; 
+        &#125;
+    &#125;
+
+    <span class="hljs-keyword">if</span> (sender &amp;&amp; nodeIsMaster(sender) &amp;&amp; dirty_slots)
+        clusterUpdateSlotsConfigWith(sender,
+          senderConfigEpoch,hdr-&gt;myslots);
+    ...
+&#125;</code></pre></div><p>以上代码可以看出，当某节点看到的 sender 负责的 slot，与 sender 提交的信息不一致时，调用 <code>clusterUpdateSlotsConfigWith</code> 函数进行路由矫正。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">clusterUpdateSlotsConfigWith</span><span class="hljs-params">(clusterNode *sender, <span class="hljs-keyword">uint64_t</span> senderConfigEpoch, <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> *slots)</span> </span>&#123;
+    ...
+    <span class="hljs-keyword">if</span> (server.cluster-&gt;slots[j] == <span class="hljs-literal">NULL</span> || 
+            server.cluster-&gt;slots[j]-&gt;configEpoch &lt; senderConfigEpoch) 
+        &#123;
+        	...
+            clusterDelSlot(j);
+            clusterAddSlot(sender,j); 
+        	...
+        &#125;
+    ...
+&#125;</code></pre></div><p>路由信息根据 configEpoch 更新，configEpoch 越大表明路由越新。</p><p><strong>注意</strong>，该函数中有一个逻辑需要格外注意，关键代码如下，</p><div class="hljs"><pre><code class="hljs c">clusterNode *curmaster, *newmaster = <span class="hljs-literal">NULL</span>;
+curmaster = nodeIsMaster(myself) ? myself : myself-&gt;slaveof;
+
+<span class="hljs-keyword">if</span> (server.cluster-&gt;importing_slots_from[j]) <span class="hljs-keyword">continue</span>;
+
+<span class="hljs-keyword">if</span> (server.cluster-&gt;slots[j] == <span class="hljs-literal">NULL</span> || 
+                server.cluster-&gt;slots[j]-&gt;configEpoch &lt; senderConfigEpoch) 
+&#123;
+    ...
+    <span class="hljs-keyword">if</span> (server.cluster-&gt;slots[j] == curmaster)
+        newmaster = sender;
+&#125;
+...
+    
+<span class="hljs-keyword">if</span> (newmaster &amp;&amp; curmaster-&gt;numslots == <span class="hljs-number">0</span>) &#123;
+    clusterSetMaster(sender);
+&#125;</code></pre></div><p>如果当前节点或当前节点的 master 失去某 slot 的所有权时，newmaster 会记录 slot 所有权被谁夺走了。如果全部被夺走了，那么就认对方为自己的 master。</p><p>有这样一种情况，假设现在集群路由关系如下，<br><img src="https://gitee.com/happencc/pics/raw/master/images/migrate.jpg" srcset="/img/loading.gif" alt=""></p><p>A 往 C 迁移最后一个 slot，正常步骤如下：</p><p>① 目的 C 执行 <code>SETSLOT</code> 命令，C 拥有 slot 1<br>② 源节点 A 执行 <code>SETSLOT</code> 命令，A 失去 slot 1</p><p>但是 ①② 不是原子操作，A 在执行 <code>SETSLOT</code> 命令之前，有可能会先收到 C 的 ping 或者 pong，按照上面代码分析的逻辑，A 就成了 C 的 slave，即 A1 slaveof A，A slaveof C。</p><h2 id="过期修复">过期修复</h2><p>当 server 重启或 partition 恢复后，可能会因为本地路由信息过旧而搞乱整个 cluster 路由，在 Redis Cluster 中使用 <strong>CLUSTERMSG_TYPE_UPDATE</strong> 类型消息对此进行处理。代码大致如下，</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">clusterProcessPacket</span><span class="hljs-params">(clusterLink *link)</span> </span>&#123;
+    ...
+    <span class="hljs-keyword">if</span> (sender &amp;&amp; dirty_slots) &#123;
+        <span class="hljs-keyword">int</span> j;
+
+        <span class="hljs-keyword">for</span> (j = <span class="hljs-number">0</span>; j &lt; CLUSTER_SLOTS; j++) &#123;
+            <span class="hljs-keyword">if</span> (bitmapTestBit(hdr-&gt;myslots,j)) &#123;
+                <span class="hljs-keyword">if</span> (server.cluster-&gt;slots[j] == sender ||
+                    server.cluster-&gt;slots[j] == <span class="hljs-literal">NULL</span>) <span class="hljs-keyword">continue</span>;
+
+                <span class="hljs-keyword">if</span> (server.cluster-&gt;slots[j]-&gt;configEpoch &gt; senderConfigEpoch) 
+                &#123;
+                    clusterSendUpdate(sender-&gt;link, server.cluster-&gt;slots[j]);
+                    <span class="hljs-keyword">break</span>;
+                &#125;
+            &#125;
+        &#125;
+    &#125;
+&#125;</code></pre></div><p>如果本地看到的 slot j 的所有者信息比 sender 声明的要新，那么，通知它去做更新。</p><div class="hljs"><pre><code class="hljs c"><span class="hljs-keyword">typedef</span> <span class="hljs-class"><span class="hljs-keyword">struct</span> &#123;</span>
+    <span class="hljs-keyword">uint64_t</span> configEpoch; <span class="hljs-comment">/* Config epoch of the specified instance. */</span>
+    <span class="hljs-keyword">char</span> nodename[CLUSTER_NAMELEN]; <span class="hljs-comment">/* Name of the slots owner. */</span>
+    <span class="hljs-keyword">unsigned</span> <span class="hljs-keyword">char</span> slots[CLUSTER_SLOTS/<span class="hljs-number">8</span>]; <span class="hljs-comment">/* Slots bitmap. */</span>
+&#125; clusterMsgDataUpdate;</code></pre></div><p><strong>CLUSTERMSG_TYPE_UPDATE</strong> 消息中会告诉对方，该 slot 应该属于谁。</p><p>在以上代码中，只是在检查到第一个 slot 信息出现 diff 时，发送 <strong>CLUSTERMSG_TYPE_UPDATE</strong> 消息，如果出现多个 slot 有不同的持有信息，那么需要多次信息交互。</p><hr><p>以上便是 Redis Cluster 中路由更新的所有情况。</p></div><hr><div><div class="post-metas mb-3"><div class="post-meta mr-3"><i class="iconfont icon-category"></i> <a class="hover-with-bg" href="/categories/%E6%BA%90%E7%A0%81%E7%B3%BB%E5%88%97/">源码系列</a></div><div class="post-meta"><i class="iconfont icon-tags"></i> <a class="hover-with-bg" href="/tags/redis/">redis</a></div></div><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p><div class="post-prevnext row"><article class="post-prev col-6"></article><article class="post-next col-6"><a href="/a4c4e01c.html"><span class="hidden-mobile">Redis Cluster availability 讨论</span> <span class="visible-mobile">下一篇</span> <i class="iconfont icon-arrowright"></i></a></article></div></div><article class="comments" id="comments"><div id="lv-container" data-id="city" data-uid="MTAyMC8zNjg1MS8xMzM4Nw"><script type="text/javascript">function loadLivere(){addScript("https://cdn-city.livere.com/js/embed.dist.js")}waitElementVisible("lv-container",loadLivere)</script><noscript>为正常使用来必力评论功能请允许 JavaScript 运行</noscript></div></article></article></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc"><p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p><div id="tocbot"></div></div></div></div></div></main><a id="scroll-top-button" href="#" role="button"><i class="iconfont icon-arrowup" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4><button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"><input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div><footer class="mt-5"><div class="text-center py-3"><div><a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a></div><div class="statistics"><span id="busuanzi_container_site_pv" style="display:none">总访问量 <span id="busuanzi_value_site_pv"></span> 次 </span><span id="busuanzi_container_site_uv" style="display:none">总访客数 <span id="busuanzi_value_site_uv"></span> 人</span></div></div></footer><script src="https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js"></script><script src="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/js/bootstrap.min.js"></script><script src="/js/debouncer.js"></script><script src="/js/main.js"></script><script src="/js/lazyload.js"></script><script defer src="https://cdn.staticfile.org/clipboard.js/2.0.6/clipboard.min.js"></script><script src="/js/clipboard-use.js"></script><script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><script src="https://cdn.staticfile.org/tocbot/4.11.1/tocbot.min.js"></script><script>$(document).ready(function(){var t=$("#board-ctn").offset().top;tocbot.init({tocSelector:"#tocbot",contentSelector:"#post-body",headingSelector:"h1,h2,h3,h4,h5,h6",linkClass:"tocbot-link",activeLinkClass:"tocbot-active-link",listClass:"tocbot-list",isCollapsedClass:"tocbot-is-collapsed",collapsibleClass:"tocbot-is-collapsible",collapseDepth:3,scrollSmooth:!0,headingsOffset:-t}),0<$(".toc-list-item").length&&$("#toc").css("visibility","visible")})</script><script src="https://cdn.staticfile.org/typed.js/2.0.11/typed.min.js"></script><script>var typed=new Typed("#subtitle",{strings:["  ","Redis Cluster 路由变更&nbsp;"],cursorChar:"|",typeSpeed:72,loop:!1});typed.stop(),$(document).ready(function(){$(".typed-cursor").addClass("h2"),typed.start()})</script><script src="https://cdn.staticfile.org/anchor-js/4.2.2/anchor.min.js"></script><script>anchors.options = {
+      placement: "right",
+      visible: "hover",
+      
+      icon: "§"
+      
+    };
+    var el = "h1,h2,h3,h4,h5,h6".split(",");
+    var res = [];
+    for (item of el) {
+      res.push(".markdown-body > " + item)
+    }
+    anchors.add(res.join(", "))</script><script src="/js/local-search.js"></script><script>var path="/local-search.xml",inputArea=document.querySelector("#local-search-input");inputArea.onclick=function(){searchFunc(path,"local-search-input","local-search-result"),this.onclick=null}</script><script src="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.js"></script><link rel="stylesheet" href="https://cdn.staticfile.org/fancybox/3.5.7/jquery.fancybox.min.css"><script>$("#post img:not(.no-zoom img, img[no-zoom]), img[zoom]").each(function(){var t=document.createElement("a");$(t).attr("data-fancybox","images"),$(t).attr("href",$(this).attr("src")),$(this).wrap(t)})</script></body></html>
