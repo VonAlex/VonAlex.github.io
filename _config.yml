@@ -108,7 +108,7 @@ theme: fluid
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repo: git@gitee.com:happencc/happencc.git
-  branch: master
-  name: happencc
+  repo: git@github.com:VonAlex/VonAlex.github.io.git
+  branch: main
+  name: VonAlex
   email: Ahappyhappen@163.com
