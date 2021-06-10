@@ -382,14 +382,14 @@
   </url>
   
   <url>
-    <loc>https://happencc.gitee.io/tags/git/</loc>
+    <loc>https://happencc.gitee.io/tags/gdb/</loc>
     <lastmod>2021-06-10</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>https://happencc.gitee.io/tags/gdb/</loc>
+    <loc>https://happencc.gitee.io/tags/git/</loc>
     <lastmod>2021-06-10</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -410,14 +410,14 @@
   </url>
   
   <url>
-    <loc>https://happencc.gitee.io/tags/python/</loc>
+    <loc>https://happencc.gitee.io/tags/tools/</loc>
     <lastmod>2021-06-10</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
-    <loc>https://happencc.gitee.io/tags/tools/</loc>
+    <loc>https://happencc.gitee.io/tags/python/</loc>
     <lastmod>2021-06-10</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
